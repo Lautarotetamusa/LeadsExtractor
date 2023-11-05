@@ -106,7 +106,7 @@ def get_lead_info(lead_id: str) -> object:
         "telefono_2": data["phone_list"][1],
         "email": data["lead_user"]["email"],
         "propiedad": {
-            "nombre": data["posting"]["title"],
+            "titulo": data["posting"]["title"],
             "link": "",
             "precio": data["posting"]["price"]["amount"],
             "ubicacion": data["posting"]["address"],
