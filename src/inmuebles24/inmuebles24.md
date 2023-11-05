@@ -9,10 +9,49 @@
   - No funciona, devuelve un código binario sin ningun sentido aparente. Si no le pasamos los headers nos dice que no estamos autorizados
 - [X] Hacer peticiones através de paginas intermedias.
 
-  - [X] Scraperapi.com
+  - [X] scraperapi.com ❌
+
+    - No pudimos nisiquiera obtener la data de la página principal, aun usando proxy resindenciales, headless browser y ubicacion en mx.
+  - [X] webscrapping.com
+
     - No funcionó
-  - [X] Webscrapping.com
-    - No funcionó
+  - [X] scraperant.com ❌
+
+    - [X] Hacer request https://www.inmuebles24.com sin la sesion abierta. ✅
+
+      * Sin utilizar proxy residencial ni headless browser option.
+    - [X] Request a la API con sesion iniciada. ❌
+
+      * El Browser fue detectado por Cloudflare aun con proxy residencial en mexico y headless browser.
+    - [X] Loggearse con usuario y contraseña, para verificar si al obtener los tokens através de la scraperant. ❌
+
+      * Fue detectado por el antibot de cloudflare aun usando proxy residencial y headless browser.
+    - [ ] Brightdata
+      El scraping browser funciona muy bien y podemos acceder a la pagina correctamente, sin embargo tenemos problemas a la hora de logearnos.
+
+      - [X] Obtener la pagina principal de inmuebles24. ✅
+      - [X] Loggearse en el sitio ❌
+        * El browser de brighdata nos tira el siguiente error:
+          selenium.common.exceptions.JavascriptException: Message: javascript error: Forbidden action: password typing is not allowed	(Session info: chrome=118.0.5993.88)
+          Al parecer brightdata no permite ingresar una contraseña através de su web browser.
+
+    - [] ZenRows
+      - [X] Obtener pagina principal. ✅
+          - Pudimos obtener la pagina principal utilizando JS rendering y AI antibot.
+	  - [X] Obtener panel/interesados ❌
+    	  - Obtenemos la pagina de cloudflare 
+  	  - [X] Hacer una peticion directamente a la API. ✅
+    	  - En principio funciono. Logramos obtener el archivo JSON con la data necesaria.
+    	  - Usamos los siguientes parametros
+          ```json
+		  {
+			"js_render": "true",
+			"antibot": "true",
+			"premium_proxy":"true",
+			"proxy_country":"mx"
+		  }
+          ``` 
+
 - [X] Intentar encontrar la IP original del sitio que está detrás de CloudFlare
 
   - Usamos diversos metodos para intentar encontrar la ip pero no tuvimos exito.
