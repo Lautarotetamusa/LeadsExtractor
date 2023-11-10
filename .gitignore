@@ -1,3 +1,11 @@
 .venv/
 __pycache__/
 session/
+.env
+token.json
+credentials.json
+
+#Headers y cookies
+src/inmuebles24/params.py
+params.json
+params.py
