@@ -1,7 +1,7 @@
 import spintax
 import re
 
-msg = """Hola [nombre], {¿como estas?|¿Cómo te va?}, {ya estamos revisando tu solicitud|sobre tu solicitud}, la propiedad [titulo] ubicada en [ubicacion] si está disponible, {te comparto el whatsapp de nuestro asesor asignado|con gusto te envio el whatsapp de nuestro asesor}, {Brenda|Diego|Rafa}, con mucho gusto te comparte la información  —-> {3319466986|3345898765|335698786}"""
+msg = """Hola [nombre], {¿como estas?|¿Cómo te va?}, {ya estamos revisando tu solicitud|sobre tu solicitud}, la propiedad [titulo] ubicada en [ubicacion] si está disponible, {te comparto el whatsapp de nuestro asesor asignado|con gusto te envio el whatsapp de nuestro asesor}, Brenda, con mucho gusto te comparte la información  —-> 3345898765"""
 
 def get_fields(msg):
     #Match all the fields names

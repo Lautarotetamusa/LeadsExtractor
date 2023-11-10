@@ -1,12 +1,13 @@
-import sys
-import os
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
+import __init__
 
+from time import gmtime, strftime
 import requests
 import json
-from src.message import generate_mensage
+import uuid
+
+from message import generate_mensage
+from logger import Logger
+from sheets import Sheet
 
 api_url = "https://api.proppit.com"
 
@@ -16,7 +17,10 @@ cookies = {
     "authToken": auth_token
 }
 
-def send_message(lead_id, msg):
+logger = Logger("lamudi.com")
+
+def send_email_message(lead_id, msg):
+    logger.debug(f"Enviando mensaje por email a lead {lead_id}")
     msg_url = f"{api_url}/leads/{lead_id}/emails"
 
     data = {
@@ -26,22 +30,55 @@ def send_message(lead_id, msg):
 
     res = requests.post(msg_url, cookies=cookies, json=data)
     if (res.status_code != 201):
-        print("ERROR: ", res.status_code)
-        print(res.text)
+        logger.error(res.status_code)
+        logger.error(res.text)
         return None
 
-    print(lead_id, "Mensaje enviado correctamente")
+    logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
+
+def send_message(lead_id, msg):
+    logger.debug(f"Enviando mensaje a lead {lead_id}")
+    #Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
+    msg_id = str(uuid.uuid4())
+    msg_url = f"{api_url}/leads/{lead_id}/notes/{msg_id}"
+
+    data = {
+        "id": msg_id,
+        "message": msg
+    }
+
+    res = requests.post(msg_url, cookies=cookies, json=data)
+    if (res.status_code != 201):
+        logger.error(res.status_code)
+        logger.error(res.text)
+        return None
+
+    logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
+
+def make_contacted(lead_id):
+    logger.debug(f"Marcando como contactacto a lead {lead_id}")
+    read_url = f"{api_url}/leads/{lead_id}/status"
+
+    data = {
+        "status": "contacted"
+    }
+
+    res = requests.put(read_url, cookies=cookies, json=data)
+    if (res.status_code != 200):
+        logger.error(res.status_code)
+        logger.error(res.text)
+        return None
+
+    logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def get_lead_property(lead_id):
     property_url = f"{api_url}/leads/{lead_id}/properties"
 
     res = requests.get(property_url, cookies=cookies)
     if (res.status_code != 200):
-        print("ERROR: ", res.status_code)
-        print(res.text)
+        logger.error(res.status_code)
+        logger.error(res.text)
         return None
-
-    print(res.cookies)
 
     props = res.json()["data"]
     formatted_props = []
@@ -62,38 +99,39 @@ def get_lead_info(lead):
     lead_info = {
         "id": lead["id"],
         "fuente": "Lamudi",
+        "fecha": strftime('%d/%m/%Y', gmtime()),
         "nombre": lead["name"],
-        "link": f"{api_url}/leads/{lead['id']}",
-        "telefono_1": lead['phone'],
+        "link": f"https://proppit.com/leads/{lead['id']}",
+        "telefono": lead['phone'],
         "telefono_2": "",
         "email": lead['email'],
         "propiedad": get_lead_property(lead["id"])[0],
-        #"busquedas": {
-        #    "zonas": [i["name"] for i in busqueda["searched_locations"]["streets"]],
-        #    "tipo": busqueda["lead_info"]["search_type"]["type"],
-        #    "total_area": busqueda["property_features"]["total_area_xm2"]["min"] + " " + busqueda["property_features"]["total_area_xm2"]["max"],
-        #    "covered_area": busqueda["property_features"]["covered_area_xm2"]["min"] + " " + busqueda["property_features"]["covered_area_xm2"]["max"],
-        #    "banios": busqueda["property_features"]["baths"]["min"] + " " + busqueda["property_features"]["baths"]["max"],
-        #    "recamaras": busqueda["property_features"]["bedrooms"]["min"] + " " + busqueda["property_features"]["bedrooms"]["max"],
-        #    "presupuesto": busqueda["lead_info"]["price"]["min"] + " " + busqueda["lead_info"]["price"]["max"],
-        #    "cantidad_anuncios": busqueda["lead_info"]["views"],
-        #    "contactos": busqueda["lead_info"]["contacts"],
-        #    "inicio_busqueda": busqueda["lead_info"]["started_search_days"] 
-        #}
+        "busquedas": {
+            "zonas": "",
+            "tipo": "",
+            "total_area": "",
+            "covered_area": "",
+            "banios": "",
+            "recamaras": "",
+            "presupuesto": "",
+            "cantidad_anuncios": "",
+            "contactos": "",
+            "inicio_busqueda": "" 
+        }
     }
     return lead_info
 
-def get_leads(max=25):
+def get_leads(max=-1):
     status = "new lead" #Filtramos solamente los leads nuevos
     page = 1
     limit = 25
     url = f"{api_url}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
-    print(url)
+    logger.debug(f"Extrayendo leads")
     res = requests.get(url, cookies=cookies)
 
     if (res.status_code != 200):
-        print("ERROR: ", res.status_code)
-        print(res.text)
+        logger.error(res.status_code)
+        logger.error(res.text)
         return None
     data = res.json()["data"]
 
@@ -102,25 +140,27 @@ def get_leads(max=25):
 
     leads = []
     while (len(leads) < total and (len(leads) < max or max == -1)):
-        print("len: ", len(leads))
+        logger.debug(f"len: {len(leads)}")
         leads += data["rows"]
         page += 1
 
         url = f"{api_url}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
-        print(url)
+        logger.debug(url)
         res = requests.get(url, cookies=cookies)
 
         if (res.status_code != 200):
-            print("ERROR: ", res.status_code)
-            print(res.text)
+            logger.error(res.status_code)
+            logger.error(res.text)
             return None
         data = res.json()["data"]
 
-    print("Se encontraron", len(leads), "nuevos Leads")
+    logger.success(f"Se encontraron {len(leads)} nuevos Leads")
     return leads
 
 def main():
     leads = get_leads()
+    sheet = Sheet(logger)
+    headers = sheet.get("A2:Z2")[0]
 
     leads_info = []
     for lead_res in leads:
@@ -128,19 +168,26 @@ def main():
 
         msg = generate_mensage(lead)
         send_message(lead["id"], msg)
+        lead["message"] = msg
+        make_contacted(lead["id"])
 
         leads_info.append(lead)
 
-    with open('lamudi.json', 'r') as f:
+        #Save the lead in the sheet
+        row_lead = sheet.map_lead(lead, headers)
+        sheet.write([row_lead])
+
+    with open('./lamudi.json', 'w') as f:
         json.dump(leads_info, f)
 
 if __name__ == "__main__":
-    leads = get_leads()
-    lead = get_lead_info(leads[0])
+    main()
+    #send_message("4156ae85-36d0-4981-9e2d-fb1c0c08f750", "Hola muy buenos dias como estas")
+    #make_contacted("eab4a707-7585-4725-b447-c7f18f1d23af")
 
-    print(json.dumps(lead, indent=4))
+    #mandar email a uno sin email
+    #send_email_message("4156ae85-36d0-4981-9e2d-fb1c0c08f750", "Hola muy buenos dias")
+    #{"error":{"message":"The parameters passed to the API were invalid. Check your inputs!\n\nto parameter is missing"}}
 
-    msg = generate_mensage(lead)
-    print(msg)
-
-    send_message(lead["id"], msg)
+    #mandar email a uno con email
+    #send_email_message("eab4a707-7585-4725-b447-c7f18f1d23af", "Hola muy buenos dias")

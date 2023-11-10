@@ -30,7 +30,7 @@
       El scraping browser funciona muy bien y podemos acceder a la pagina correctamente, sin embargo tenemos problemas a la hora de logearnos.
 
       - [X] Obtener la pagina principal de inmuebles24. ✅
-      - [X] Loggearse en el sitio ❌
+      - [X] Loggearse en el sitio ❌QQ
         * El browser de brighdata nos tira el siguiente error:
           selenium.common.exceptions.JavascriptException: Message: javascript error: Forbidden action: password typing is not allowed	(Session info: chrome=118.0.5993.88)
           Al parecer brightdata no permite ingresar una contraseña através de su web browser.
