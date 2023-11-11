@@ -13,6 +13,7 @@ from sheets import Sheet
 #dotenv_path = Path('../../.env')
 #print(dotenv_path)
 load_dotenv()
+
 logger = Logger("casasyterrenos.com")
 
 DATE_FORMAT = "%d/%m/%Y"
@@ -81,11 +82,14 @@ def get_access_token(username: str, password: str, session="session"):
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
     login_url = "https://panel-pro.casasyterrenos.com/login"
     panel_url = "https://panel-pro.casasyterrenos.com/contacts"
     options = Options()
     options.add_argument(f"--user-data-dir={session}") #Session
+    options.add_argument(f"--headless") #Session
+    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
 
     driver = webdriver.Chrome(options=options)
     access_token = None

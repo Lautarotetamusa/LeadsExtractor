@@ -1,0 +1,16 @@
+version: "3.7"
+services:
+  app:
+    #depends_on: 
+    #  - selenium
+    build: .
+    container_name: leads_extractor
+    env_file:
+      - .env
+    volumes:
+      - ./src/:/app/src
+
+  #selenium:
+  #  image: selenium/standalone-chrome
+  #  ports:
+  #    - 4444:4444

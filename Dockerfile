@@ -1,16 +1,22 @@
 FROM python:alpine
+ENV PYTHONUNBUFFERED=1
 
 RUN set -x \
     && apk add --no-cache supercronic shadow
+RUN apk update
+RUN apk add chromium chromium-chromedriver xvfb
 
 WORKDIR app
 
-COPY src/ .
-COPY requeriments.txt .
-COPY crontab .
-#COPY crontab /etc/crontabs/root
+COPY src/ src/
+COPY requeriments.txt src/
 
-RUN pip install -r requeriments.txt
+COPY crontab.sh .
+COPY credentials.json .
+COPY token.json .
+COPY src/start_xvfb.sh .
+COPY mapping.json .
 
-CMD ["supercronic", "crontab"]
-#CMD ["crond", "-f", "-d", "8"]
+RUN pip install -r src/requeriments.txt
+
+CMD ["supercronic", "crontab.sh"]
