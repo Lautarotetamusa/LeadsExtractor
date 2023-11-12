@@ -14,12 +14,12 @@
 ## [Lamudi]()
 
 - [X] Fase de investigacion y testeo
-- [ ] Fase de desarrollo
+- [X] Fase de desarrollo
 - [X] Primera corrida
 
 ### To do:
 
-- [ ] Detectar token vencido y volver a loggearnos
+- [X] Detectar token vencido y volver a loggearnos
 
 ## [Casas y Terrenos]()
 
