@@ -7,9 +7,9 @@
 
 ### To do:
 
-[ ] Enviar mensajes
-[ ] inicio de sesion
-[ ] Detectar token vencido y volver a loggearnos
+- [ ] Enviar mensajes
+- [ ] inicio de sesion
+- [ ] Detectar token vencido y volver a loggearnos
 
 ## [Lamudi]()
 

@@ -20,7 +20,6 @@ CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
 PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
 USERNAME=os.getenv('CASASYTERRENOS_USERNAME')
 PASSWORD=os.getenv('CASASYTERRENOS_PASSWORD')
-logger.debug(f"params file: {PARAMS_FILE}")
 
 if (not os.path.exists(PARAMS_FILE)):
     logger.error("El archivo params.json no existe")

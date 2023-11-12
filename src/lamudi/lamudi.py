@@ -1,38 +1,97 @@
-#import __init__
-
 from time import gmtime, strftime
+from dotenv import load_dotenv
 import requests
 import json
 import uuid
+import os
 
 from src.message import generate_mensage
 from src.logger import Logger
 from src.sheets import Sheet
 
-api_url = "https://api.proppit.com"
-
-auth_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjp7ImlkIjoiZmFmYjA4NTEtZjlkOC00MGNkLTg0N2QtZDBjNzA2YzE2YjkxIiwicHVibGlzaGVySWQiOiJkODk3Y2RjYS03NjliLTQyNWItYmM5My0yYzNjM2Y4YjU2MjkiLCJhY2NlcHRlZFRlcm1zQW5kQ29uZGl0aW9ucyI6dHJ1ZSwiZW1haWwiOiJyZWJvcmFteEBnbWFpbC5jb20iLCJsYXN0UGFzc3dvcmRNb2RpZmljYXRpb25EYXRlIjoxNjg2NjA5MzQ5fSwiZXhwIjoxNjk5OTIxNDcxfQ.b5TLPFlEzti4XZRDzPYePnHAMO_GXPC1b9rjzO351v0"
-
-cookies = {
-    "authToken": auth_token
-}
-
+load_dotenv()
 logger = Logger("lamudi.com")
+
+API_URL = "https://api.proppit.com"
+
+USERNAME=os.getenv('LAMUDI_USERNAME')
+PASSWORD=os.getenv('LAMUDI_PASSWORD')
+
+PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
+
+if (not os.path.exists(PARAMS_FILE)):
+    logger.error("El archivo params.json no existe")
+    with open(PARAMS_FILE, "a") as f:
+        json.dump({
+            "authToken": ""
+        }, f, indent=4)
+
+with open(PARAMS_FILE, "r") as f:
+    COOKIES = json.load(f)
+
+# Esta funcion realiza una peticion HTTP através de la libreria requests
+# Cuando el status_code es == 401 significa que el token de acceso a la API expiro, por
+# lo que deberemos llamar a la funcion login()
+def make_request(url, method='GET', **kwargs):
+    status_code = 401
+    while status_code == 401:
+        # Define los métodos HTTP permitidos
+        allowed_methods = {
+            'GET': requests.get,
+            'POST': requests.post,
+            'PUT': requests.put
+        }
+
+        if method not in allowed_methods:
+            logger.error(f"Método HTTP no permitido: {method}")
+            return None
+
+        # Realiza la solicitud con el método especificado y los parámetros adicionales
+        res = allowed_methods[method](url, **kwargs)
+        logger.debug(f"{method} {url}")
+
+        status_code = res.status_code
+
+        # Verifica el código de estado de la respuesta
+        if res.status_code == 401:
+            logger.error("El token de acceso expiro")
+            login()
+        elif 200 <= res.status_code < 300:
+            return res.json()
+        else:
+            logger.error(f"Error request to: {url}")
+            logger.error(res.status_code)
+            logger.error(res.text)
+            return None
+
+def login():
+    global COOKIES
+    
+    logger.debug("Iniciando sesion")
+    login_url = f"{API_URL}/login"
+
+    data = {
+        "email": USERNAME,
+        "password": PASSWORD
+    }
+    res = make_request(login_url, json=data)
+    
+    COOKIES = {
+        "authToken": res.cookies["authToken"]
+    }
+    with open(PARAMS_FILE, "w") as f:
+        json.dump(COOKIES, f, indent=4)
+    logger.success("Sesion iniciada con exito")
 
 def send_email_message(lead_id, msg):
     logger.debug(f"Enviando mensaje por email a lead {lead_id}")
-    msg_url = f"{api_url}/leads/{lead_id}/emails"
+    msg_url = f"{API_URL}/leads/{lead_id}/emails"
 
     data = {
         "leadId": lead_id,
         "message": msg
     }
-
-    res = requests.post(msg_url, cookies=cookies, json=data)
-    if (res.status_code != 201):
-        logger.error(res.status_code)
-        logger.error(res.text)
-        return None
+    res = make_request(msg_url, 'POST', json=data)
 
     logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 
@@ -40,47 +99,31 @@ def send_message(lead_id, msg):
     logger.debug(f"Enviando mensaje a lead {lead_id}")
     #Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
     msg_id = str(uuid.uuid4())
-    msg_url = f"{api_url}/leads/{lead_id}/notes/{msg_id}"
+    msg_url = f"{API_URL}/leads/{lead_id}/notes/{msg_id}"
 
     data = {
         "id": msg_id,
         "message": msg
     }
-
-    res = requests.post(msg_url, cookies=cookies, json=data)
-    if (res.status_code != 201):
-        logger.error(res.status_code)
-        logger.error(res.text)
-        return None
+    res = make_request(msg_url, 'POST', json=data)
 
     logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 
 def make_contacted(lead_id):
     logger.debug(f"Marcando como contactacto a lead {lead_id}")
-    read_url = f"{api_url}/leads/{lead_id}/status"
+    read_url = f"{API_URL}/leads/{lead_id}/status"
 
     data = {
         "status": "contacted"
     }
-
-    res = requests.put(read_url, cookies=cookies, json=data)
-    if (res.status_code != 200):
-        logger.error(res.status_code)
-        logger.error(res.text)
-        return None
+    res = make_request(read_url, 'PUT', json=data)
 
     logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def get_lead_property(lead_id):
-    property_url = f"{api_url}/leads/{lead_id}/properties"
+    property_url = f"{API_URL}/leads/{lead_id}/properties"
+    props = make_request(property_url)["data"]
 
-    res = requests.get(property_url, cookies=cookies)
-    if (res.status_code != 200):
-        logger.error(res.status_code)
-        logger.error(res.text)
-        return None
-
-    props = res.json()["data"]
     formatted_props = []
     for p in props:
         formatted_props.append({
@@ -125,18 +168,13 @@ def get_leads(max=-1):
     status = "new lead" #Filtramos solamente los leads nuevos
     page = 1
     limit = 25
-    url = f"{api_url}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+    url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
     logger.debug(f"Extrayendo leads")
-    res = requests.get(url, cookies=cookies)
 
-    if (res.status_code != 200):
-        logger.error(res.status_code)
-        logger.error(res.text)
-        return None
-    data = res.json()["data"]
+    data = make_request(url, 'GET')["data"]
 
     total = data["totalFilteredRows"]
-    print("total: ", total)
+    logger.debug(f"total: {total}")
 
     leads = []
     while (len(leads) < total and (len(leads) < max or max == -1)):
@@ -144,15 +182,9 @@ def get_leads(max=-1):
         leads += data["rows"]
         page += 1
 
-        url = f"{api_url}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+        url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
         logger.debug(url)
-        res = requests.get(url, cookies=cookies)
-
-        if (res.status_code != 200):
-            logger.error(res.status_code)
-            logger.error(res.text)
-            return None
-        data = res.json()["data"]
+        data = make_request(url, 'GET')["data"]
 
     logger.success(f"Se encontraron {len(leads)} nuevos Leads")
     return leads
@@ -177,11 +209,9 @@ def main():
         row_lead = sheet.map_lead(lead, headers)
         sheet.write([row_lead])
 
-    with open('./lamudi.json', 'w') as f:
-        json.dump(leads_info, f)
-
 if __name__ == "__main__":
     main()
+    #login()
     #send_message("4156ae85-36d0-4981-9e2d-fb1c0c08f750", "Hola muy buenos dias como estas")
     #make_contacted("eab4a707-7585-4725-b447-c7f18f1d23af")
 
