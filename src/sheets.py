@@ -9,7 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from logger import Logger
+from src.logger import Logger
 
 import os
 from dotenv import load_dotenv

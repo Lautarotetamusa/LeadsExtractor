@@ -7,19 +7,19 @@
 
 ### To do:
 
-* Enviar mensajes
-* inicio de sesion
-* Detectar token vencido y volver a loggearnos
+[ ] Enviar mensajes
+[ ] inicio de sesion
+[ ] Detectar token vencido y volver a loggearnos
 
 ## [Lamudi]()
 
 - [X] Fase de investigacion y testeo
 - [ ] Fase de desarrollo
-- [ ] Primera corrida
+- [X] Primera corrida
 
 ### To do:
 
-* Detectar token vencido y volver a loggearnos
+- [ ] Detectar token vencido y volver a loggearnos
 
 ## [Casas y Terrenos]()
 
@@ -29,16 +29,16 @@
 
 ### To do:
 
-- Detectar token vencido y volver a loggearnos (Listo)
+- [X] Detectar token vencido y volver a loggearnos
 
 ## [Propiedades.com]()
 - [X] Fase de investigacion
 - [X] Fase de desarrollo
-- [] Primera corrida
+- [X] Primera corrida
 
 ### To do:
 
-- Detectar token vencido y volver a loggearnos
+- [ ] Detectar token vencido y volver a loggearnos
 
 # El objecto lead, estructura
 
@@ -133,8 +133,34 @@ Cambiando `0 10-18/4 * * *` podemos programar los scrapers cuando querramos.
 
 ## Buildear el contenedor
 
-   `docker build --rm -t lead_extractor .`
+   `docker compose build`
 
 ## Ejecutar el contenedor
 
- `docker run -it --rm lead_extractor`
+ `docker compose up -d`
+
+## Detener el contenedor
+
+ `docker compose stop`
+
+## Ejecutar algun scraper en particular sin esperar
+
+ `docker compose run app python main.py <PORTAL>`
+ PORTALS:
+  - casasyterrenos
+  - propiedades
+  - lamudi
+
+## Instalacion sin docker
+  `python -m venv .venv`
+
+  `source .venv/bin/activate`
+
+  `pip install -r requeriments.txt`
+
+### Ejecutar algun scraper en particular sin esperar
+   `python main.py <PORTAL>`
+    PORTALS:
+    - casasyterrenos
+    - propiedades
+    - lamudi
