@@ -1,6 +1,6 @@
 from time import gmtime, strftime
 from dotenv import load_dotenv
-import requests
+#import requests
 import json
 import uuid
 import os
@@ -8,6 +8,7 @@ import os
 from src.message import generate_mensage
 from src.logger import Logger
 from src.sheets import Sheet
+from src.make_requests import Request
 
 load_dotenv()
 logger = Logger("lamudi.com")
@@ -29,44 +30,7 @@ if (not os.path.exists(PARAMS_FILE)):
 with open(PARAMS_FILE, "r") as f:
     COOKIES = json.load(f)
 
-# Esta funcion realiza una peticion HTTP através de la libreria requests
-# Cuando el status_code es == 401 significa que el token de acceso a la API expiro, por
-# lo que deberemos llamar a la funcion login()
-def make_request(url, method='GET', **kwargs):
-    status_code = 401
-    while status_code == 401:
-        # Define los métodos HTTP permitidos
-        allowed_methods = {
-            'GET': requests.get,
-            'POST': requests.post,
-            'PUT': requests.put
-        }
-
-        if method not in allowed_methods:
-            logger.error(f"Método HTTP no permitido: {method}")
-            return None
-
-        # Realiza la solicitud con el método especificado y los parámetros adicionales
-        res = allowed_methods[method](url, **kwargs)
-        logger.debug(f"{method} {url}")
-
-        status_code = res.status_code
-
-        # Verifica el código de estado de la respuesta
-        if res.status_code == 401:
-            logger.error("El token de acceso expiro")
-            login()
-        elif 200 <= res.status_code < 300:
-            return res.json()
-        else:
-            logger.error(f"Error request to: {url}")
-            logger.error(res.status_code)
-            logger.error(res.text)
-            return None
-
 def login():
-    global COOKIES
-    
     logger.debug("Iniciando sesion")
     login_url = f"{API_URL}/login"
 
@@ -74,14 +38,16 @@ def login():
         "email": USERNAME,
         "password": PASSWORD
     }
-    res = make_request(login_url, json=data)
+    res = request.make(login_url, 'POST', json=data)
     
-    COOKIES = {
+    request.cookies = {
         "authToken": res.cookies["authToken"]
     }
     with open(PARAMS_FILE, "w") as f:
-        json.dump(COOKIES, f, indent=4)
+        json.dump(request.cookies, f, indent=4)
     logger.success("Sesion iniciada con exito")
+
+request = Request(COOKIES, None, logger, login)
 
 def send_email_message(lead_id, msg):
     logger.debug(f"Enviando mensaje por email a lead {lead_id}")
@@ -91,7 +57,7 @@ def send_email_message(lead_id, msg):
         "leadId": lead_id,
         "message": msg
     }
-    res = make_request(msg_url, 'POST', json=data)
+    res = request.make(msg_url, 'POST', json=data)
 
     logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 
@@ -105,7 +71,7 @@ def send_message(lead_id, msg):
         "id": msg_id,
         "message": msg
     }
-    res = make_request(msg_url, 'POST', json=data)
+    res = request.make(msg_url, 'POST', json=data)
 
     logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 
@@ -116,13 +82,13 @@ def make_contacted(lead_id):
     data = {
         "status": "contacted"
     }
-    res = make_request(read_url, 'PUT', json=data)
+    res = request.make(read_url, 'PUT', json=data)
 
     logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def get_lead_property(lead_id):
     property_url = f"{API_URL}/leads/{lead_id}/properties"
-    props = make_request(property_url)["data"]
+    props = request.make(property_url).json().get("data")
 
     formatted_props = []
     for p in props:
@@ -171,7 +137,7 @@ def get_leads(max=-1):
     url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
     logger.debug(f"Extrayendo leads")
 
-    data = make_request(url, 'GET')["data"]
+    data = request.make(url, 'GET').json()["data"]
 
     total = data["totalFilteredRows"]
     logger.debug(f"total: {total}")
@@ -184,7 +150,7 @@ def get_leads(max=-1):
 
         url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
         logger.debug(url)
-        data = make_request(url, 'GET')["data"]
+        data = request.make(url, 'GET').json()["data"]
 
     logger.success(f"Se encontraron {len(leads)} nuevos Leads")
     return leads
