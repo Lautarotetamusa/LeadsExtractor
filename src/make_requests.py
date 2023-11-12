@@ -17,7 +17,8 @@ class Request():
             allowed_methods = {
                 'GET': requests.get,
                 'POST': requests.post,
-                'PUT': requests.put
+                'PUT': requests.put,
+                'PATCH': requests.patch
             }
 
             if method not in allowed_methods:
@@ -33,6 +34,7 @@ class Request():
             # Verifica el código de estado de la respuesta
             if res.status_code == 401:
                 self.logger.error("El token de acceso expiro")
+                self.logger.debug(res.text)
                 self.login_method()
             elif 200 <= res.status_code < 300:
                 return res

@@ -1,6 +1,3 @@
-#import __init__
-
-import requests
 import json
 import os
 from dotenv import load_dotenv
@@ -9,6 +6,7 @@ from datetime import datetime
 
 from src.logger import Logger
 from src.sheets import Sheet
+from src.make_requests import Request
 
 load_dotenv()
 
@@ -70,9 +68,7 @@ def extract_lead_info(data: object) -> object:
 # Obtener el access token necesario para las requests posteriores
 # Si la sesion no esta iniciada, la iniciamos.
 # Si la sesión ya está iniciada, generamos el access tokens
-def get_access_token(username: str, password: str, session="session"):
-    global HEADERS
-
+def get_access_token(session="session"):
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     from selenium.webdriver.common.by import By
@@ -106,15 +102,15 @@ def get_access_token(username: str, password: str, session="session"):
             password_input = driver.find_element(By.XPATH, "//input[@name='password']")
             send_btn = driver.find_element(By.XPATH, "//button[@data-splitbee-event='log-in']")
 
-            username_input.send_keys(username)
-            password_input.send_keys(password)
+            username_input.send_keys(USERNAME)
+            password_input.send_keys(PASSWORD)
             send_btn.click()
 
             WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "/html/body/div/div/div/div[1]/div/nav/a")))
             logger.success("Sesion iniciada con exito")
 
         logger.debug("Obteniendo access token")
-        access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{username}.idToken');")
+        access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{USERNAME}.idToken');")
         logger.success("Access token obtenido con exito")
         logger.success(access_token)
     except Exception as e:
@@ -123,46 +119,13 @@ def get_access_token(username: str, password: str, session="session"):
     finally:
         driver.quit()
 
-    HEADERS = {
+    request.headers = {
         "Authorization": f"Bearer {access_token}"
     }
     with open(PARAMS_FILE, "w") as f:
-        json.dump(HEADERS, f, indent=4)
+        json.dump(request.headers, f, indent=4)
 
-def get_data(url) -> object:
-    res = requests.get(url, headers=HEADERS)
-    if (res.status_code != 200):
-        if (res.status_code == 401):
-            logger.error("El token de acceso expiro")
-            get_access_token(USERNAME, PASSWORD)
-            return None
-        else: 
-            logger.error(res.status_code)
-            logger.error(res.text)
-            return None
-    return res.json()
-
-def get_leads(page=1):
-    logger.debug(f"Extrayendo leads")
-    status = "1" #Filtramos solamente los leads nuevos
-    leads = []
-    first = True
-    url = f"{API_URL}/list_contact/?page={page}&status={status}"
-
-    while first == True or url != None:
-        logger.debug(url)
-
-        data = get_data(url)
-        if data == None: return None
-
-        url = data["next"]
-
-        leads += data["results"]
-        logger.debug(f"len: {len(leads)}")
-        first = False
-
-    logger.success(f"Se encontraron {len(leads)} nuevos Leads")
-    return leads
+request = Request(None, HEADERS, logger, get_access_token)
 
 def make_contacted(lead_id):
     logger.debug(f"Marcando como contactacto a lead {lead_id}")
@@ -173,13 +136,9 @@ def make_contacted(lead_id):
         "status": 2, # 2 -> Contactado por correo
         "status_description": "Correo"
     }
-
-    res = requests.patch(url, headers=HEADERS, data=data)
-    if (res.status_code != 200):
-        logger.error(res.status_code)
-        logger.error(res.text)
-    else:
-        logger.success(f"Se contacto correctamente a lead {lead_id}")
+    res = request.make(url, 'PATCH', data=data)
+    
+    logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def main():
     sheet = Sheet(logger)
@@ -193,10 +152,7 @@ def main():
 
     while first == True or url != None:
         leads = []
-        logger.debug(url)
-
-        data = get_data(url)
-        if data == None: return None
+        data = request.make(url).json()
 
         url = data["next"]
         total = data["count"]
