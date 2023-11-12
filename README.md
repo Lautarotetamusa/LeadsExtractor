@@ -15,6 +15,7 @@
 
 - [X] Fase de investigacion y testeo
 - [ ] Fase de desarrollo
+- [ ] Primera corrida
 
 ### To do:
 
@@ -24,10 +25,20 @@
 
 - [X] Fase de investigacion
 - [X] Fase de desarrollo
+- [X] Primera corrida
 
 ### To do:
 
 - Detectar token vencido y volver a loggearnos (Listo)
+
+## [Propiedades.com]()
+- [X] Fase de investigacion
+- [X] Fase de desarrollo
+- [] Primera corrida
+
+### To do:
+
+- Detectar token vencido y volver a loggearnos
 
 # El objecto lead, estructura
 

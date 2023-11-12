@@ -1,13 +1,13 @@
-import __init__
+#import __init__
 
 from time import gmtime, strftime
 import requests
 import json
 import uuid
 
-from message import generate_mensage
-from logger import Logger
-from sheets import Sheet
+from src.message import generate_mensage
+from src.logger import Logger
+from src.sheets import Sheet
 
 api_url = "https://api.proppit.com"
 

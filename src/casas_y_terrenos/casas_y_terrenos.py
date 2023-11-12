@@ -1,4 +1,4 @@
-import __init__
+#import __init__
 
 import requests
 import json
@@ -7,11 +7,9 @@ from dotenv import load_dotenv
 from time import gmtime, strftime
 from datetime import datetime
 
-from logger import Logger
-from sheets import Sheet
+from src.logger import Logger
+from src.sheets import Sheet
 
-#dotenv_path = Path('../../.env')
-#print(dotenv_path)
 load_dotenv()
 
 logger = Logger("casasyterrenos.com")
