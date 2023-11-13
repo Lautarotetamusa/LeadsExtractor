@@ -1,57 +1,46 @@
-import __init__
-
-import json
-from extractor import get_req, post_req
-import requests
-from logger import Logger
-from sheets import Sheet
 from time import gmtime, strftime
+from datetime import datetime
+import requests
+import json
+
+from src.message import generate_mensage
+from .extractor import get_req, post_req
+from src.logger import Logger
+from src.sheets import Sheet
+
+from .params import cookies, headers
+
+DATE_FORMAT = "%d/%m/%Y"
+SITE_URL = "https://www.inmuebles24.com/"
 
 logger = Logger("inmuebles24.com")
 
-site_url = "https://www.inmuebles24.com/"
-
 def login(user, password):
-	login_url = "https://www.inmuebles24.com/login_login.ajax"
+	login_url = f"{SITE_URL}/login_login.ajax"
 
 	data = {
 		"email": user,
 		"password": password,
 		"recordarme": "true",
 		"homeSeeker": "true",
-		"urlActual": "https://www.inmuebles24.com"
+		"urlActual": SITE_URL
 	}
 
-	res = post_req(login_url, data)
+	res = post_req(login_url, data, logger)
 	print(res.text)
 	print(res.headers)
 	return res
 
-
-# This functions get all the unreaded leads
-def get_leads():
-	logger.debug("Comenzando a extraer...")
-	offset = 0
-	leads_url = f"{site_url}leads-api/publisher/leads?offset={offset}&limit=20&spam=false&status=nondiscarded&sort=last_activity"
-
-	res = get_req(leads_url)
-	if res == None:
-		logger.error("No se encontraron leads")
-		return []
-
-	raw_leads = res.json()["result"]
-	logger.success(f"Se encontraron {len(raw_leads)} nuevos leads")
-	return raw_leads
-
 # Get the information about the searchers of the lead
 def get_busqueda_info(lead_id):
 	logger.debug("Extrayendo la informacion de busqueda del lead: "+lead_id)
-	busqueda_url = f"{site_url}leads-api/publisher/contact/{lead_id}/user-profile"
-	res = get_req(busqueda_url)
+	busqueda_url = f"{SITE_URL}leads-api/publisher/contact/{lead_id}/user-profile"
+	res = get_req(busqueda_url, logger)
 	if res == None:
 		logger.error("No se pudo obtener la informacion de busqueda para el lead: "+lead_id)
 		return None
 	try:
+		logger.success("Informacion de busqueda extraida con exito")
 		return res.json()
 	except requests.exceptions.JSONDecodeError as e:
 		logger.error(f"El lead {lead_id} no tiene informacion de busqueda")
@@ -92,11 +81,13 @@ def extract_lead_info(data: object) -> object:
 	busqueda = extract_busqueda_info(raw_busqueda)
 	
 	lead_info = {
+		"id": lead_id,
 		"fuente": "Inmuebles24",
-		"fecha": strftime('%d/%m/%Y', gmtime()),
+		"fecha_lead": datetime.strptime(data["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
+		"fecha": strftime(DATE_FORMAT, gmtime()),
 		"nombre": data["lead_user"]["name"],
-		"link": f"{site_url}panel/interesados/{lead_id}",
-		"telefono": data["phone"][0],
+		"link": f"{SITE_URL}panel/interesados/{contact_id}",
+		"telefono": data["phone"],
 		#"telefono_2": data["phone_list"][1],
 		"email": data["lead_user"]["email"],
 		"propiedad": {
@@ -105,29 +96,92 @@ def extract_lead_info(data: object) -> object:
 			"precio": data["posting"]["price"]["amount"],
 			"ubicacion": data["posting"]["address"],
 			"tipo": data["posting"]["real_estate_type"]["name"],
+			"municipio": data["posting"]["location"]["parent"]["name"] #Ciudad
 		},
 		"busquedas": busqueda
 	}
 
 	return lead_info
 
+def change_status(contact_id, status="READ"):
+	status_url = f"{SITE_URL}leads-api/leads/status/READ?=&contact_publisher_user_id={contact_id}"
+
+	#res = post_req(status_url, None, logger)
+	res = requests.post(status_url, headers=headers, cookies=cookies)
+	print(res.text)
+
+	if res != None:
+		logger.success(f"Se marco a lead {contact_id} como {status}")
+	else:
+		logger.error(f"Error marcando al lead {contact_id} como {status}")
+
+def send_message(lead_id, msg):
+	logger.debug(f"Enviando mensaje a lead {lead_id}")
+	msg_url = f"{SITE_URL}leads-api/leads/{lead_id}/messages"
+
+	data = {
+		"is_comment": False,
+		"message": msg,
+		"message_attachments": []
+	}
+	#res = post_req(msg_url, data, logger)
+	res = requests.post(msg_url, headers=headers, cookies=cookies, json=data)
+	if res != None:
+		logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
+	else:
+		logger.error(f"Error enviando mensaje al lead {lead_id}")
+
 def main():
+	#send_message("452528425", "Hola muy buenos días")
+	#change_status("184214713")
+	#return 
 	sheet = Sheet(logger)
 	headers = sheet.get("A2:Z2")[0]
+	logger.debug(f"Extrayendo leads")
 
-	raw_leads = get_leads()
-	leads = []
-	for raw_lead in raw_leads:
-		lead = extract_lead_info(raw_lead)
-		leads.append(lead)
-		print(lead)
-		json.dumps(lead, indent=4)
+	status = "nondiscarded" #Filtramos solamente los leads nuevos
+	first = True
+	offset = 0
+	total = 0
+	limit = 20
+	finish = False
+	total_finded = 0
 
-		row_lead = sheet.map_lead(lead, headers)
-		sheet.write([row_lead])
+	while first or (not finish and offset < total):
+		leads = []
+		leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=unread"
+		res = get_req(leads_url, logger)
+		if res == None: return None
+		data = res.json()
 
-	with open("leads.json", "w") as f:
-		json.dump(leads, f, indent=4)
+		if first:
+			total = data["paging"]["total"]
+			logger.debug(f"Total: {total}")
+			first = False
+
+		for raw_lead in data["result"]:
+			if raw_lead["statuses"][0] == "READ": #Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
+				logger.debug("Se encontro un lead con status READ, deteniendo")
+				finish = True
+				break
+
+			lead = extract_lead_info(raw_lead)
+			logger.debug(lead)
+			msg = generate_mensage(lead)
+			send_message(lead["id"], msg)
+			change_status(raw_lead["contact_publisher_user_id"])
+			lead["message"] = msg
+
+			row_lead = sheet.map_lead(lead, headers)
+			leads.append(row_lead)
+			total_finded += 1
+		
+		offset += len(leads)
+		sheet.write(leads)
+
+		logger.debug(f"len: {len(leads)}")
+
+	logger.success(f"Se encontraron {total_finded} nuevos Leads")
 
 if __name__ == "__main__":
 	main()

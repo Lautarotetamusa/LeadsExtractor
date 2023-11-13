@@ -37,21 +37,21 @@
 
     - [] ZenRows
       - [X] Obtener pagina principal. ✅
-          - Pudimos obtener la pagina principal utilizando JS rendering y AI antibot.
-	  - [X] Obtener panel/interesados ❌
-    	  - Obtenemos la pagina de cloudflare 
-  	  - [X] Hacer una peticion directamente a la API. ✅
-    	  - En principio funciono. Logramos obtener el archivo JSON con la data necesaria.
-    	  - Usamos los siguientes parametros
-          ```json
-		  {
-			"js_render": "true",
-			"antibot": "true",
-			"premium_proxy":"true",
-			"proxy_country":"mx"
-		  }
-          ``` 
+        - Pudimos obtener la pagina principal utilizando JS rendering y AI antibot.
+      - [X] Obtener panel/interesados ❌
+        - Obtenemos la pagina de cloudflare
+      - [X] Hacer una peticion directamente a la API. ✅
+        - En principio funciono. Logramos obtener el archivo JSON con la data necesaria.
+        - Usamos los siguientes parametros
 
+        ```json
+        {
+          "js_render": "true",
+          "antibot": "true",
+          "premium_proxy":"true",
+          "proxy_country":"mx"
+        }
+        ```
 - [X] Intentar encontrar la IP original del sitio que está detrás de CloudFlare
 
   - Usamos diversos metodos para intentar encontrar la ip pero no tuvimos exito.
@@ -106,7 +106,40 @@
 
 # Enviar mensaje
 
-`POST f"https://www.inmuebles24.com/leads-api/leads/455447182/messages"`
+`POST f"https://www.inmuebles24.com/leads-api/leads/{lead_id}/messages"`
+
+{lead_id} lo tomamos de raw_lead["id"]
+
+### Request:
+```json
+{
+	"is_comment": false,
+	"message": "Hola qué tal, Gracias por comunicarte a Rebora Arquitectos, me presento Brenda Diaz ¿Cómo puedo ayudarte? Enseguida me pongo en contacto contigo!",
+	"message_attachments": []
+}
+```
+### Response:
+```json
+{
+	"text": "Hola qué tal, Gracias por comunicarte a Rebora Arquitectos, me presento Brenda Diaz ¿Cómo puedo ayudarte? Enseguida me pongo en contacto contigo!",
+	"date": "2023-11-13T19:31:34+0000",
+	"from": "57036554",
+	"to": "70021534",
+	"from_seeker": false,
+	"message_id": "423891803",
+	"is_comment": false
+}
+```
+
+# Marcar lead como contactado
+`POST https://www.inmuebles24.com/leads-api/leads/status/READ?=&contact_publisher_user_id={contact_id}`
+
+{contact_id} lo tomamos de raw_lead["contact_publisher_user_id"]
+
+### Request: 
+None
+### Response: 
+None
 
 ## Esta supongo que no hace falta
 

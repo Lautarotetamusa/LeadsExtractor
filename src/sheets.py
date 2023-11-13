@@ -77,6 +77,8 @@ class Sheet():
 
     # Convertir un objecto lead a algo que se pueda escribir en el sheets.
     def map_lead(self, lead: object, headers: object):
+        assert(lead != None)
+
         if not os.path.exists('mapping.json'):
             self.logger.error(f"El archivo mapping.json no existe")
             exit(1)

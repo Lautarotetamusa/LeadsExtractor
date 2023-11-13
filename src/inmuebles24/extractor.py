@@ -1,12 +1,9 @@
-import __init__
-
 from zenrows import ZenRowsClient
-from params import cookies, headers
+from dotenv import load_dotenv
 import json
-import logger
 import os
 
-from dotenv import load_dotenv
+from .params import cookies, headers
 load_dotenv()
 
 APIKEY = os.getenv('ZENROWS_APIKEY')
@@ -14,38 +11,38 @@ APIKEY = os.getenv('ZENROWS_APIKEY')
 client = ZenRowsClient(APIKEY)
 
 params = {
-    #"js_render": "true",
-	"resolve_captcha": "true",
-    #"antibot": "true",
+	#"resolve_captcha": "true",
+    "js_render": "true",
+    "antibot": "true",
     "premium_proxy":"true",
     "proxy_country":"mx",
-	"session_id": 1
+	#"session_id": 10
 }
 
-def get_req(url):
+def get_req(url, logger):
 	res = client.get(url, params=params, headers=headers, cookies=cookies)
 	if (res.status_code < 200 or res.status_code > 299):
-		logger.log_print("no se pudo realizar la request a la url: "+url, logger.LogType.error)
-		logger.log_print("STATUS: "+str(res.status_code), logger.LogType.error)
+		logger.error(f"no se pudo realizar la request a la url: {url}")
+		logger.error(f"STATUS: {res.status_code}")
 		print("RESPONSE:", res.text)
 		try:
 			json.dumps(res.json(), indent=4)
 		except Exception as e:
-			logger.log_print(res.text, logger.LogType.error)
+			logger.error(res.text)
 		return None
 	return res
 
-def post_req(url, data):
+def post_req(url, data, logger):
 	print(data)
 	res = client.post(url, data=data, params=params)
 	if (res.status_code < 200 or res.status_code > 299):
-		logger.log_print("no se pudo realizar la request POST a la url: "+url, logger.LogType.error)
-		logger.log_print("STATUS: "+str(res.status_code), logger.LogType.error)
-		print("RESPONSE:", res.text)
+		logger.error(f"no se pudo realizar la request a la url: {url}")
+		logger.error(res.status_code)
+		logger.error(res.text)
 		try:
 			json.dumps(res.json(), indent=4)
 		except Exception as e:
-			logger.log_print(res.text, logger.LogType.error)
+			logger.error(res.text)
 		return None
 	return res
 
