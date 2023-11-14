@@ -66,14 +66,14 @@ class Sheet():
 
     def write(self, data):
         body = {'values': data}
-        self.logger.debug(body)
+        #self.logger.debug(body)
         result = self.sheet.values().append(
             spreadsheetId=self.id,
             range="BD-General!A3",
             valueInputOption="RAW", body=body
         ).execute()
         self.logger.success("Se escribio el google sheets correctamente")
-        self.logger.debug(result)
+        #self.logger.debug(result)
 
     # Convertir un objecto lead a algo que se pueda escribir en el sheets.
     def map_lead(self, lead: object, headers: object):

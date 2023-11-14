@@ -1,7 +1,6 @@
 from time import gmtime, strftime
 from datetime import datetime
 import requests
-import json
 
 from src.message import generate_mensage
 from .extractor import get_req, post_req
@@ -10,10 +9,25 @@ from src.sheets import Sheet
 
 from .params import cookies, headers
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 DATE_FORMAT = "%d/%m/%Y"
 SITE_URL = "https://www.inmuebles24.com/"
 
 logger = Logger("inmuebles24.com")
+
+session = "session"
+options = Options()
+options.add_argument(f"--user-data-dir={session}") #Session
+#options.add_argument(f"--headless") #Session
+options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+
+driver = webdriver.Chrome(options=options)
 
 def login(user, password):
 	login_url = f"{SITE_URL}/login_login.ajax"
@@ -68,8 +82,11 @@ def extract_busqueda_info(data: object) -> object:
 		"recamaras": "bedrooms",
 	}
 	for prop in range_props:
-		value = features[range_props[prop]]
-		busqueda[prop] = str(value["min"]) + ", " + str(value["max"])
+		try:
+			value = features[range_props[prop]]
+			busqueda[prop] = str(value["min"]) + ", " + str(value["max"])
+		except KeyError:
+			busqueda[prop] = ""
 
 	return busqueda
 
@@ -103,18 +120,41 @@ def extract_lead_info(data: object) -> object:
 
 	return lead_info
 
+def send_message(contact_id, msg):
+	url = f"https://www.inmuebles24.com/panel/interesados/{contact_id}"
+	
+	logger.debug(f"Enviando mensaje al lead {contact_id}")
+	try:
+		driver.get(url)
+
+		WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/textarea")))
+
+		input = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/textarea")
+		input.send_keys(msg)
+
+		button = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/button")
+		button.click()
+	except Exception as e:
+		logger.error("Ocurrio un error enviando el mensaje")
+		logger.error(str(e))
+
+	logger.success("Mensaje enviado correctamente")
+
 def change_status(contact_id, status="READ"):
-	status_url = f"{SITE_URL}leads-api/leads/status/READ?=&contact_publisher_user_id={contact_id}"
+	status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={contact_id}"
 
-	#res = post_req(status_url, None, logger)
-	res = requests.post(status_url, headers=headers, cookies=cookies)
-	print(res.text)
+	res = post_req(status_url, None, logger)
+	#res = requests.post(status_url, headers=headers, cookies=cookies)
 
-	if res != None:
+	if res != None and res.status_code >= 200 and res.status_code < 300:
 		logger.success(f"Se marco a lead {contact_id} como {status}")
 	else:
+		if res != None:
+			logger.error(res.content)
+			logger.error(res.status_code)
 		logger.error(f"Error marcando al lead {contact_id} como {status}")
 
+"""
 def send_message(lead_id, msg):
 	logger.debug(f"Enviando mensaje a lead {lead_id}")
 	msg_url = f"{SITE_URL}leads-api/leads/{lead_id}/messages"
@@ -124,16 +164,58 @@ def send_message(lead_id, msg):
 		"message": msg,
 		"message_attachments": []
 	}
-	#res = post_req(msg_url, data, logger)
-	res = requests.post(msg_url, headers=headers, cookies=cookies, json=data)
-	if res != None:
+	res = post_req(msg_url, data, logger)
+	#res = requests.post(msg_url, headers=headers, cookies=cookies, json=data)
+
+	if res != None and res.status_code >= 200 and res.status_code < 300:
 		logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 	else:
+		if res != None:
+			logger.error(res.content)
+			logger.error(res.status_code)
 		logger.error(f"Error enviando mensaje al lead {lead_id}")
+"""
+
+#Funcion de prueba nada mas
+def send_all_messages():
+	status = "nondiscarded" #Filtramos solamente los leads nuevos
+	first = True
+	offset = 20
+	total = 0
+	limit = 20
+	total_finded = 0
+
+	while first or offset < total:
+		leads = []
+		leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=last_activity"
+		res = get_req(leads_url, logger)
+		if res == None: return None
+		data = res.json()
+
+		if first:
+			total = data["paging"]["total"]
+			logger.debug(f"Total: {total}")
+			first = False
+
+		for raw_lead in data["result"]:
+			lead = extract_lead_info(raw_lead)
+			logger.debug(lead)
+			msg = generate_mensage(lead)
+			send_message(raw_lead["contact_publisher_user_id"], msg)
+			lead["message"] = msg.replace('\n', ' ')
+
+			total_finded += 1
+		
+		offset += len(leads)
+		logger.debug(f"Mensajes enviados: {total_finded}")
+		logger.debug(f"len: {len(leads)}")
+
+	logger.success(f"Se encontraron {total_finded} nuevos Leads")
 
 def main():
-	#send_message("452528425", "Hola muy buenos días")
-	#change_status("184214713")
+	#send_message("184375921", "Hola muy buenos días")
+	#change_status("184375921")
+	#driver.quit()
 	#return 
 	sheet = Sheet(logger)
 	headers = sheet.get("A2:Z2")[0]
@@ -141,7 +223,7 @@ def main():
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 0
+	offset = 20
 	total = 0
 	limit = 20
 	finish = False
@@ -170,14 +252,15 @@ def main():
 			msg = generate_mensage(lead)
 			send_message(lead["id"], msg)
 			change_status(raw_lead["contact_publisher_user_id"])
-			lead["message"] = msg
+			lead["message"] = msg.replace('\n', ' ')
 
 			row_lead = sheet.map_lead(lead, headers)
+			sheet.write([row_lead])
 			leads.append(row_lead)
 			total_finded += 1
 		
 		offset += len(leads)
-		sheet.write(leads)
+		#sheet.write(leads)
 
 		logger.debug(f"len: {len(leads)}")
 

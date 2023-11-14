@@ -7,7 +7,7 @@
 
 ### To do:
 
-- [ ] Enviar mensajes
+- [X] Enviar mensajes
 - [ ] inicio de sesion
 - [ ] Detectar token vencido y volver a loggearnos
 
@@ -32,6 +32,7 @@
 - [X] Detectar token vencido y volver a loggearnos
 
 ## [Propiedades.com]()
+
 - [X] Fase de investigacion
 - [X] Fase de desarrollo
 - [X] Primera corrida
@@ -147,11 +148,13 @@ Cambiando `0 10-18/4 * * *` podemos programar los scrapers cuando querramos.
 
  `docker compose run app python main.py <PORTAL>`
  PORTALS:
-  - casasyterrenos
-  - propiedades
-  - lamudi
+
+- casasyterrenos
+- propiedades
+- lamudi
 
 ## Instalacion sin docker
+
   `python -m venv .venv`
 
   `source .venv/bin/activate`
@@ -159,6 +162,7 @@ Cambiando `0 10-18/4 * * *` podemos programar los scrapers cuando querramos.
   `pip install -r requeriments.txt`
 
 ### Ejecutar algun scraper en particular sin esperar
+
    `python main.py <PORTAL>`
     PORTALS:
     - casasyterrenos

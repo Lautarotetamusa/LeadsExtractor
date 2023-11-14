@@ -16,7 +16,9 @@ params = {
     "antibot": "true",
     "premium_proxy":"true",
     "proxy_country":"mx",
-	#"session_id": 10
+	"session_id": 10,
+	"custom_headers": "true",
+	"original_status": "true"
 }
 
 def get_req(url, logger):
@@ -34,7 +36,7 @@ def get_req(url, logger):
 
 def post_req(url, data, logger):
 	print(data)
-	res = client.post(url, data=data, params=params)
+	res = client.post(url, json=data, params=params)
 	if (res.status_code < 200 or res.status_code > 299):
 		logger.error(f"no se pudo realizar la request a la url: {url}")
 		logger.error(res.status_code)
