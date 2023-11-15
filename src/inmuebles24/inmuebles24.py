@@ -69,7 +69,7 @@ def extract_busqueda_info(data: object) -> object:
 	busqueda = {
 		"zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data["searched_locations"] else "",
 		"tipo": lead_info.get("search_type", {}).get("type", ""),
-		"presupuesto": str(lead_info.get("price", {}.get("min"))) + ", " + str(lead_info.get("price", {}).get("max")),
+		"presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
 		"cantidad_anuncios": lead_info.get("views", ""),
 		"contactos": lead_info.get("contacts", ""),
 		"inicio_busqueda": lead_info.get("started_search_days", "")
@@ -191,7 +191,7 @@ def get_all_leads():
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 300
+	offset = 760
 	total = 0
 	limit = 20
 	total_finded = 0
