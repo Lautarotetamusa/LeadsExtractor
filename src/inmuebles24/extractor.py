@@ -22,6 +22,7 @@ params = {
 }
 
 def get_req(url, logger):
+	logger.debug(f"GET {url}")
 	res = client.get(url, params=params, headers=headers, cookies=cookies)
 	if (res.status_code < 200 or res.status_code > 299):
 		logger.error(f"no se pudo realizar la request a la url: {url}")

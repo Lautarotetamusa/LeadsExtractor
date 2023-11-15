@@ -139,9 +139,10 @@ def main():
 
     first = True
     page = 1
+    end = False
     url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
 
-    while first == True or page != None:
+    while (not end) and (first == True or page != None):
         leads = []
         logger.debug(url)
 
@@ -155,8 +156,9 @@ def main():
 
         for raw_lead in data["properties"]:
             if raw_lead["status"] == Status.CONTACTADO:
-                logger.debug("lead ya contactado, ignoramos")
-                continue
+                logger.debug("Se encontro un lead ya conctactado, paramos")
+                end = True #Cuando encontramos un lead conctado paramos
+                break
 
             lead = extract_lead_info(raw_lead)
             logger.debug(lead)

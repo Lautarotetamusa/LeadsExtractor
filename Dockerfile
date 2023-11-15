@@ -8,9 +8,9 @@ RUN apk add chromium chromium-chromedriver xvfb
 
 WORKDIR app
 
-COPY src/ src/
 COPY requeriments.txt src/
 RUN pip install -r src/requeriments.txt
+COPY src/ src/
 
 COPY crontab.sh .
 COPY credentials.json .

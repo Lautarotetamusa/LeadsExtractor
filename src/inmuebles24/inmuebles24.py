@@ -62,17 +62,25 @@ def get_busqueda_info(lead_id):
 
 def extract_busqueda_info(data: object) -> object:
 	if data == None:
-		return None
+		return {
+			"zonas": "",
+			"tipo": "",
+			"presupuesto": "",
+			"cantidad_anuncios": "",
+			"contactos": "",
+			"inicio_busqueda": ""
+		}
 
 	features = data["property_features"]
+	lead_info = data["lead_info"]
 
 	busqueda = {
 		"zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data["searched_locations"] else "",
-		"tipo": data["lead_info"]["search_type"]["type"],
-		"presupuesto": str(data["lead_info"]["price"]["min"]) + ", " + str(data["lead_info"]["price"]["max"]),
-		"cantidad_anuncios": data["lead_info"]["views"],
-		"contactos": data["lead_info"]["contacts"],
-		"inicio_busqueda": data["lead_info"]["started_search_days"] 
+		"tipo": lead_info.get("search_type", {}).get("type", ""),
+		"presupuesto": str(lead_info.get("price", {}.get("min"))) + ", " + str(lead_info.get("price", {}).get("max")),
+		"cantidad_anuncios": lead_info.get("views", ""),
+		"contactos": lead_info.get("contacts", ""),
+		"inicio_busqueda": lead_info.get("started_search_days", "")
 	}
 
 	range_props = {
@@ -104,7 +112,7 @@ def extract_lead_info(data: object) -> object:
 		"fecha": strftime(DATE_FORMAT, gmtime()),
 		"nombre": data["lead_user"]["name"],
 		"link": f"{SITE_URL}panel/interesados/{contact_id}",
-		"telefono": data["phone"],
+		"telefono": data.get("phone", ""),
 		#"telefono_2": data["phone_list"][1],
 		"email": data["lead_user"]["email"],
 		"propiedad": {
@@ -134,11 +142,10 @@ def send_message(contact_id, msg):
 
 		button = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/button")
 		button.click()
+		logger.success("Mensaje enviado correctamente")
 	except Exception as e:
 		logger.error("Ocurrio un error enviando el mensaje")
 		logger.error(str(e))
-
-	logger.success("Mensaje enviado correctamente")
 
 def change_status(contact_id, status="READ"):
 	status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={contact_id}"
@@ -176,11 +183,14 @@ def send_message(lead_id, msg):
 		logger.error(f"Error enviando mensaje al lead {lead_id}")
 """
 
-#Funcion de prueba nada mas
-def send_all_messages():
+#Esta sera la primera corrida
+def get_all_leads():
+	sheet = Sheet(logger)
+	headers = sheet.get("A2:Z2")[0]
+
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 20
+	offset = 260
 	total = 0
 	limit = 20
 	total_finded = 0
@@ -199,10 +209,21 @@ def send_all_messages():
 
 		for raw_lead in data["result"]:
 			lead = extract_lead_info(raw_lead)
+			
 			logger.debug(lead)
-			msg = generate_mensage(lead)
-			send_message(raw_lead["contact_publisher_user_id"], msg)
-			lead["message"] = msg.replace('\n', ' ')
+
+			#Si nunca le enviamos un mensaje 
+			if "last_message" not in raw_lead:
+				msg = generate_mensage(lead)
+				send_message(raw_lead["contact_publisher_user_id"], msg)
+				lead["message"] = msg.replace('\n', ' ')
+			else:
+				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
+				lead["message"] = ""
+
+			row_lead = sheet.map_lead(lead, headers)
+			sheet.write([row_lead])
+			leads.append(row_lead)
 
 			total_finded += 1
 		
