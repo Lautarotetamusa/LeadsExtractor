@@ -22,3 +22,26 @@ def get_by_selenium():
 
 
 get_by_selenium()
+
+
+##ENVIAR MENSAJE CON SELENIUM
+"""
+def send_message(driver, contact_id, msg):
+	url = f"https://www.inmuebles24.com/panel/interesados/{contact_id}"
+	
+	logger.debug(f"Enviando mensaje al lead {contact_id}")
+	try:
+		driver.get(url)
+
+		WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/textarea")))
+
+		input = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/textarea")
+		input.send_keys(msg)
+
+		button = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/button")
+		button.click()
+		logger.success("Mensaje enviado correctamente")
+	except Exception as e:
+		logger.error("Ocurrio un error enviando el mensaje")
+		logger.error(str(e))
+"""

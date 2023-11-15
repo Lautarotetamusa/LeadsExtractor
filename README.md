@@ -3,13 +3,13 @@
 ## [Inmuebles24](src/inmuebles24/inmuebles24.md)
 
 - [X] Fase de investigacion y testeo
-- [ ] Fase de desarrollo
+- [X] Fase de desarrollo
 
 ### To do:
 
 - [X] Enviar mensajes
-- [ ] inicio de sesion
-- [ ] Detectar token vencido y volver a loggearnos
+- [X] inicio de sesion
+- [X] Detectar token vencido y volver a loggearnos
 
 ## [Lamudi]()
 

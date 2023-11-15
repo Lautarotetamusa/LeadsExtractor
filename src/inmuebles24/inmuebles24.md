@@ -37,10 +37,13 @@
 
     - [] ZenRows
       - [X] Obtener pagina principal. ✅
+
         - Pudimos obtener la pagina principal utilizando JS rendering y AI antibot.
       - [X] Obtener panel/interesados ❌
+
         - Obtenemos la pagina de cloudflare
       - [X] Hacer una peticion directamente a la API. ✅
+
         - En principio funciono. Logramos obtener el archivo JSON con la data necesaria.
         - Usamos los siguientes parametros
 
@@ -104,6 +107,17 @@
 }
 ```
 
+El parametro de `sessionID` lo vamos a usar para enviar todas las demas requests.
+
+# Authorization
+Usaremos los siguientes headers para realizar las peticiones a la API:
+```json
+{
+    "sessionId": "sessionID",
+    "x-panel-portal": "24MX"
+}
+```
+
 # Enviar mensaje
 
 `POST f"https://www.inmuebles24.com/leads-api/leads/{lead_id}/messages"`
@@ -111,6 +125,7 @@
 {lead_id} lo tomamos de raw_lead["id"]
 
 ### Request:
+
 ```json
 {
 	"is_comment": false,
@@ -118,7 +133,9 @@
 	"message_attachments": []
 }
 ```
+
 ### Response:
+
 ```json
 {
 	"text": "Hola qué tal, Gracias por comunicarte a Rebora Arquitectos, me presento Brenda Diaz ¿Cómo puedo ayudarte? Enseguida me pongo en contacto contigo!",
@@ -132,13 +149,17 @@
 ```
 
 # Marcar lead como contactado
+
 `POST https://www.inmuebles24.com/leads-api/leads/status/READ?=&contact_publisher_user_id={contact_id}`
 
 {contact_id} lo tomamos de raw_lead["contact_publisher_user_id"]
 
-### Request: 
+### Request:
+
 None
-### Response: 
+
+### Response:
+
 None
 
 ## Esta supongo que no hace falta

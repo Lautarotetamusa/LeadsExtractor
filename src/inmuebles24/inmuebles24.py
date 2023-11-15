@@ -10,19 +10,12 @@ from src.logger import Logger
 from src.sheets import Sheet
 from src.make_requests import Request
 
+load_dotenv()
+
 #from .params import cookies, headers
 PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
 with open(PARAMS_FILE, "r") as f:
     HEADERS = json.load(f)
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
-load_dotenv()
 
 USERNAME = os.getenv("INMUEBLES24_USERNAME")
 PASSWORD = os.getenv("INMUEBLES24_PASSWORD")
@@ -159,32 +152,11 @@ def extract_lead_info(data: object) -> object:
 
 	return lead_info
 
-def send_message(driver, contact_id, msg):
-	url = f"https://www.inmuebles24.com/panel/interesados/{contact_id}"
-	
-	logger.debug(f"Enviando mensaje al lead {contact_id}")
-	try:
-		driver.get(url)
-
-		WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/textarea")))
-
-		input = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/textarea")
-		input.send_keys(msg)
-
-		button = driver.find_element(By.XPATH, "/html/body/div[2]/div[2]/div[2]/div[4]/div[3]/button")
-		button.click()
-		logger.success("Mensaje enviado correctamente")
-	except Exception as e:
-		logger.error("Ocurrio un error enviando el mensaje")
-		logger.error(str(e))
-
 def change_status(contact_id, status="READ"):
 	status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={contact_id}"
 
-	#res = post_req(status_url, None, logger)
 	PARAMS["url"] = status_url
 	res = request.make(ZENROWS_API_URL, 'POST', params=PARAMS)
-	#res = requests.post(status_url, headers=headers, cookies=cookies)
 
 	if res != None and res.status_code >= 200 and res.status_code < 300:
 		logger.success(f"Se marco a lead {contact_id} como {status}")
@@ -194,7 +166,6 @@ def change_status(contact_id, status="READ"):
 			logger.error(res.status_code)
 		logger.error(f"Error marcando al lead {contact_id} como {status}")
 
-"""
 def send_message(lead_id, msg):
 	logger.debug(f"Enviando mensaje a lead {lead_id}")
 	msg_url = f"{SITE_URL}leads-api/leads/{lead_id}/messages"
@@ -204,34 +175,26 @@ def send_message(lead_id, msg):
 		"message": msg,
 		"message_attachments": []
 	}
-	res = post_req(msg_url, data, logger)
-	#res = requests.post(msg_url, headers=headers, cookies=cookies, json=data)
+
+	PARAMS["url"] = msg_url
+	res = request.make(ZENROWS_API_URL, 'POST', params=PARAMS, json=data)
 
 	if res != None and res.status_code >= 200 and res.status_code < 300:
 		logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 	else:
-		if res != None:
-			logger.error(res.content)
-			logger.error(res.status_code)
 		logger.error(f"Error enviando mensaje al lead {lead_id}")
-"""
 
 #Esta sera la primera corrida
 def get_all_leads():
-	session = "session"
-	options = Options()
-	options.add_argument(f"--user-data-dir={session}") #Session
-	#options.add_argument(f"--headless") #Session
-	options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
-
-	driver = webdriver.Chrome(options=options)
-
+	#send_message("456067710", "hola muy buenos días")
+	#return
+	
 	sheet = Sheet(logger)
 	headers = sheet.get("A2:Z2")[0]
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 760
+	offset = 780
 	total = 0
 	limit = 20
 	total_finded = 0
@@ -257,7 +220,7 @@ def get_all_leads():
 			#Si nunca le enviamos un mensaje 
 			if "last_message" not in raw_lead:
 				msg = generate_mensage(lead)
-				send_message(driver, raw_lead["contact_publisher_user_id"], msg)
+				send_message(lead["id"], msg)
 				lead["message"] = msg.replace('\n', ' ')
 			else:
 				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
@@ -274,7 +237,6 @@ def get_all_leads():
 		logger.debug(f"len: {len(leads)}")
 
 	logger.success(f"Se encontraron {total_finded} nuevos Leads")
-	driver.quit()
 
 def main():
 	#send_message("184375921", "Hola muy buenos días")
