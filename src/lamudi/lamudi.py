@@ -166,7 +166,7 @@ def main():
 
         msg = generate_mensage(lead)
         send_message(lead["id"], msg)
-        lead["message"] = msg
+        lead["message"] = msg.replace('\n', '')
         make_contacted(lead["id"])
 
         leads_info.append(lead)

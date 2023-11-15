@@ -1,13 +1,20 @@
 from time import gmtime, strftime
 from dotenv import load_dotenv
 from datetime import datetime
-import requests
 import json
 import os
 from enum import IntEnum
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
 from src.logger import Logger
 from src.sheets import Sheet
+from src.make_requests import Request
 
 #mis propiedades:
 #https://propiedades.com/api/v3/property/MyProperties
@@ -20,11 +27,56 @@ load_dotenv()
 
 logger = Logger("propiedades.com")
 
+USERNAME=os.getenv('PROPIEDADES_USERNAME')
+PASSWORD=os.getenv('PROPIEDADES_PASSWORD')
+
 DATE_FORMAT = "%d/%m/%Y"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
 with open(PARAMS_FILE, "r") as f:
     HEADERS = json.load(f)
+
+def login(session="propiedades_com/session"):
+    login_url = "https://propiedades.com/login"
+    options = Options()
+    options.add_argument(f"--user-data-dir={session}") #Session
+    #options.add_argument(f"--headless") #Session
+    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+
+    driver = webdriver.Chrome(options=options)
+    access_token = None
+
+    logger.debug("Iniciando sesion")
+    try:
+        driver.get(login_url)
+
+        #Esperar que cargue la pagina
+        WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//input[@data-gtm='text_field_email']")))
+
+        username_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_email']")
+        username_input.send_keys(USERNAME)
+        driver.find_element(By.XPATH, "//button[@data-id='login_correo']").click()
+
+        password_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_password']")
+        password_input.send_keys(PASSWORD)
+        driver.find_element(By.XPATH, "//button[@data-id='login_password']").click()
+
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//img[@data-testid='user-avatar']")))
+        logger.success("Sesion iniciada con exito")
+
+        logger.debug("Obteniendo access token")
+        #access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{USERNAME}.idToken');")
+        cookies = driver.get_cookies()
+        print(cookies)
+        logger.success("Access token obtenido con exito")
+        logger.success(access_token)
+    except Exception as e:
+        logger.error("Ocurrio un error generando el access token")
+        logger.error(str(e))
+    finally:
+        driver.quit()
+
+request = Request(None, HEADERS, logger, login)
 
 #Lista de estados posibles de un lead
 #Los tomamos de la pagina
@@ -42,19 +94,6 @@ if (not os.path.exists(PARAMS_FILE)):
             "Authorization": "",
             "x-api-key": ""
         }, f, indent=4)
-
-def get_data(url) -> object:
-    res = requests.get(url, headers=HEADERS)
-    if (res.status_code != 200):
-        if (res.status_code == 401):
-            logger.error("El token de acceso expiro")
-            #get_access_token(USERNAME, PASSWORD)
-            return None
-        else: 
-            logger.error(res.status_code)
-            logger.error(res.text)
-            return None
-    return res.json()
 
 def get_lead_property(property_id: str):
     if property_id not in PROPS:
@@ -125,7 +164,8 @@ def change_status(lead_id, status:Status):
         "country": "MX"
     }
 
-    res = requests.put(url, headers=HEADERS, json=req)
+    res = request.make(url, "PUT", json=req)
+    #res = requests.put(url, headers=HEADERS, json=req)
     if (res.status_code != 200):
         logger.error(res.status_code)
         logger.error(res.text)
@@ -146,9 +186,10 @@ def main():
         leads = []
         logger.debug(url)
 
-        data = get_data(url)["leads"]
-        if data == None: return None
-
+        data = request.make(url).json()["leads"]
+        #data = get_data(url)["leads"]
+        #if data == None: return None
+        
         page = data["page"]["next_page"]
         url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
         total = data["page"]["items"]
@@ -170,35 +211,6 @@ def main():
             leads.append(row_lead)
 
         sheet.write(leads)
-
-        logger.debug(f"Leads leidos: {len(leads)}")
-        first = False
-
-    logger.success(f"Se encontraron {len(leads)} nuevos Leads")
-
-def change_all_status(status: Status):
-    first = True
-    page = 1
-    url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
-
-    while first == True or url != None:
-        leads = []
-        logger.debug(url)
-
-        data = get_data(url)["leads"]
-        if data == None: return None
-
-        page = data["page"]["next_page"]
-        url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
-        total = data["page"]["items"]
-        logger.debug(f"total: {total}")
-
-        for raw_lead in data["properties"]:
-            if raw_lead["status"] == status:
-                logger.debug(f"lead ya  se encuentra en estado {status.name} contactado, ignoramos")
-                continue
-
-            change_status(raw_lead["id"], status)
 
         logger.debug(f"Leads leidos: {len(leads)}")
         first = False

@@ -21,14 +21,6 @@ SITE_URL = "https://www.inmuebles24.com/"
 
 logger = Logger("inmuebles24.com")
 
-session = "session"
-options = Options()
-options.add_argument(f"--user-data-dir={session}") #Session
-#options.add_argument(f"--headless") #Session
-options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
-
-driver = webdriver.Chrome(options=options)
-
 def login(user, password):
 	login_url = f"{SITE_URL}/login_login.ajax"
 
@@ -104,31 +96,32 @@ def extract_lead_info(data: object) -> object:
 	contact_id = data["contact_publisher_user_id"]
 	raw_busqueda = get_busqueda_info(contact_id)
 	busqueda = extract_busqueda_info(raw_busqueda)
-	
+	posting = data.get("posting", {})
+
 	lead_info = {
 		"id": lead_id,
 		"fuente": "Inmuebles24",
 		"fecha_lead": datetime.strptime(data["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
 		"fecha": strftime(DATE_FORMAT, gmtime()),
-		"nombre": data["lead_user"]["name"],
+		"nombre": data.get("lead_user", {}).get("name"),
 		"link": f"{SITE_URL}panel/interesados/{contact_id}",
 		"telefono": data.get("phone", ""),
 		#"telefono_2": data["phone_list"][1],
-		"email": data["lead_user"]["email"],
+		"email": data.get("lead_user", {}).get("email"),
 		"propiedad": {
-			"titulo": data["posting"]["title"],
+			"titulo": posting.get("title", ""),
 			"link": "",
-			"precio": data["posting"]["price"]["amount"],
-			"ubicacion": data["posting"]["address"],
-			"tipo": data["posting"]["real_estate_type"]["name"],
-			"municipio": data["posting"]["location"]["parent"]["name"] #Ciudad
+			"precio": posting.get("price", {}).get("amount", ""),
+			"ubicacion": posting.get("address", ""),
+			"tipo": posting.get("real_estate_type", {}).get("name"),
+			"municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
 		},
 		"busquedas": busqueda
 	}
 
 	return lead_info
 
-def send_message(contact_id, msg):
+def send_message(driver, contact_id, msg):
 	url = f"https://www.inmuebles24.com/panel/interesados/{contact_id}"
 	
 	logger.debug(f"Enviando mensaje al lead {contact_id}")
@@ -185,12 +178,20 @@ def send_message(lead_id, msg):
 
 #Esta sera la primera corrida
 def get_all_leads():
+	session = "session"
+	options = Options()
+	options.add_argument(f"--user-data-dir={session}") #Session
+	#options.add_argument(f"--headless") #Session
+	options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+
+	driver = webdriver.Chrome(options=options)
+
 	sheet = Sheet(logger)
 	headers = sheet.get("A2:Z2")[0]
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 260
+	offset = 300
 	total = 0
 	limit = 20
 	total_finded = 0
@@ -215,7 +216,7 @@ def get_all_leads():
 			#Si nunca le enviamos un mensaje 
 			if "last_message" not in raw_lead:
 				msg = generate_mensage(lead)
-				send_message(raw_lead["contact_publisher_user_id"], msg)
+				send_message(driver, raw_lead["contact_publisher_user_id"], msg)
 				lead["message"] = msg.replace('\n', ' ')
 			else:
 				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
@@ -232,6 +233,7 @@ def get_all_leads():
 		logger.debug(f"len: {len(leads)}")
 
 	logger.success(f"Se encontraron {total_finded} nuevos Leads")
+	driver.quit()
 
 def main():
 	#send_message("184375921", "Hola muy buenos días")
