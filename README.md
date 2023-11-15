@@ -164,12 +164,12 @@ ZENROWS_APIKEY=""
 CRON="0 10-18/4 * * *"
 ```
 
-`<PORTAL>_USERNAME`: Nombre de usuario o correo de la cuenta del `<PORTAL>`
-`<PORTAL>_PASSWORD`: Contraseña para el username del `<PORTAL>`
-`SHEET_ID`:
-    Es el id del archivo de google sheet donde se guardará la información de los leads.
+`<PORTAL>_USERNAME`: Nombre de usuario o correo de la cuenta del `<PORTAL>` \
+`<PORTAL>_PASSWORD`: Contraseña para el username del `<PORTAL>` \
+`SHEET_ID`: \
+    Es el id del archivo de google sheet donde se guardará la información de los leads. \
     El archivo deberá tener en la primera fila (headers) los mismos campos indicados en el archivo [mapping.json](#Mapping)
-`ZENROWS_APIKEY`: Es la clave de [ZenRows](https://www.zenrows.com).
+`ZENROWS_APIKEY`: Es la clave de [ZenRows](https://www.zenrows.com). \
 
 # Instalacion
 
