@@ -12,7 +12,7 @@ class Request():
     # lo que deberemos llamar a la funcion login()
     def make(self, url, method='GET', **kwargs):
         status_code = 401
-        while status_code == 401:
+        while status_code == 401 or status_code == 422:
             # Define los métodos HTTP permitidos
             allowed_methods = {
                 'GET': requests.get,
@@ -32,7 +32,7 @@ class Request():
             status_code = res.status_code
 
             # Verifica el código de estado de la respuesta
-            if res.status_code == 401:
+            if res.status_code == 401 or res.status_code == 422:
                 self.logger.error("El token de acceso expiro")
                 self.logger.debug(res.text)
                 self.login_method()

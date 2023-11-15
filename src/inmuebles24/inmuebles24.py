@@ -1,13 +1,19 @@
 from time import gmtime, strftime
 from datetime import datetime
+from dotenv import load_dotenv
 import requests
+import os
+import json
 
 from src.message import generate_mensage
-from .extractor import get_req, post_req
 from src.logger import Logger
 from src.sheets import Sheet
+from src.make_requests import Request
 
-from .params import cookies, headers
+#from .params import cookies, headers
+PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
+with open(PARAMS_FILE, "r") as f:
+    HEADERS = json.load(f)
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,32 +22,64 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+load_dotenv()
+
+USERNAME = os.getenv("INMUEBLES24_USERNAME")
+PASSWORD = os.getenv("INMUEBLES24_PASSWORD")
 DATE_FORMAT = "%d/%m/%Y"
 SITE_URL = "https://www.inmuebles24.com/"
+ZENROWS_API_URL = "https://api.zenrows.com/v1/"
+PARAMS = {
+	#"resolve_captcha": "true",
+	"apikey": os.getenv("ZENROWS_APIKEY"),
+	"url": "",
+    "js_render": "true",
+    "antibot": "true",
+    "premium_proxy": "true",
+    "proxy_country": "mx",
+	"session_id": 10,
+	"custom_headers": "true",
+	"original_status": "true"
+}
 
 logger = Logger("inmuebles24.com")
 
-def login(user, password):
-	login_url = f"{SITE_URL}/login_login.ajax"
+def login():
+	logger.debug("Iniciando sesion")
+	login_url = f"{SITE_URL}login_login.ajax"
 
 	data = {
-		"email": user,
-		"password": password,
+		"email": USERNAME,
+		"password": PASSWORD,
 		"recordarme": "true",
 		"homeSeeker": "true",
 		"urlActual": SITE_URL
 	}
 
-	res = post_req(login_url, data, logger)
-	print(res.text)
-	print(res.headers)
-	return res
+	logger.debug(f"POST {login_url}")
+	PARAMS["url"] = login_url
+	data = request.make(ZENROWS_API_URL, 'POST', params=PARAMS, data=data).json()
+
+	request.headers = {
+		"sessionId": data["contenido"]["sessionID"],
+		"x-panel-portal": "24MX"
+	}
+
+	with open(PARAMS_FILE, "w") as f:
+		json.dump(request.headers, f, indent=4)
+	logger.success("Sesion iniciada con exito")
+
+request = Request(None, HEADERS, logger, login)
 
 # Get the information about the searchers of the lead
 def get_busqueda_info(lead_id):
 	logger.debug("Extrayendo la informacion de busqueda del lead: "+lead_id)
 	busqueda_url = f"{SITE_URL}leads-api/publisher/contact/{lead_id}/user-profile"
-	res = get_req(busqueda_url, logger)
+
+	logger.debug(f"GET {busqueda_url}")
+	PARAMS["url"] = busqueda_url
+	res = request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
+
 	if res == None:
 		logger.error("No se pudo obtener la informacion de busqueda para el lead: "+lead_id)
 		return None
@@ -143,7 +181,9 @@ def send_message(driver, contact_id, msg):
 def change_status(contact_id, status="READ"):
 	status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={contact_id}"
 
-	res = post_req(status_url, None, logger)
+	#res = post_req(status_url, None, logger)
+	PARAMS["url"] = status_url
+	res = request.make(ZENROWS_API_URL, 'POST', params=PARAMS)
 	#res = requests.post(status_url, headers=headers, cookies=cookies)
 
 	if res != None and res.status_code >= 200 and res.status_code < 300:
@@ -199,9 +239,10 @@ def get_all_leads():
 	while first or offset < total:
 		leads = []
 		leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=last_activity"
-		res = get_req(leads_url, logger)
-		if res == None: return None
-		data = res.json()
+
+		logger.debug(f"GET {leads_url}")
+		PARAMS["url"] = leads_url
+		data = request.make(ZENROWS_API_URL, 'GET', params=PARAMS).json()
 
 		if first:
 			total = data["paging"]["total"]
@@ -255,9 +296,9 @@ def main():
 	while first or (not finish and offset < total):
 		leads = []
 		leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=unread"
-		res = get_req(leads_url, logger)
-		if res == None: return None
-		data = res.json()
+
+		PARAMS["url"] = leads_url
+		data = request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
 
 		if first:
 			total = data["paging"]["total"]
