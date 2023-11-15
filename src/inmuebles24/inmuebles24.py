@@ -194,7 +194,7 @@ def get_all_leads():
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 780
+	offset = 800
 	total = 0
 	limit = 20
 	total_finded = 0

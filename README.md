@@ -1,3 +1,15 @@
+# Objetivo del proyecto
+
+El objetivo de este proyecto es extraer la información de [Leads](leads) de diferentes portales inmobiliarios.
+Para cada portal extraeremos toda la información de los diferentes leads y la volcaremos en un archivo de google sheets. Para cada lead, en los portales donde sea posible, se les enviará un mensaje generado automaticamente apartir de los datos de ese lead y un formato predifinido. Este proyecto permitirá acelerar el proceso de seguimiento de los leads automatizando las actividades mas repetitivas através de *Digital workers*.
+
+Los portales con los que trabajaremos por ahora serán:
+
+* [inmuebles24](https://inmuebles24.com)
+* [lamudi](https://www.lamudi.com.mx/)
+* [Casas y terrenos](https://www.casasyterrenos.com/)
+* [Propiedades.com](https://propiedades.com/)
+
 # Estado del proyecto
 
 ## [Inmuebles24](src/inmuebles24/inmuebles24.md)
@@ -128,6 +140,37 @@ crontab:
 
 Cambiando `0 10-18/4 * * *` podemos programar los scrapers cuando querramos.
 
+# El archivo .env
+
+El archivo .env será donde se configurarán todas las claves necesarias para correr el proyecto.
+
+```
+CASASYTERRENOS_USERNAME=""
+CASASYTERRENOS_PASSWORD=""
+
+INMUEBLES24_USERNAME=""
+INMUEBLES24_PASSWORD=""
+
+LAMUDI_USERNAME=""
+LAMUDI_PASSWORD="Callcenter01"
+
+PROPIEDADES_USERNAME=""
+PROPIEDADES_PASSWORD=""
+
+SHEET_ID=""
+
+ZENROWS_APIKEY=""
+
+CRON="0 10-18/4 * * *"
+```
+
+`<PORTAL>_USERNAME`: Nombre de usuario o correo de la cuenta del `<PORTAL>`
+`<PORTAL>_PASSWORD`: Contraseña para el username del `<PORTAL>`
+`SHEET_ID`:
+    Es el id del archivo de google sheet donde se guardará la información de los leads.
+    El archivo deberá tener en la primera fila (headers) los mismos campos indicados en el archivo [mapping.json](#Mapping)
+`ZENROWS_APIKEY`: Es la clave de [ZenRows](https://www.zenrows.com).
+
 # Instalacion
 
 ## Instalar docker
@@ -168,3 +211,7 @@ Cambiando `0 10-18/4 * * *` podemos programar los scrapers cuando querramos.
     - casasyterrenos
     - propiedades
     - lamudi
+
+# Posibles mejoras
+  * Diseñar y desarrollar una base de datos, esto permitiría conectar los datos de los diferentes portales sin repetir información, lo que permitiría un mejor manejo de la información.
+  * Nuevos portales.

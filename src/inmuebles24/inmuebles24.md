@@ -63,6 +63,11 @@
     - [X] [bypass by DNS history](https://github.com/vincentcox/bypass-firewalls-by-DNS-history)
     - [X] [Censys](https://search.censys.io/search?resource=hosts&sort=RELEVANCE&per_page=25&virtual_hosts=EXCLUDE&q=inmuebles24.com)
 
+# Conclusiones luego de las pruebas
+
+Logramos realizar las peticiones a la API correctamente através del proveedor [ZenRows](https://www.zenrows.com)
+para ello necesitamos crear una cuenta y obtener la apikey.
+
 # loggearse
 
 `POST f"https://www.inmuebles24.com/rp-api/user/{user}/exist"`
