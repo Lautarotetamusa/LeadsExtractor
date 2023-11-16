@@ -219,8 +219,8 @@ def get_all_leads():
 			
 			logger.debug(lead)
 
-			#Si nunca le enviamos un mensaje 
-			if "last_message" not in raw_lead:
+			#Si nunca le enviamos un mensaje, la segunda condicion es para validar que no sea un mensaje enviado por el lead a notros
+			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
 				msg = generate_mensage(lead)
 				send_message(lead["id"], msg)
 				lead["message"] = msg.replace('\n', ' ')
@@ -274,8 +274,8 @@ def main():
 			lead = extract_lead_info(raw_lead)
 			logger.debug(lead)
 
-			#Si nunca le enviamos un mensaje 
-			if "last_message" not in raw_lead:
+			#Si nunca le enviamos un mensaje, la segunda condicion es para validar que no sea un mensaje enviado por el lead a notros
+			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
 				msg = generate_mensage(lead)
 				send_message(lead["id"], msg)
 				lead["message"] = msg.replace('\n', ' ')
