@@ -12,7 +12,9 @@ class Request():
     # lo que deberemos llamar a la funcion login()
     def make(self, url, method='GET', **kwargs):
         status_code = 401
-        while status_code == 401 or status_code == 422:
+        max_tries = 3
+        tries = 0
+        while (tries <= max_tries) and (status_code == 401 or status_code == 422):
             # Define los métodos HTTP permitidos
             allowed_methods = {
                 'GET': requests.get,
@@ -43,3 +45,5 @@ class Request():
                 self.logger.error(res.status_code)
                 self.logger.error(res.text)
                 raise(requests.HTTPError)
+
+            tries += 1

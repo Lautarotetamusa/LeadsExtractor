@@ -30,7 +30,7 @@ PARAMS = {
     "antibot": "true",
     "premium_proxy": "true",
     "proxy_country": "mx",
-	"session_id": 10,
+	#"session_id": 10,
 	"custom_headers": "true",
 	"original_status": "true"
 }
@@ -51,7 +51,12 @@ def login():
 
 	logger.debug(f"POST {login_url}")
 	PARAMS["url"] = login_url
-	data = request.make(ZENROWS_API_URL, 'POST', params=PARAMS, data=data).json()
+	res = request.make(ZENROWS_API_URL, 'POST', params=PARAMS, data=data)
+	data = res.json()
+	
+	print(data)
+	print(res.headers)
+	print(res.cookies)
 
 	request.headers = {
 		"sessionId": data["contenido"]["sessionID"],
@@ -186,15 +191,12 @@ def send_message(lead_id, msg):
 
 #Esta sera la primera corrida
 def get_all_leads():
-	#send_message("456067710", "hola muy buenos días")
-	#return
-	
 	sheet = Sheet(logger)
 	headers = sheet.get("A2:Z2")[0]
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 800
+	offset = 900
 	total = 0
 	limit = 20
 	total_finded = 0
@@ -229,7 +231,6 @@ def get_all_leads():
 			row_lead = sheet.map_lead(lead, headers)
 			sheet.write([row_lead])
 			leads.append(row_lead)
-
 			total_finded += 1
 		
 		offset += len(leads)
@@ -239,17 +240,13 @@ def get_all_leads():
 	logger.success(f"Se encontraron {total_finded} nuevos Leads")
 
 def main():
-	#send_message("184375921", "Hola muy buenos días")
-	#change_status("184375921")
-	#driver.quit()
-	#return 
 	sheet = Sheet(logger)
 	headers = sheet.get("A2:Z2")[0]
 	logger.debug(f"Extrayendo leads")
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
-	offset = 20
+	offset = 0
 	total = 0
 	limit = 20
 	finish = False
@@ -259,6 +256,7 @@ def main():
 		leads = []
 		leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=unread"
 
+		logger.debug(f"GET {leads_url}")
 		PARAMS["url"] = leads_url
 		data = request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
 
@@ -275,10 +273,15 @@ def main():
 
 			lead = extract_lead_info(raw_lead)
 			logger.debug(lead)
-			msg = generate_mensage(lead)
-			send_message(lead["id"], msg)
-			change_status(raw_lead["contact_publisher_user_id"])
-			lead["message"] = msg.replace('\n', ' ')
+
+			#Si nunca le enviamos un mensaje 
+			if "last_message" not in raw_lead:
+				msg = generate_mensage(lead)
+				send_message(lead["id"], msg)
+				lead["message"] = msg.replace('\n', ' ')
+			else:
+				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
+				lead["message"] = ""
 
 			row_lead = sheet.map_lead(lead, headers)
 			sheet.write([row_lead])
@@ -286,8 +289,7 @@ def main():
 			total_finded += 1
 		
 		offset += len(leads)
-		#sheet.write(leads)
-
+		logger.debug(f"Mensajes enviados: {total_finded}")
 		logger.debug(f"len: {len(leads)}")
 
 	logger.success(f"Se encontraron {total_finded} nuevos Leads")
