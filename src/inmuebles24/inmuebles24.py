@@ -258,7 +258,7 @@ def main():
 
 		logger.debug(f"GET {leads_url}")
 		PARAMS["url"] = leads_url
-		data = request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
+		data = request.make(ZENROWS_API_URL, 'GET', params=PARAMS).json()
 
 		if first:
 			total = data["paging"]["total"]
