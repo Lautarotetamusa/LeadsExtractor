@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from dotenv import load_dotenv
 from time import gmtime, strftime
 from datetime import datetime
@@ -113,6 +114,9 @@ def get_access_token(session="session"):
         access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{USERNAME}.idToken');")
         logger.success("Access token obtenido con exito")
         logger.success(access_token)
+        #Esperamos para que el token sea correcto
+        driver.implicitly_wait(10)
+        time.sleep(10) 
     except Exception as e:
         logger.error("Ocurrio un error generando el access token")
         logger.error(str(e))
