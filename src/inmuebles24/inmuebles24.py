@@ -50,8 +50,9 @@ def login():
 	}
 
 	logger.debug(f"POST {login_url}")
-	PARAMS["url"] = login_url
-	res = request.make(ZENROWS_API_URL, 'POST', params=PARAMS, data=data)
+	params = PARAMS.copy()
+	params["url"] = login_url
+	res = request.make(ZENROWS_API_URL, 'POST', params=params, data=data)
 	data = res.json()
 	
 	print(data)
