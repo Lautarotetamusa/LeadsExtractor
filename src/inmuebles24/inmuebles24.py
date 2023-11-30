@@ -35,6 +35,7 @@ PARAMS = {
 	"original_status": "true"
 }
 
+
 logger = Logger("inmuebles24.com")
 
 def login():
@@ -71,7 +72,7 @@ def login():
 request = Request(None, HEADERS, logger, login)
 
 # Get the information about the searchers of the lead
-def get_busqueda_info(lead_id):
+def get_busqueda_info(lead_id) -> dict | None:
 	logger.debug("Extrayendo la informacion de busqueda del lead: "+lead_id)
 	busqueda_url = f"{SITE_URL}leads-api/publisher/contact/{lead_id}/user-profile"
 
@@ -85,11 +86,11 @@ def get_busqueda_info(lead_id):
 	try:
 		logger.success("Informacion de busqueda extraida con exito")
 		return res.json()
-	except requests.exceptions.JSONDecodeError as e:
+	except requests.exceptions.JSONDecodeError:
 		logger.error(f"El lead {lead_id} no tiene informacion de busqueda")
 		return None
 
-def extract_busqueda_info(data: object) -> object:
+def extract_busqueda_info(data: dict | None) -> dict:
 	if data == None:
 		return {
 			"zonas": "",
@@ -128,7 +129,7 @@ def extract_busqueda_info(data: object) -> object:
 	return busqueda
 
 # Takes the JSON object getted from the API and extract the usable information.
-def extract_lead_info(data: object) -> object:
+def extract_lead_info(data: dict) -> dict:
 	lead_id = data["id"]
 	contact_id = data["contact_publisher_user_id"]
 	raw_busqueda = get_busqueda_info(contact_id)

@@ -1,4 +1,5 @@
 from time import gmtime, strftime
+from datetime import datetime
 from dotenv import load_dotenv
 #import requests
 import json
@@ -14,10 +15,9 @@ load_dotenv()
 logger = Logger("lamudi.com")
 
 API_URL = "https://api.proppit.com"
-
+DATE_FORMAT = "%d/%m/%Y"
 USERNAME=os.getenv('LAMUDI_USERNAME')
 PASSWORD=os.getenv('LAMUDI_PASSWORD')
-
 PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
 
 if (not os.path.exists(PARAMS_FILE)):
@@ -57,8 +57,7 @@ def send_email_message(lead_id, msg):
         "leadId": lead_id,
         "message": msg
     }
-    res = request.make(msg_url, 'POST', json=data)
-
+    request.make(msg_url, 'POST', json=data)
     logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 
 def send_message(lead_id, msg):
@@ -71,8 +70,7 @@ def send_message(lead_id, msg):
         "id": msg_id,
         "message": msg
     }
-    res = request.make(msg_url, 'POST', json=data)
-
+    request.make(msg_url, 'POST', json=data)
     logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 
 def make_contacted(lead_id):
@@ -82,8 +80,7 @@ def make_contacted(lead_id):
     data = {
         "status": "contacted"
     }
-    res = request.make(read_url, 'PUT', json=data)
-
+    request.make(read_url, 'PUT', json=data)
     logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def get_lead_property(lead_id):
@@ -109,6 +106,7 @@ def get_lead_info(lead):
         "id": lead["id"],
         "fuente": "Lamudi",
         "fecha": strftime('%d/%m/%Y', gmtime()),
+        "fecha_lead": datetime.strptime(lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
         "nombre": lead["name"],
         "link": f"https://proppit.com/leads/{lead['id']}",
         "telefono": lead['phone'],
@@ -130,8 +128,7 @@ def get_lead_info(lead):
     }
     return lead_info
 
-def get_leads(max=-1):
-    status = "new lead" #Filtramos solamente los leads nuevos
+def get_leads(max=-1, status="new lead"):
     page = 1
     limit = 25
     url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
@@ -155,6 +152,7 @@ def get_leads(max=-1):
     logger.success(f"Se encontraron {len(leads)} nuevos Leads")
     return leads
 
+# Esta es la funcion que se ejecuta todo el tiempo
 def main():
     leads = get_leads()
     sheet = Sheet(logger)
@@ -170,6 +168,21 @@ def main():
         make_contacted(lead["id"])
 
         leads_info.append(lead)
+
+        #Save the lead in the sheet
+        row_lead = sheet.map_lead(lead, headers)
+        sheet.write([row_lead])
+
+#Esta funcion ejecuta la primera corrida
+def first_run():
+    leads = get_leads(status="")
+    sheet = Sheet(logger)
+    headers = sheet.get("A2:Z2")[0]
+
+    for lead_res in leads:
+        lead = get_lead_info(lead_res)
+        msg = generate_mensage(lead)
+        lead["message"] = msg.replace('\n', '')
 
         #Save the lead in the sheet
         row_lead = sheet.map_lead(lead, headers)
