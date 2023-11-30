@@ -29,3 +29,16 @@ def generate_mensage(lead):
         "ubicacion": lead["propiedad"]["municipio"],
         "titulo": lead["propiedad"]["titulo"]
     })
+
+def generate_post_message(post: object):
+    spin = spintax.spin(msg)
+
+    format = spin.replace("[","{").replace("]","}")
+
+    print("format: ", format)
+
+    return format.format(**{
+        "nombre": post["publisher"]["name"],
+        "ubicacion": post["ciudad"],
+        "titulo": post["title"]
+    })
