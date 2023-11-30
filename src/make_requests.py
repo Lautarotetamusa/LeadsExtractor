@@ -71,6 +71,7 @@ class Request():
 
             # Realiza la solicitud con el método especificado y los parámetros adicionales
             res = allowed_methods[method](url, cookies=self.cookies, headers=self.headers, **kwargs)
+            #print(res.text)
             self.logger.debug(f"{method} {url}")
 
             status_code = res.status_code

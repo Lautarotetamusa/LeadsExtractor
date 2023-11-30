@@ -26,15 +26,15 @@ PARAMS = {
 	#"resolve_captcha": "true",
 	"apikey": os.getenv("ZENROWS_APIKEY"),
 	"url": "",
-    "js_render": "true",
-    "antibot": "true",
+    #"js_render": "true",
+    #"antibot": "true",
     "premium_proxy": "true",
     "proxy_country": "mx",
 	#"session_id": 10,
 	"custom_headers": "true",
-	"original_status": "true"
+	"original_status": "true",
+	"autoparse": "true"
 }
-
 
 logger = Logger("inmuebles24.com")
 
@@ -62,7 +62,8 @@ def login():
 
 	request.headers = {
 		"sessionId": data["contenido"]["sessionID"],
-		"x-panel-portal": "24MX"
+		"x-panel-portal": "24MX",
+		"content-type": "application/json;charset=UTF-8"
 	}
 
 	with open(PARAMS_FILE, "w") as f:
