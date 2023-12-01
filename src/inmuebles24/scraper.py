@@ -2,6 +2,7 @@ import string
 import random
 import json
 import os
+import re
 
 from src.logger import Logger
 from src.message import generate_post_message
@@ -27,13 +28,13 @@ logger = Logger("inmuebles24.com")
 request = ApiRequest(logger, ZENROWS_API_URL, {
 	"apikey": os.getenv("ZENROWS_APIKEY"),
 	"url": "",
-    #"js_render": "true",
+    "js_render": "true",
     #"antibot": "true",
     #"premium_proxy": "true",
     #"proxy_country": "mx",
 })
 
-def get_publisher(post: object, msg=""):
+def get_publisher(post: dict, msg=""):
     detail_data = {
         "email": SENDER["email"],
         "name":  SENDER["name"],
@@ -156,6 +157,43 @@ def get_postings(filters, msg=""):
 
     return posts
 
+def get_filters(url):
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
+    options = Options()
+    #options.add_argument(f"--headless") #Session
+    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+    caps = DesiredCapabilities.CHROME.copy()
+    options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
+    driver = webdriver.Chrome(options=options)
+
+    logger.debug("Obteniendo filtros")
+    try:
+        driver.get(url)
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//a[@data-qa='PAGING_2']")))
+        next_page = driver.find_element("//a[@data-qa='PAGING_2']")
+        next_page.click()
+
+        browser_log = driver.get_log('performance') 
+        print(browser_log)
+
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//a[@data-qa='PAGING_1']")))
+        next_page = driver.find_element("//a[@data-qa='PAGING_1']")
+
+        browser_log = driver.get_log('performance') 
+        print(browser_log)
+    except Exception as e:
+        logger.error("Ocurrio un error obteniendo los filtros")
+        logger.error(str(e))
+    finally:
+        driver.quit()
+
 def main():
     filters = {
         "ambientesmaximo": 0,
@@ -210,7 +248,9 @@ def main():
         "valueZone": None,
         "zone": None
     }
-    get_postings(filters)
+    #get_postings(filters)
+    url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"
+    get_filters(url)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

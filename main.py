@@ -4,7 +4,8 @@ from src.lamudi.lamudi import main as lamudi_main, first_run as lamudi_first_run
 from src.inmuebles24.inmuebles24 import main as inmuebles24
 
 #Scrapers
-from src.inmuebles24.scraper import main
+from src.inmuebles24.scraper import main as inmuebles24_scraper
+from src.lamudi.scraper import main as lamudi_scraper
 
 import sys
 
@@ -19,13 +20,14 @@ PORTALS = {
     },
     "inmuebles24": {
         "first_run": "",
-        "main": inmuebles24
+        "main": inmuebles24,
+        "scraper": inmuebles24_scraper
     },
     "lamudi": {
         "first_run": lamudi_first_run,
-        "main": lamudi_main
-    },
-    "scraper": main
+        "main": lamudi_main,
+        "scraper": lamudi_scraper 
+    }
 }
 
 def USAGE():
@@ -40,6 +42,7 @@ def USAGE():
         TASKS:
             - first_run
             - main
+            - scrape
     """)
 
 if __name__ == "__main__":
@@ -48,7 +51,6 @@ if __name__ == "__main__":
         exit(1)
     portal = sys.argv[1]
     if portal not in PORTALS:
-        print(f"The portal {portal} selected no exist")
         USAGE()
         exit(1)
     
@@ -56,7 +58,6 @@ if __name__ == "__main__":
     if len(sys.argv) == 3:
         task = sys.argv[2]
     if task not in PORTALS[portal]:
-        print(f"The Task {task} not exists for the portal {portal}")
         USAGE()
         exit(1)
 
