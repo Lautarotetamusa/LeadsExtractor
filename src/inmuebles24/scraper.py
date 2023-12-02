@@ -109,9 +109,10 @@ def get_postings(filters, msg=""):
                 "type":         p.get("realEstateType", {}).get("name", ""),
                 "url":          site + p.get("url", ""),
                 "location":     {
-                    "zona":         location.get("name", ""),
-                    "ciudad":       location.get("parent", {}).get("name", ""),
-                    "provinicia":   location.get("parent", {}).get("parent", {}).get("name", ""),
+                    "full":       "",
+                    "zone":       location.get("name", ""),
+                    "city":       location.get("parent", {}).get("name", ""),
+                    "province":   location.get("parent", {}).get("parent", {}).get("name", ""),
                 },
                 "publisher":    {
                     "id":           publisher.get("publisherId", ""),

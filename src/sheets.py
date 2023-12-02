@@ -21,9 +21,12 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SHEET_ID = os.getenv("SHEET_ID")
 
 class Sheet():
-    def __init__(self, logger: Logger):
+    def __init__(self, logger: Logger, mapping_file):
         self.id = SHEET_ID
         self.logger = logger
+        self.mapping_file = 'mapping.json'
+        if mapping_file:
+            self.mapping_file = mapping_file
 
         creds = None
         # The file token.json stores the user's access and refresh tokens, and is
@@ -64,26 +67,26 @@ class Sheet():
             headers[element] = list_headers.index(element)
         return headers
 
-    def write(self, data):
+    def write(self, data, range_sheet="BD-General!A3"):
         body = {'values': data}
-        #self.logger.debug(body)
-        result = self.sheet.values().append(
+
+        self.sheet.values().append(
             spreadsheetId=self.id,
-            range="BD-General!A3",
-            valueInputOption="RAW", body=body
+            range=range_sheet,
+            valueInputOption="RAW",
+            body=body
         ).execute()
         self.logger.success("Se escribio el google sheets correctamente")
-        #self.logger.debug(result)
 
     # Convertir un objecto lead a algo que se pueda escribir en el sheets.
-    def map_lead(self, lead: object, headers: object):
+    def map_lead(self, lead: dict, headers: dict):
         assert(lead != None)
 
-        if not os.path.exists('mapping.json'):
-            self.logger.error(f"El archivo mapping.json no existe")
+        if not os.path.exists(self.mapping_file):
+            self.logger.error(f"El archivo {self.mapping_file} existe")
             exit(1)
 
-        with open('mapping.json', "r") as f:
+        with open(self.mapping_file, "r") as f:
             mapping = json.load(f)
 
         lead_row = ["" for i in range(len(headers))]

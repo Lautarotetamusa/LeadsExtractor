@@ -42,7 +42,7 @@ def USAGE():
         TASKS:
             - first_run
             - main
-            - scrape
+            - scraper <URL>
     """)
 
 if __name__ == "__main__":
@@ -51,14 +51,20 @@ if __name__ == "__main__":
         exit(1)
     portal = sys.argv[1]
     if portal not in PORTALS:
+        print(f"Portal {portal} doesnt exists")
+        USAGE()
+        exit(1)
+    task = "main"
+    if len(sys.argv) >= 3:
+        task = sys.argv[2]
+    if task == "scraper" and len(sys.argv) < 4:
+        print("Task scraper needs a URL parameter") 
+        USAGE()
+        exit(1)
+    if task not in PORTALS[portal]:
+        print(f"Task {task} doesnt exists")
         USAGE()
         exit(1)
     
-    task = "main"
-    if len(sys.argv) == 3:
-        task = sys.argv[2]
-    if task not in PORTALS[portal]:
-        USAGE()
-        exit(1)
-
-    PORTALS[portal][task]()
+    print(portal, task, *sys.argv[3:])
+    PORTALS[portal][task](*sys.argv[3:])
