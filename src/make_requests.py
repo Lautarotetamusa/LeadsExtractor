@@ -28,19 +28,27 @@ class ApiRequest():
             params["url"] = url
             #print(kwargs["json"])
             #print(params)
-            res = allowed_methods[method](self.api_url, params=params, **kwargs)
-            self.logger.debug(f"{method} {url}")
+            try:
+                res = allowed_methods[method](self.api_url, params=params, **kwargs)
+                self.logger.debug(f"{method} {url}")
+            except requests.exceptions.ConnectionError as e:
+                self.logger.error("Ocurrio un error en la peticion")
+                self.logger.error(str(e))
+                tries += 1
+                continue
 
+            tries += 1
             if 200 > res.status_code >= 300:
                 self.logger.error(f"Error request to: {url}")
                 self.logger.error(res.status_code)
                 self.logger.error(res.text)
-                raise(requests.HTTPError)
+            else:
+                return res
 
-            tries += 1
-            #self.logger.debug(res.text)
-            #self.logger.debug(res.status_code)
-            return res
+        self.logger.error(f"Se intento una peticion mas de {max_tries} veces")
+        return None
+        #self.logger.debug(res.text)
+        #self.logger.debug(res.status_code)
 
 class Request():
     def __init__(self, cookies, headers, logger, login_method):

@@ -8,10 +8,8 @@ from src.logger import Logger
 from src.sheets import Sheet
 from src.message import generate_post_message
 
-site = "https://www.inmuebles24.com"
-VIEW_URL = "https://www.inmuebles24.com/rp-api/leads/view"
-LIST_URL = "https://www.inmuebles24.com/rplis-api/postings"
-CONTACT_URL = "https://www.lamudi.com.mx/adform/api/lead-contact"
+SITE = "https://www.lamudi.com.mx"
+CONTACT_URL = f"{SITE}/adform/api/lead-contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
@@ -56,7 +54,7 @@ def scrape_list_page(soup: BeautifulSoup):
             "price":        ad.get("data-price"),
             "currency":     ad.get("data-currency") ,
             "type":         "",
-            "url":          site + ad.get("data-href"),
+            "url":          SITE + ad.get("data-href"),
             "bedrooms": bedrooms.next_sibling.strip() if bedrooms != None else "",
             "bathrooms": bathromms.next_sibling.strip() if bathromms != None else "",
             "building_size": area.next_sibling.strip() if area != None else "",

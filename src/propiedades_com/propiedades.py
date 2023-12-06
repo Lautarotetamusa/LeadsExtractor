@@ -120,7 +120,7 @@ def get_lead_property(property_id: str):
     }
 
 # Takes the JSON object getted from the API and extract the usable information.
-def extract_lead_info(data: object) -> object:
+def extract_lead_info(data: dict) -> dict:
     prop = get_lead_property(str(data["property_id"]))
 
     prop["address"] = data["address"]

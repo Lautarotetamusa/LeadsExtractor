@@ -6,17 +6,21 @@ from src.inmuebles24.inmuebles24 import main as inmuebles24
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
+from src.propiedades_com.scraper import main as propiedades_scraper
+from src.casas_y_terrenos.scraper import main as casasyterrenos_scraper
 
 import sys
 
 PORTALS = {
     "casasyterrenos": {
         "first_run": "",
-        "main": casas_y_terrenos
+        "main": casas_y_terrenos,
+        "scraper": casasyterrenos_scraper
     },
     "propiedades": {
         "first_run": "",
-        "main": propiedades
+        "main": propiedades,
+        "scraper": propiedades_scraper
     },
     "inmuebles24": {
         "first_run": "",
