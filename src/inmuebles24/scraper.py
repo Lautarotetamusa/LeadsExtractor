@@ -2,35 +2,39 @@ import string
 import random
 import json
 import os
-import re
+
+from time import gmtime, strftime
 
 from src.logger import Logger
+from src.sheets import Sheet
 from src.message import generate_post_message
 from src.make_requests import ApiRequest
 
-site = "https://www.inmuebles24.com"
-VIEW_URL = "https://www.inmuebles24.com/rp-api/leads/view"
-LIST_URL = "https://www.inmuebles24.com/rplis-api/postings"
-CONTACT_URL = "https://www.inmuebles24.com/rp-api/leads/contact"
+SITE = "https://www.inmuebles24.com"
+VIEW_URL = f"{SITE}/rp-api/leads/view"
+LIST_URL = f"{SITE}/rplis-api/postings"
+CONTACT_URL = f"{SITE}/rp-api/leads/contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
+DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
-    "email": os.getenv("SENDER_EMAIL"),
     "name":  os.getenv("SENDER_NAME"),
     "phone": os.getenv("SENDER_PHONE"),
+    "email": os.getenv("SENDER_EMAIL"),
     "id": "",
     "message": "",
+    "page": "Listado",
     "postingId": "",
     "publisherId": ""
 }
 
-logger = Logger("inmuebles24.com")
+logger = Logger("scraper inmuebles24.com")
 request = ApiRequest(logger, ZENROWS_API_URL, {
-	"apikey": os.getenv("ZENROWS_APIKEY"),
-	"url": "",
-    "js_render": "true",
+    "apikey": os.getenv("ZENROWS_APIKEY"),
+    "url": "",
+    #"js_render": "true",
     #"antibot": "true",
-    #"premium_proxy": "true",
-    #"proxy_country": "mx",
+    "premium_proxy": "true",
+    "proxy_country": "mx",
 })
 
 def get_publisher(post: dict, msg=""):
@@ -45,117 +49,139 @@ def get_publisher(post: dict, msg=""):
 
     if msg == "":
         #View the phone but not send message
-        logger.debug("Viewing phone")
-        publisher = request.make(VIEW_URL, 'POST', json=detail_data).json()[0].get("publisherOutput", {})
-        print("publisher: ", publisher)
+        url = VIEW_URL
+        logger.debug(f"Viendo telefono del publisher {post['publisher']['id']}")
+    else:
+        logger.debug(f"Enviando mensaje a publisher {post['publisher']['id']}")
+        url = CONTACT_URL
 
-        if "mailerror" in publisher or publisher == {}:
-            return None
-        return publisher
-
-    #Send a message and get the phone
+    #Send a message or get the phone
     while True:
-        detail_data["message"] = generate_post_message(post)
+        if msg != "":
+            detail_data["message"] = msg
 
-        logger.debug("Contancting publisher")
-        publisher = request.make(CONTACT_URL, 'POST', json=detail_data).json().get("publisherOutput", {})
-        logger.debug("Message: "+detail_data["message"])
+        data = request.make(url, 'POST', json=detail_data).json()[0]
+        result = data.get("resultLeadOutput", {})
+        if result.get("code", 0) == 409: #El mensaje esta repetido
+            logger.debug("Mensaje repetido, reenviando")
+            # Agregamos un string random al final del mensaje
+            msg += "\n\n"+"".join(random.choice(string.digits) for _ in range(10))
+            continue
 
-        # SI el publisher es {} es porque ya se envio un mensaje igual a este publisher
-        if "mailerror" in publisher or publisher == {}: #The sender mail is wrong and server return a 500 code
+        publisher = data.get("publisherOutput", {})
+
+        if "mailerror" in publisher: #The sender mail is wrong and server return a 500 code
             return None
 
-        # Agregamos un string random al final del mensaje
-        logger.debug("Mensaje repetido, reenviando")
-        msg += "\n\n"+"".join(random.choice(string.digits) for i in range(10))
-        return publisher
+        logger.success("Publisher contactado con exito")
+        break
 
+    return publisher
+
+def extract_post_data(data):
+    posts = []
+    for p in data:
+        publisher  = p.get("publisher", {})
+        if publisher == {}:
+            logger.error("No se encontro informacion del 'publisher'")
+        location  = p.get("postingLocation", {}).get("location", {})
+        if location == {}:
+            logger.error("El post no tiene 'location'")
+        price_data = p.get("priceOperationTypes", [{}])[0].get("prices", [{}])[0]
+        if price_data == {}:
+            logger.error("El post no tiene 'price_data'")
+
+        post = {
+            "fuente": "INMUEBLES24",
+            "id":           p.get("postingId", ""),
+            "extraction_date": strftime(DATE_FORMAT, gmtime()),
+            "message_date": strftime(DATE_FORMAT, gmtime()),
+            "title":        p.get("title", ""),
+            "price":        price_data.get("formattedAmount", ""),
+            "currency":     price_data.get("currency"),
+            "type":         p.get("realEstateType", {}).get("name", ""),
+            "url":          SITE + p.get("url", ""),
+            "bedrooms": "",
+            "bathrooms": "",
+            "building_size": "",
+            "location":     {
+                "full":       "",
+                "zone":       location.get("name", ""),
+                "city":       location.get("parent", {}).get("name", ""),
+                "province":   location.get("parent", {}).get("parent", {}).get("name", ""),
+            },
+            "publisher":    {
+                "id":           publisher.get("publisherId", ""),
+                "name":         publisher.get("name", ""),
+                "whatsapp":     p.get("whatsApp", ""),
+                "phone": "",
+                "cellPhone": ""
+            }
+        }
+
+        #features
+        features_keys = [
+            ("size", "CFT100"),
+            ("building_size", "CFT101"),
+            ("bedrooms", "CFT2"),
+            ("bathrooms", "CFT3"),
+            ("garage", "CFT7"),
+            ("antiguedad", "CFT5")]
+
+        mainFeatures = p["mainFeatures"]
+        for feature, key in features_keys:
+            if key in mainFeatures:
+                post[feature] = mainFeatures[key]["value"]
+        #-------
+        posts.append(post)
+    return posts
 
 #Get the all the postings in one search
-def get_postings(filters, msg=""):
+#Esta es la funcion main enrealidad, pero recibe los filters y no la url
+def get_postings(filters):
+    sheet = Sheet(logger, 'scraper_mapping.json')
+    sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
+    
     last_page = False
     page = 1
+    total = 0
 
-    posts = []
     while not last_page:
         logger.debug(f"Page nro {page}")        
         data = request.make(LIST_URL, 'POST', json=filters).json()
 
         #Scrape the data from the JSON
-        #print(data)
-        posts = data.get("listPostings", [])
+        posts = extract_post_data(data.get("listPostings", []))
         if len(posts) == 0:
             logger.error("No se encontro ningun post")
+            logger.error(data)
             last_page = True
-            return posts
 
-        for p in posts:
-            publisher  = p.get("publisher", {})
-            if publisher == {}:
-                logger.error("No se encontro informacion del 'publisher'")
-            location  = p.get("postingLocation", {}).get("location", {})
-            if location == {}:
-                logger.error("El post no tiene 'location'")
-            price_data = p.get("priceOperationTypes", [{}])[0].get("prices", [{}])[0]
-            if price_data == {}:
-                logger.error("El post no tiene 'price_data'")
-
-            post = {
-                "id":           p.get("postingId", ""),
-                "title":        p.get("title", ""),
-                "price":        price_data.get("formattedAmount", ""),
-                "currency":     price_data.get("currency"),
-                "type":         p.get("realEstateType", {}).get("name", ""),
-                "url":          site + p.get("url", ""),
-                "location":     {
-                    "full":       "",
-                    "zone":       location.get("name", ""),
-                    "city":       location.get("parent", {}).get("name", ""),
-                    "province":   location.get("parent", {}).get("parent", {}).get("name", ""),
-                },
-                "publisher":    {
-                    "id":           publisher.get("publisherId", ""),
-                    "name":         publisher.get("name", ""),
-                    "whatsapp":     p.get("whatsApp", ""),
-                    "phone": "",
-                    "cellPhone": ""
-                }
-            }
-
-            #features
-            features_keys = [
-                ("terreno", "CFT100"),
-                ("construido", "CFT101"),
-                ("recamaras", "CFT2"),
-                ("banios", "CFT3"),
-                ("garage", "CFT7"),
-                ("antiguedad", "CFT5")]
-
-            mainFeatures = p["mainFeatures"]
-            for feature, key in features_keys:
-                if key in mainFeatures:
-                    post[feature] = mainFeatures[key]["value"]
-            #-------
-
-            #Get the publisher data
-            #Si no ponemos nada como mensaje solamente se ve el telefono
-            #sender = senders[sender_i%len(senders)]
-            #sender_i += 1
+        row_ads = [] #La lista que se guarda en el google sheets
+        total += len(posts)
+        for post in posts:
+            msg = generate_post_message(post)
+            post["message"] = msg
+            #La funciona get_publisher envia el mensaje si se lo pasamos
             publisher = get_publisher(post, msg)
 
             if publisher != None:
-                post["publisher"]["phone"] = publisher["phone"]
-                post["publisher"]["cellPhone"] = publisher["cellPhone"]
+                post["publisher"]["phone"] = publisher.get("phone", "")
+                post["publisher"]["cellPhone"] = publisher.get("cellPhone", "")
 
-            dumped = json.dumps(post, indent=4)
-            logger.debug(dumped)
-            posts.append(post)
+            logger.debug(post)
+            
+            #Guardamos los leads como filas para el sheets
+            row_ad = sheet.map_lead(post, sheets_headers)
+            row_ads.append(row_ad)
 
+        #Save the lead in the sheet
+        sheet.write(row_ads, "Extracciones!A2")
         page += 1
         filters["pagina"] = page
         last_page = data["paging"]["lastPage"]
 
-    return posts
+    logger.success(f"Se encontraron {total} ads para la url")
 
 def get_filters(url):
     from selenium import webdriver
@@ -194,7 +220,7 @@ def get_filters(url):
     finally:
         driver.quit()
 
-def main():
+def main(url: str):
     filters = {
         "ambientesmaximo": 0,
         "ambientesminimo": 0,
@@ -248,9 +274,6 @@ def main():
         "valueZone": None,
         "zone": None
     }
-    #get_postings(filters)
-    url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"
-    get_filters(url)
-
-if __name__ == '__main__':
-    main()
+    get_postings(filters)
+    #url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"
+    #get_filters(url)

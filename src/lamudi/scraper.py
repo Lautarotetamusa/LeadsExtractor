@@ -14,12 +14,12 @@ CONTACT_URL = f"{SITE}/adform/api/lead-contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
-    "email": os.getenv("SENDER_EMAIL"),
-    "name":  os.getenv("SENDER_NAME"),
-    "phone": os.getenv("SENDER_PHONE"),
     "message": "",
     "pageViewId": "",
     "propertyAdId": "",
+    "userEmail": os.getenv("SENDER_EMAIL"),
+    "userName":  os.getenv("SENDER_NAME"),
+    "userPhone": os.getenv("SENDER_PHONE")
 }
 
 logger = Logger("scraper lamudi.com")
@@ -48,6 +48,7 @@ def scrape_list_page(soup: BeautifulSoup):
         bathromms = ad.find("div", attrs={"data-test": "full-bathrooms-value"})
         area = ad.find("div", attrs={"data-test": "area-value"})
         post = {
+            "fuente": "LAMUDI", 
             "id":           ad.get("data-idanuncio"),
             "title":        ad.find("div", class_="listing-card__title").get("content"),
             "extraction_date": strftime(DATE_FORMAT, gmtime()),
