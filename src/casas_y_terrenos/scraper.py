@@ -1,6 +1,4 @@
 import os
-import json
-from bs4 import BeautifulSoup
 from time import gmtime, strftime
 
 from src.logger import Logger
@@ -9,14 +7,23 @@ from src.make_requests import ApiRequest
 from src.message import generate_post_message
 
 SITE = "https://www.casasyterrenos.com"
-PROPS_URL = f"{SITE}/api/search/"
-URL_SEND = ""
+URL_SEND = f"{SITE}/api/amp/register"
+URL_INFO = "https://www.casasyterrenos.com/_next/data/9A9l_hFzRC-L7dViWP5UL/propiedad/{property_id}.json?id={property_id}"
+URL_PROPS = f"{SITE}/api/search/"
+URL_SESSION = f"{SITE}/api/amp/auth"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
+
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
     "email": "ventas.rebora@gmail.com",
     "name": "Brenda Diaz",
     "phone": "3313420733",
+    "contact_place": "casasyterrenos.com",
+    "isDev": False,
+    "isProp": True,
+    "isProto": False,
+    "message": "",
+    "property": ""
 }
 logger = Logger("scraper casasyterrenos.com")
 
@@ -61,7 +68,7 @@ def extract_posts(data: list[dict]):
 
 def get_publisher_info(property_id):
     logger.debug(f"Obteniendo informacion de la propiedad {property_id}")
-    url = f"https://www.casasyterrenos.com/_next/data/9A9l_hFzRC-L7dViWP5UL/propiedad/{property_id}.json?id={property_id}"
+    url = URL_INFO.format(property_id=property_id)
     
     res = request.make(url, "GET")
     data = res.json().get("pageProps", {}).get("property", {}).get("seller")
@@ -69,7 +76,7 @@ def get_publisher_info(property_id):
         return None
     publisher = {
         "name": data.get("first_name", "") + data.get("last_name", ""),
-        "id": data.get("id", ""),
+        "id": data.get("client", ""),
         "whatsapp": data.get("whatsapp", ""),
         "phone": data.get("phone_number", ""),
         "email": data.get("email", ""),
@@ -77,6 +84,55 @@ def get_publisher_info(property_id):
     }
     print(publisher)
     return publisher
+
+def generate_session_id() -> str:
+    logger.success("Generando nuevo session id")
+    data = {
+        "domain": SITE,
+        "referrer": ""
+    }
+    
+    res = request.make(URL_SESSION, "POST", json=data).json()
+    session_id = res.get("uuid")
+    if not session_id:
+        logger.error("Error generando el session id, saliendo")
+        exit(1)
+
+    logger.success("Session id generado con exito")
+    logger.success("session_id: "+session_id)
+    return session_id
+
+def send_message(property_id: int, client_id: int, session_id: str, message: str):
+    data = SENDER.copy()
+    data = {
+        "client_id": client_id,
+        "distinct_id": f"prp_{property_id}",
+        "event_type": "submit",
+        "event_value": "contact_form",
+        "meta": {
+            "client_id": client_id,
+            "contact_place": "casasyterrenos.com",
+            "email": "ventas.rebora@gmail.com",
+            "isDev": False,
+            "isProp": True,
+            "isProto": False,
+            "message": message,
+            "name": "Brenda Diaz",
+            "phone": "3313420733",
+            "property": int(property_id),
+            "type": "property"
+        },
+        "referrer": "",
+        "session_uuid": session_id
+    }    
+    res = request.make(URL_SEND, "POST", json=data)
+    if res.status_code != 200:
+        logger.error("Error enviando el mensaje")
+        logger.error(res.text)
+        return None
+
+    logger.success(f"Mensaje enviado con exito a la propiedad {property_id}")
+    logger.debug(res.text)
 
 def main(url: str):
     payload = {
@@ -120,11 +176,12 @@ def main(url: str):
     page = 1
     len_posts = 0
     total_posts = 1e9
+    session_id = generate_session_id()
 
     #url = f"https://propiedades.com/df/casas-venta/recamaras-2?pagina={page}"
     while len_posts < total_posts:
         logger.debug(f"Page: {page}")
-        res = request.make(PROPS_URL, "POST", json=payload)
+        res = request.make(URL_PROPS, "POST", json=payload)
         data = res.json()
 
         if total_posts  == 1e9:
@@ -144,6 +201,7 @@ def main(url: str):
             else:
                 ad["publisher"] = publisher
             msg = generate_post_message(ad)
+            send_message(ad["id"], ad["publisher"]["id"], session_id, msg)
             ad["message"] = msg
             #Guardamos los leads como filas para el sheets
             row_ad = sheet.map_lead(ad, sheets_headers)
