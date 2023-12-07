@@ -126,6 +126,7 @@ def get_posts_in_page(soup: bs4.BeautifulSoup):
     posts = []
     for post in data:
         posts.append({
+            "fuente": "PROPIEDADES.COM",
             "id": post.get("id", ""),
             "title": post.get("full_address", ""),
             "extraction_date": strftime(DATE_FORMAT, gmtime()),
@@ -187,7 +188,8 @@ def main(url: str):
 
         row_ads = []
         for ad in posts:
-            ad["message"] = ""
+            msg = generate_post_message(ad)
+            ad["message"] = msg
             #Guardamos los leads como filas para el sheets
             row_ad = sheet.map_lead(ad, sheets_headers)
             row_ads.append(row_ad)
