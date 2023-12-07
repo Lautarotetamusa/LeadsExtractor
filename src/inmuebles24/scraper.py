@@ -14,14 +14,13 @@ LIST_URL = "https://www.inmuebles24.com/rplis-api/postings"
 CONTACT_URL = "https://www.inmuebles24.com/rp-api/leads/contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 SENDER = {
-	"email": "ventas.rebora@gmail.com",
-	"id": "",
-	"message": "",
-	"name": "Brenda Diaz",
-	"page": "Listado",
-	"phone": "3313420733",
-	"postingId": "",
-	"publisherId": ""
+    "email": os.getenv("SENDER_EMAIL"),
+    "name":  os.getenv("SENDER_NAME"),
+    "phone": os.getenv("SENDER_PHONE"),
+    "id": "",
+    "message": "",
+    "postingId": "",
+    "publisherId": ""
 }
 
 logger = Logger("inmuebles24.com")

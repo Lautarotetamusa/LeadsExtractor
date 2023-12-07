@@ -15,10 +15,10 @@ URL_SEND  = "https://propiedades.com/messages/send"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
-        "email": "ventas.rebora@gmail.com",
-        "name": "Brenda Diaz",
-        "phone": "3313420733",
-        }
+    "email": os.getenv("SENDER_EMAIL"),
+    "name":  os.getenv("SENDER_NAME"),
+    "phone": os.getenv("SENDER_PHONE"),
+}
 logger = Logger("scraper propiedades.com")
 request = ApiRequest(logger, ZENROWS_API_URL, {
     "apikey": os.getenv("ZENROWS_APIKEY"),

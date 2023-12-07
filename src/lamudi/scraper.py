@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 
 from time import gmtime, strftime
 from bs4 import BeautifulSoup
@@ -13,12 +14,12 @@ CONTACT_URL = f"{SITE}/adform/api/lead-contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
-	"message": "",
-	"pageViewId": "",
-	"propertyAdId": "",
-	"userEmail": "ventas.rebora@gmail.com",
-	"userName": "Brenda Diaz",
-	"userPhone": "3313420733"
+    "email": os.getenv("SENDER_EMAIL"),
+    "name":  os.getenv("SENDER_NAME"),
+    "phone": os.getenv("SENDER_PHONE"),
+    "message": "",
+    "pageViewId": "",
+    "propertyAdId": "",
 }
 
 logger = Logger("scraper lamudi.com")
