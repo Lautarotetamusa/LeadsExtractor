@@ -251,14 +251,15 @@ def main(url: str):
         "idunidaddemedida": 1,
         "metroscuadradomax": None,
         "metroscuadradomin": None,
-        "moneda": None,
+        "moneda": 10,
         "multipleRets": "",
         "outside": "",
+        "pagina": 1,
         "places": "",
         "polygonApplied": None,
         "preciomax": None,
-        "preciomin": None,
-        "province": "69",
+        "preciomin": "5000000",
+        "province": None,
         "publicacion": None,
         "q": None,
         "roomType": "",
@@ -269,10 +270,10 @@ def main(url: str):
         "subZone": None,
         "superficieCubierta": 1,
         "tipoAnunciante": "ALL",
-        "tipoDeOperacion": "2",
-        "tipoDePropiedad": "2",
+        "tipoDeOperacion": "1",
+        "tipoDePropiedad": "1,101,12",
         "valueZone": None,
-        "zone": None
+        "zone": "47735"
     }
     get_postings(filters)
     #url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"

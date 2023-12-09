@@ -146,7 +146,7 @@ def main(url: str):
             "propertyType": "Casa",
             "rooms": "0",
             "toConstruction": 1000000000,
-            "toPrice": 1000000000,
+            "toPrice": "15000000",
             "toSurface": 1000000000,
             "transactionType": "venta"
         },
@@ -157,16 +157,16 @@ def main(url: str):
         },
         "searchObject": {
             "searchBox": [
-                19.5927571,
-                -98.9604482,
-                19.1887101,
-                -99.3267771
+                20.7022078,
+                -103.3994479,
+                20.6918693,
+                -103.4107156
             ],
             "searchCenter": {
-                "latitude": 19.3907336,
-                "longitude": -99.14361265
+                "latitude": 20.697038550000002,
+                "longitude": -103.40508175
             },
-            "searchWidth": 44978.30629654964
+            "searchWidth": 1150.8765555662126
         }
     } 
 
@@ -187,6 +187,7 @@ def main(url: str):
         if total_posts  == 1e9:
             total_posts = data.get("nbHits", 0)
             logger.debug(f"Total posts: {total_posts}")
+        #print(data)
         posts = extract_posts(data.get("hits", []))
 
         page += 1

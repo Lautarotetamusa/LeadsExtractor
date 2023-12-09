@@ -28,7 +28,7 @@ def generate_mensage(lead):
     })
 
 def generate_post_message(post: dict):
-    msg = """Hola [nombre], {¿como estas?|¿Cómo te va?}, {ya estamos revisando tu solicitud|sobre tu solicitud}, la propiedad [titulo] ubicada en [ubicacion] si está disponible, {te comparto el whatsapp de nuestro asesor asignado|con gusto te envio el whatsapp de nuestro asesor}, Brenda, con mucho gusto te comparte la información  —-> 3345898765"""
+    msg = """[nombre], {¿como estas?|¿Cómo te va?}, {Estoy viendo tu propiedad y me interesa saber si sigue disponible|sigue disponible tu propiedad?}, es la propiedad [titulo] ubicada en [ubicacion] , {te comparto mi whatsapp | te paso mi num y whatsapp}, {Julian|Roberto|Raul}, {Espero la información Gracias|Espero respuesta, queda pendiente, gracias}  —-> {3345879056|3332458909|3323430985}"""
     spin = spintax.spin(msg)
     format = spin.replace("[","{").replace("]","}")
 
