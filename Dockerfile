@@ -8,15 +8,20 @@ RUN apk add chromium chromium-chromedriver xvfb
 
 WORKDIR app
 
-COPY requeriments.txt src/
-RUN pip install -r src/requeriments.txt
+COPY requirements.txt src/
+RUN pip install -r src/requirements.txt
 COPY src/ src/
+COPY server/ .
 
 COPY crontab.sh .
 COPY credentials.json .
 COPY token.json .
 COPY src/start_xvfb.sh .
 COPY mapping.json .
+COPY scraper_mapping.json .
 COPY main.py .
 
+EXPOSE 80
+
 CMD ["supercronic", "crontab.sh"]
+CMD ["gunicorn", "-c", "gunicorn_config.py", "app:app"]

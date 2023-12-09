@@ -163,7 +163,7 @@ def extract_total_pages(soup: bs4.BeautifulSoup) -> int:
     a = ul.contents[len(ul.contents)-2].a
     return int(a.text)
 
-def main(url: str):
+def main(url: str, spin_msg: str):
     sheet = Sheet(logger, 'scraper_mapping.json')
     sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
 
@@ -188,7 +188,7 @@ def main(url: str):
 
         row_ads = []
         for ad in posts:
-            msg = generate_post_message(ad)
+            msg = generate_post_message(ad, spin_msg)
             ad["message"] = msg
             #Guardamos los leads como filas para el sheets
             row_ad = sheet.map_lead(ad, sheets_headers)

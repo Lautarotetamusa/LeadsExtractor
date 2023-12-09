@@ -134,42 +134,7 @@ def send_message(property_id: int, client_id: int, session_id: str, message: str
     logger.success(f"Mensaje enviado con exito a la propiedad {property_id}")
     logger.debug(res.text)
 
-def main(url: str):
-    payload = {
-        "filters": {
-            "bathrooms": 0,
-            "fromConstruction": "0",
-            "fromPrice": 0,
-            "fromSurface": "0",
-            "onlyNewDevelopments": False,
-            "parkingLots": 0,
-            "propertyType": "Casa",
-            "rooms": "0",
-            "toConstruction": 1000000000,
-            "toPrice": "15000000",
-            "toSurface": 1000000000,
-            "transactionType": "venta"
-        },
-        "orderBy": "Más recientes",
-        "searchConfig": {
-            "hitsPerPage": 100,
-            "page": 1
-        },
-        "searchObject": {
-            "searchBox": [
-                20.7022078,
-                -103.3994479,
-                20.6918693,
-                -103.4107156
-            ],
-            "searchCenter": {
-                "latitude": 20.697038550000002,
-                "longitude": -103.40508175
-            },
-            "searchWidth": 1150.8765555662126
-        }
-    } 
-
+def main(filters: dict, spin_msg: str):
     sheet = Sheet(logger, 'scraper_mapping.json')
     sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
 
@@ -181,7 +146,7 @@ def main(url: str):
     #url = f"https://propiedades.com/df/casas-venta/recamaras-2?pagina={page}"
     while len_posts < total_posts:
         logger.debug(f"Page: {page}")
-        res = request.make(URL_PROPS, "POST", json=payload)
+        res = request.make(URL_PROPS, "POST", json=filters)
         data = res.json()
 
         if total_posts  == 1e9:
@@ -192,7 +157,7 @@ def main(url: str):
 
         page += 1
         len_posts += len(posts)
-        payload["searchConfig"]["page"] = page
+        filters["searchConfig"]["page"] = page
 
         row_ads = []
         for ad in posts:
@@ -201,7 +166,7 @@ def main(url: str):
                 logger.error(f"Ocurrio un error encontrando la informacion de la propiedad {ad['id']}")
             else:
                 ad["publisher"] = publisher
-            msg = generate_post_message(ad)
+            msg = generate_post_message(ad, spin_msg)
             send_message(ad["id"], ad["publisher"]["id"], session_id, msg)
             ad["message"] = msg
             #Guardamos los leads como filas para el sheets

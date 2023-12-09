@@ -138,7 +138,7 @@ def extract_post_data(data):
 
 #Get the all the postings in one search
 #Esta es la funcion main enrealidad, pero recibe los filters y no la url
-def get_postings(filters):
+def get_postings(filters: dict, spin_msg: str):
     sheet = Sheet(logger, 'scraper_mapping.json')
     sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
     
@@ -160,7 +160,7 @@ def get_postings(filters):
         row_ads = [] #La lista que se guarda en el google sheets
         total += len(posts)
         for post in posts:
-            msg = generate_post_message(post)
+            msg = generate_post_message(post, spin_msg)
             post["message"] = msg
             #La funciona get_publisher envia el mensaje si se lo pasamos
             publisher = get_publisher(post, msg)
@@ -220,61 +220,63 @@ def get_filters(url):
     finally:
         driver.quit()
 
-def main(url: str):
-    filters = {
-        "ambientesmaximo": 0,
-        "ambientesminimo": 0,
-        "amenidades": "",
-        "antiguedad": None,
-        "areaComun": "",
-        "areaPrivativa": "",
-        "auctions": None,
-        "banks": "",
-        "banos": None,
-        "caracteristicasprop": None,
-        "city": None,
-        "comodidades": "",
-        "condominio": "",
-        "coordenates": None,
-        "direccion": None,
-        "disposicion": None,
-        "etapaDeDesarrollo": "",
-        "excludePostingContacted": "",
-        "expensasmaximo": None,
-        "expensasminimo": None,
-        "garages": None,
-        "general": "",
-        "grupoTipoDeMultimedia": "",
-        "habitacionesmaximo": 0,
-        "habitacionesminimo": 0,
-        "idInmobiliaria": None,
-        "idunidaddemedida": 1,
-        "metroscuadradomax": None,
-        "metroscuadradomin": None,
-        "moneda": 10,
-        "multipleRets": "",
-        "outside": "",
-        "pagina": 1,
-        "places": "",
-        "polygonApplied": None,
-        "preciomax": None,
-        "preciomin": "5000000",
-        "province": None,
-        "publicacion": None,
-        "q": None,
-        "roomType": "",
-        "searchbykeyword": "",
-        "services": "",
-        "sort": "relevance",
-        "subtipoDePropiedad": None,
-        "subZone": None,
-        "superficieCubierta": 1,
-        "tipoAnunciante": "ALL",
-        "tipoDeOperacion": "1",
-        "tipoDePropiedad": "1,101,12",
-        "valueZone": None,
-        "zone": "47735"
-    }
+def main(filters: dict):
+    print(type(filters))
     get_postings(filters)
     #url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"
     #get_filters(url)
+
+    # filters = {
+    #     "ambientesmaximo": 0,
+    #     "ambientesminimo": 0,
+    #     "amenidades": "",
+    #     "antiguedad": null,
+    #     "areaComun": "",
+    #     "areaPrivativa": "",
+    #     "auctions": null,
+    #     "banks": "",
+    #     "banos": null,
+    #     "caracteristicasprop": null,
+    #     "city": null,
+    #     "comodidades": "",
+    #     "condominio": "",
+    #     "coordenates": null,
+    #     "direccion": null,
+    #     "disposicion": null,
+    #     "etapaDeDesarrollo": "",
+    #     "excludePostingContacted": "",
+    #     "expensasmaximo": null,
+    #     "expensasminimo": null,
+    #     "garages": null,
+    #     "general": "",
+    #     "grupoTipoDeMultimedia": "",
+    #     "habitacionesmaximo": 0,
+    #     "habitacionesminimo": 0,
+    #     "idInmobiliaria": null,
+    #     "idunidaddemedida": 1,
+    #     "metroscuadradomax": null,
+    #     "metroscuadradomin": null,
+    #     "moneda": 10,
+    #     "multipleRets": "",
+    #     "outside": "",
+    #     "pagina": 1,
+    #     "places": "",
+    #     "polygonApplied": null,
+    #     "preciomax": null,
+    #     "preciomin": "5000000",
+    #     "province": null,
+    #     "publicacion": null,
+    #     "q": null,
+    #     "roomType": "",
+    #     "searchbykeyword": "",
+    #     "services": "",
+    #     "sort": "relevance",
+    #     "subtipoDePropiedad": null,
+    #     "subZone": null,
+    #     "superficieCubierta": 1,
+    #     "tipoAnunciante": "ALL",
+    #     "tipoDeOperacion": "1",
+    #     "tipoDePropiedad": "1,101,12",
+    #     "valueZone": null,
+    #     "zone": "47735"
+    # }

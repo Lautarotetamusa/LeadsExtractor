@@ -79,7 +79,7 @@ def scrape_list_page(soup: BeautifulSoup):
     
     return posts
 
-def main(url: str):
+def main(url: str, spin_msg: str):
     sheet = Sheet(logger, 'scraper_mapping.json')
     sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
 
@@ -107,7 +107,7 @@ def main(url: str):
         row_ads = []
         total += len(ads)
         for ad in ads:
-            msg = generate_post_message(ad)
+            msg = generate_post_message(ad, spin_msg)
             ad["message"] = msg
             logger.debug(msg)
             send_message(ad["id"], msg)
@@ -123,4 +123,4 @@ def main(url: str):
 
 if __name__ == "__main__":
     url = "https://www.lamudi.com.mx/terreno/for-sale/bedrooms:3/?sorting=newest"
-    main(url)
+    main(url, "hola")
