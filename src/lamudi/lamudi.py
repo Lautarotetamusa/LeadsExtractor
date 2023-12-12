@@ -176,7 +176,7 @@ def main():
 #Esta funcion ejecuta la primera corrida
 def first_run():
     leads = get_leads(status="")
-    sheet = Sheet(logger)
+    sheet = Sheet(logger, "mapping.json")
     headers = sheet.get("A2:Z2")[0]
 
     for lead_res in leads:
