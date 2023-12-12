@@ -155,7 +155,7 @@ def get_leads(max=-1, status="new lead"):
 # Esta es la funcion que se ejecuta todo el tiempo
 def main():
     leads = get_leads()
-    sheet = Sheet(logger)
+    sheet = Sheet(logger, "mapping.json")
     headers = sheet.get("A2:Z2")[0]
 
     leads_info = []

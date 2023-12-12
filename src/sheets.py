@@ -24,7 +24,6 @@ class Sheet():
     def __init__(self, logger: Logger, mapping_file):
         self.id = SHEET_ID
         self.logger = logger
-        self.mapping_file = 'mapping.json'
         if mapping_file:
             self.mapping_file = mapping_file
 
@@ -34,6 +33,7 @@ class Sheet():
         # time.
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+            print(creds.refresh_token)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -89,7 +89,7 @@ class Sheet():
         with open(self.mapping_file, "r") as f:
             mapping = json.load(f)
 
-        lead_row = ["" for i in range(len(headers))]
+        lead_row = ["" for _ in range(len(headers))]
 
         i = 0
         for header in headers:
@@ -100,7 +100,7 @@ class Sheet():
         return lead_row
 
 # route: propiedad.link -> lead['propiedad']['link']
-def get_prop(obj: object, route: str, logger: Logger):
+def get_prop(obj: dict, route: str, logger: Logger):
     split = route.split('.')
     if len(split) == 1:
         if split[0] == "":
@@ -111,16 +111,3 @@ def get_prop(obj: object, route: str, logger: Logger):
         return obj[split[0]]
     
     return get_prop(obj[split[0]], '.'.join(split[1:]), logger)
-
-def main():
-    sheet = Sheet()
-    headers = sheet.get("A2:Z2")[0]
-    #print(headers)
-    #lead = {"fec{'fuente': 'Inmuebles24', 'fecha': '2023-11-06', 'nombre': 'Christian', 'link': 'https://www.inmuebles24.com/panel/interesados/455756085', 'telefono': '3', 'email': 'Michrisca_1705@hotmail.com', 'propiedad': {'titulo': 'Casa en venta en Puerta Del Roble. Hermosa, segura y confortable.', 'link': '', 'precio': 12125000, 'ubicacion': 'Av. Juan Palomar y Arias 930', 'tipo': 'Casa'}, 'busquedas': {'zonas': ['avenida  juan palomar'], 'tipo': 'Casa', 'presupuesto': '12125000 12125000', 'cantidad_anuncios': 573, 'contactos': 2, 'inicio_busqueda': 59, 'total_area': '643 643', 'covered_area': '450 450', 'banios': '5 5', 'recamaras': '5 5'}}
-    
-    #row_lead = map_lead(lead, headers)
-    #sheet.write([row_lead])
-    #print(row_lead)
-
-if __name__ == '__main__':
-    main()

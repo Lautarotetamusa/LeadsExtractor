@@ -173,7 +173,7 @@ def change_status(lead_id, status:Status):
         logger.success(f"Se marco a lead {lead_id} como {status.name}")
 
 def main():
-    sheet = Sheet(logger)
+    sheet = Sheet(logger, "mapping.json")
     headers = sheet.get("A2:Z2")[0]
     logger.debug(f"Extrayendo leads")
 

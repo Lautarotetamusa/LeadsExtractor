@@ -31,38 +31,38 @@ with open(PARAMS_FILE, "r") as f:
     HEADERS = json.load(f)
 
 # Takes the JSON object getted from the API and extract the usable information.
-def extract_lead_info(data: object) -> object:
+def extract_lead_info(data: dict) -> dict:
     lead_info = {
-		"fuente": "Casas y terrenos",
-        "fecha_lead": datetime.strptime(data["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
-        "id": data["id"],
-		"fecha": strftime(DATE_FORMAT, gmtime()),
-		"nombre": data["name"],
-		"link": "",
-		"telefono": data["phone"],
-		#"telefono_2": data["phone_list"][1],
-		"email": data["email"],
-		"propiedad": {
-            "id": data["property_id"],
-			"titulo": data["property_title"],
-			"link": f"https://www.casasyterrenos.com/propiedad/{data['property_id']}",
-			"precio": "",
-			"ubicacion": "",
-			"tipo": data["property_type"],
-		},
-		"busquedas": {
-            "zonas": "",
-            "tipo": "",
-            "presupuesto": "",
-            "cantidad_anuncios": "",
-            "contactos": "",
-            "inicio_busqueda": "",
-            "total_area": "",
-            "covered_area": "",
-            "banios": "",
-            "recamaras": "",
-        }
-	}
+            "fuente": "Casas y terrenos",
+            "fecha_lead": datetime.strptime(data["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
+            "id": data["id"],
+            "fecha": strftime(DATE_FORMAT, gmtime()),
+            "nombre": data["name"],
+            "link": "",
+            "telefono": data["phone"],
+            #"telefono_2": data["phone_list"][1],
+            "email": data["email"],
+            "propiedad": {
+                "id": data["property_id"],
+                "titulo": data["property_title"],
+                "link": f"https://www.casasyterrenos.com/propiedad/{data['property_id']}",
+                "precio": "",
+                "ubicacion": "",
+                "tipo": data["property_type"],
+                },
+            "busquedas": {
+                "zonas": "",
+                "tipo": "",
+                "presupuesto": "",
+                "cantidad_anuncios": "",
+                "contactos": "",
+                "inicio_busqueda": "",
+                "total_area": "",
+                "covered_area": "",
+                "banios": "",
+                "recamaras": "",
+                }
+            }
 
     return lead_info
 
@@ -145,7 +145,7 @@ def make_contacted(lead_id):
     logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def main():
-    sheet = Sheet(logger)
+    sheet = Sheet(logger, "mapping.json")
     headers = sheet.get("A2:Z2")[0]
     logger.debug(f"Extrayendo leads")
 

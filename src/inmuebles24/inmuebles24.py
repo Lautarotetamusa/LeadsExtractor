@@ -243,7 +243,7 @@ def get_all_leads():
 	logger.success(f"Se encontraron {total_finded} nuevos Leads")
 
 def main():
-	sheet = Sheet(logger)
+	sheet = Sheet(logger, "mapping.json")
 	headers = sheet.get("A2:Z2")[0]
 	logger.debug(f"Extrayendo leads")
 
