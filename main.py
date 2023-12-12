@@ -46,7 +46,7 @@ def USAGE():
         TASKS:
             - first_run
             - main
-            - scraper <URL>
+            - scraper <URL> <MESSAGE>
     """)
 
 if __name__ == "__main__":

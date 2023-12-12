@@ -127,29 +127,29 @@ def extract_lead_info(data: dict) -> dict:
     if prop["titulo"] == "": prop["titulo"] = prop["address"]
 
     lead_info = {
-		"fuente": "Propiedades.com",
-        "fecha_lead": datetime.strptime(data["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
-        "id": data["id"],
-		"fecha": strftime(DATE_FORMAT, gmtime()),
-		"nombre": data["name"],
-		"link": "",
-		"telefono": data["phone"],
-		#"telefono_2": data["phone_list"][1],
-		"email": data["email"],
-		"propiedad": prop,
-		"busquedas": {
-            "zonas": "",
-            "tipo": "",
-            "presupuesto": "",
-            "cantidad_anuncios": "",
-            "contactos": "",
-            "inicio_busqueda": "",
-            "total_area": "",
-            "covered_area": "",
-            "banios": "",
-            "recamaras": "",
-        }
-	}
+            "fuente": "Propiedades.com",
+            "fecha_lead": datetime.strptime(data["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
+            "id": data["id"],
+            "fecha": strftime(DATE_FORMAT, gmtime()),
+            "nombre": data["name"],
+            "link": "",
+            "telefono": data["phone"],
+            #"telefono_2": data["phone_list"][1],
+            "email": data["email"],
+            "propiedad": prop,
+            "busquedas": {
+                "zonas": "",
+                "tipo": "",
+                "presupuesto": "",
+                "cantidad_anuncios": "",
+                "contactos": "",
+                "inicio_busqueda": "",
+                "total_area": "",
+                "covered_area": "",
+                "banios": "",
+                "recamaras": "",
+                }
+            }
 
     return lead_info
 

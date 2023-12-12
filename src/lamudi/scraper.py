@@ -38,6 +38,22 @@ def send_message(property_id: str, msg: str):
 
     logger.success("Mensaje enviado con exito")
 
+def view_phone(property_url: str):
+    logger.debug(f"Obteniendo el telefono de la propiedad {property_url}")
+    headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0"}
+
+    try:
+        res = requests.get(property_url, headers=headers)
+
+        soup = BeautifulSoup(res.text, "html.parser")
+        phone = soup.find("div", class_="phone-number").text.strip()
+        logger.success(f"Telefono obtenido con exito: {phone}")
+    except Exception as e:
+        logger.error("Ocurrio un error obteniendo el telefono")
+        logger.error(str(e))
+        return ""
+    return phone
+
 #Esta funcion recibe el html de una pagina y nos devuelve una lista con todas los ads de esa pagina
 def scrape_list_page(soup: BeautifulSoup):
     ads = soup.find_all("div",class_ = "listing listing-card item")
@@ -111,6 +127,7 @@ def main(url: str, spin_msg: str):
             ad["message"] = msg
             logger.debug(msg)
             send_message(ad["id"], msg)
+            ad["phone"] = view_phone(ad["url"])
             
             #Guardamos los leads como filas para el sheets
             row_ad = sheet.map_lead(ad, sheets_headers)
