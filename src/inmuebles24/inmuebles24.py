@@ -49,6 +49,7 @@ def login():
 		"homeSeeker": "true",
 		"urlActual": SITE_URL
 	}
+	HEADERS["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
 
 	logger.debug(f"POST {login_url}")
 	params = PARAMS.copy()
@@ -57,8 +58,6 @@ def login():
 	data = res.json()
 	
 	print(data)
-	print(res.headers)
-	print(res.cookies)
 
 	request.headers = {
 		"sessionId": data["contenido"]["sessionID"],
