@@ -23,5 +23,6 @@ COPY main.py .
 
 EXPOSE 80
 
-CMD ["supercronic", "crontab.sh"]
-CMD ["gunicorn", "-c", "gunicorn_config.py", "app:app"]
+COPY entrypoint.sh .
+RUN chmod +x /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]

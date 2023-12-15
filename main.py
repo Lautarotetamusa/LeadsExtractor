@@ -1,3 +1,5 @@
+from threading import Thread
+
 from src.casas_y_terrenos.casas_y_terrenos import main as casas_y_terrenos
 from src.propiedades_com.propiedades import main as propiedades
 from src.lamudi.lamudi import main as lamudi_main, first_run as lamudi_first_run
@@ -11,7 +13,23 @@ from src.casas_y_terrenos.scraper import main as casasyterrenos_scraper
 
 import sys
 
+def run_all():
+    threads = []
+    for portal_name in PORTALS:
+        if portal_name == "all":
+            continue
+         
+        thread = Thread(target=PORTALS[portal_name]["main"], args=())
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
 PORTALS = {
+    "all":{
+        "main": run_all
+    },
     "casasyterrenos": {
         "first_run": "",
         "main": casas_y_terrenos,
@@ -42,6 +60,8 @@ def USAGE():
             - propiedades
             - inmuebles24
             - lamudi
+            - all:
+                This option run all the portals in parallel threads
 
         TASKS:
             - first_run

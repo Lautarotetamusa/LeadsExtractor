@@ -193,7 +193,7 @@ def send_message(lead_id, msg):
 
 #Esta sera la primera corrida
 def get_all_leads():
-	sheet = Sheet(logger)
+	sheet = Sheet(logger, "mapping.json")
 	headers = sheet.get("A2:Z2")[0]
 
 	status = "nondiscarded" #Filtramos solamente los leads nuevos

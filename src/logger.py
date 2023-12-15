@@ -1,27 +1,51 @@
 from enum import Enum
 from time import gmtime, strftime
 
-LOG_LEVEL = 1 #OLNY FOR STD; FILE LOGS PRINTS ALL; 2->error, 3->success, 1->debug
+import src.chat as Chat
 
 class LogType(Enum):
-    debug = 1
+    success = 1
     error = 2
     warning = 3
-    success = 4
+    debug = 4
+
+LOG_LEVEL = LogType.debug 
+CHAT_LOG_LEVEL = LogType.error
+COLOR_MAP = {
+    LogType.error: {
+        "color": "\033[91m",
+        "html": "#FF0000"
+    },
+    LogType.success: {
+        "color": "\033[92m",
+        "html": "#07ed13"
+    },
+    LogType.warning: {
+        "color": "\033[93m",
+        "html": "#e88e10"
+    },
+    LogType.debug: {
+        "color": "\033[39m",
+        "html": "#FFFFFF"
+    }
+}
 
 class Logger():
     def __init__(self, fuente):
         self.fuente = fuente
 
     def log_print(self, msg: str, log_type: LogType):
-        if log_type == LogType.debug:
-            color = "\033[0m"
-        elif log_type == LogType.error:
-            color = "\033[91m"
-        elif log_type == LogType.success:
-            color = "\033[92m"
+        color = COLOR_MAP[log_type]["color"]
+        html  = COLOR_MAP[log_type]["html"]
+       
+        time = strftime('%H:%M:%S', gmtime())
+
+        if log_type.value <= CHAT_LOG_LEVEL.value:
+            chat_msg = Chat.generate_message(msg, html, time, self.fuente)
+            Chat.send_message(chat_msg)
         
-        print(f"\033[95m[{strftime('%H:%M:%S', gmtime())}][{self.fuente}]{color} {msg}")
+        if log_type.value <= LOG_LEVEL.value:
+            print(f"\033[95m[{time}][{self.fuente}]{color} {msg}")
 
     def debug(self, msg):
         self.log_print(msg, LogType.debug)
@@ -34,3 +58,4 @@ class Logger():
 
     def success(self, msg):
         self.log_print(msg, LogType.success)
+

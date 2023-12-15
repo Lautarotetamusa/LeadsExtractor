@@ -1,23 +1,38 @@
-from httplib2 import Http
-from oauth2client.service_account import ServiceAccountCredentials
-#from apiclient.discovery import build
-from googleapiclient.discovery import build
+import requests
 
-# Specify required scopes.
-SCOPES = ['https://www.googleapis.com/auth/chat.bot']
+CHAT_WEBHOOK = "https://chat.googleapis.com/v1/spaces/AAAABMZYJoU/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=q13-NM92LfUUGqx7SxGg2p7jReO6bNxMmGal47MflyQ"
 
-# Specify service account details.
-CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', SCOPES)
+def send_chat_message(message: str):
+    app_message = {
+            'cardsV2': [{
+                'cardId': 'createCardMessage',
+                'card': {
+                    "sections": [
+                        {
+                            "header": "Inmuebles 24",
+                            "collapsible": True,
+                            "uncollapsibleWidgetsCount": 1,
+                            "widgets": [
+                                {
+                                    "decoratedText": {
+                                        "icon": {
+                                            "knownIcon": "DESCRIPTION"
+                                            },
+                                        "topLabel": "12:19:37",
+                                        "text": "<font color=\"#FF0000\">El token de acceso expiro</font>"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }]
+            }
 
-# Build the URI and authenticate with the service account.
-chat = build('chat', 'v1', http=CREDENTIALS.authorize(Http()))
+    message_headers = {"Content-Type": "application/json; charset=UTF-8"}
+    
+    res = requests.post(CHAT_WEBHOOK, headers=message_headers, json=app_message)
+    print(res.json())
 
-# Use the service endpoint to call Chat API.
-result = chat.spaces().list(
-    # An optional filter that returns named spaces or unnamed
-    # group chats, but not direct messages (DMs).
-    filter='SPACE'
-
-).execute()
-
-print(result)
+if __name__ == "__main__":
+  send_chat_message("test")
