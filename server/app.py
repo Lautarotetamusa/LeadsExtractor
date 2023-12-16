@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import threading
 
@@ -35,6 +35,10 @@ def ejecutar_script(portal, url_or_filters, spin_msg):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/.well-known/pki-validation/<path:path>')
+def serve_static(path):
+    return send_from_directory('static', path)
 
 @app.route('/execute', methods=['POST'])
 def ejecutar_script_route():
