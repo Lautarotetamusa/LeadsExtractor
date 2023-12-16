@@ -13,9 +13,9 @@ RUN pip install -r src/requirements.txt
 COPY src/ src/
 COPY server/ .
 
-COPY crontab.sh .
 COPY credentials.json .
-COPY token.json .
+
+COPY crontab.sh .
 COPY src/start_xvfb.sh .
 COPY mapping.json .
 COPY scraper_mapping.json .
