@@ -20,6 +20,7 @@ COPY src/start_xvfb.sh .
 COPY mapping.json .
 COPY scraper_mapping.json .
 COPY main.py .
+COPY auth.py .
 
 EXPOSE 80
 
