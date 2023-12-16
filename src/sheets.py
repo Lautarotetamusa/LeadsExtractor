@@ -21,6 +21,7 @@ load_dotenv()
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/gmail.send"]
 SHEET_ID = os.getenv("SHEET_ID")
+HOST=os.getenv("HOST")
 TOKEN_FILE = 'token.json'
 CREDS_FILE = 'credentials.json'
 
@@ -38,7 +39,8 @@ class Google():
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(
-                        port=0,
+                        host=HOST,
+                        port=80,
                         open_browser=False
                 )
 
