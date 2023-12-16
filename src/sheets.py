@@ -40,7 +40,7 @@ class Google():
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(
                         host=HOST,
-                        port=80,
+                        port=443,
                         open_browser=False
                 )
 

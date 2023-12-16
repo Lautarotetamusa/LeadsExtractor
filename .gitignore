@@ -4,6 +4,7 @@ session/
 .env
 token.json
 credentials.json
+credentials_prod.json
 
 #Headers y cookies
 src/inmuebles24/params.py
