@@ -1,67 +1,106 @@
 from __future__ import print_function
 
+import os
+from dotenv import load_dotenv
 import os.path
 import json
-
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+#Estos dos son necesarios para crear y enviar el mensaje de email
+from base64 import urlsafe_b64encode
+from email.message import EmailMessage
+
 from src.logger import Logger
 
-import os
-from dotenv import load_dotenv
 load_dotenv()
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/gmail.send"]
 SHEET_ID = os.getenv("SHEET_ID")
+TOKEN_FILE = 'token.json'
+CREDS_FILE = 'credentials.json'
 
-class Sheet():
-    def __init__(self, logger: Logger, mapping_file):
-        self.id = SHEET_ID
-        self.logger = logger
-        if mapping_file:
-            self.mapping_file = mapping_file
-
+class Google():
+    def __init__(self, logger: Logger):
         creds = None
-        # The file token.json stores the user's access and refresh tokens, and is
-        # created automatically when the authorization flow completes for the first
-        # time.
-        if os.path.exists('token.json'):
-            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-            print(creds.refresh_token)
-        # If there are no (valid) credentials available, let the user log in.
+        self.logger = logger
+
+        if os.path.exists(TOKEN_FILE):
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE , SCOPES)
+
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open('token.json', 'w') as token:
+
+            with open(TOKEN_FILE, 'w') as token:
                 token.write(creds.to_json())
 
-        try:
-            service = build('sheets', 'v4', credentials=creds)
+        self.creds = creds
 
-            # Call the Sheets API
-            self.sheet = service.spreadsheets()
+    def _connect_service(self, name: str, version: str):
+        try:
+            return build(name, version, credentials=self.creds)
         except HttpError as err:
-            self.logger.error("error conectandose al sheet")
+            self.logger.error(f"Error conectandose al servicio {name}")
             self.logger.error(str(err))
+            exit(1)
+
+class Gmail(Google):
+    def __init__(self, sender: dict, logger: Logger):
+        super().__init__(logger)
+        self.sender_email = sender["email"]
+        self.service = super()._connect_service('gmail', 'v1')
+
+    def send_message(self, text: str, subject: str, reciver: str):
+        try:
+            message = EmailMessage()
+            message.set_content(text)
+            message["To"] = 'soypiki@gmail.com'
+            message["From"] = 'test@gmail.com'#self.sender_email 
+            message["Subject"] = 'hola idiotas'
+
+            encoded_message = urlsafe_b64encode(message.as_bytes()).decode()
+
+            create_message = {"raw": encoded_message}
+            # pylint: disable=E1101
+            response = (
+                    self.service.users()
+                    .messages()
+                    .send(userId="me", body=create_message)
+                    .execute()
+            )
+            self.logger.success(f'Email enviando con exito, Id: {response["id"]}')
+        except HttpError as error:
+            self.logger.error(f"Error enviando el email: {error}")
+            response = None
+        return response
+
+class Sheet(Google):
+    def __init__(self, logger: Logger, mapping_file):
+        super().__init__(logger)
+        self.id = SHEET_ID
+        self.sheet = super()._connect_service('sheets', 'v4').spreadsheets()
+
+        if not os.path.exists(mapping_file):
+            self.logger.error(f"El archivo {mapping_file} no existe")
+            exit(1)
+        with open(mapping_file, "r") as f:
+            self.mapping = json.load(f)
         
     def get(self, range):
         result = self.sheet.values().get(spreadsheetId=self.id, range=range).execute()
-        values = result.get('values', [])
-        return values
+        return result.get('values', [])
 
     #Extrae la posicion en la que se encuentran cada uno de los headers del archivo
-    def get_dict_headers(self):
-        list_headers = self.get("A2:Z2")[0]
+    def get_dict_headers(self, header_range="A2:Z2"):
+        list_headers = self.get(header_range)[0]
         headers = {}
         for element in list_headers:
             headers[element] = list_headers.index(element)
@@ -82,18 +121,11 @@ class Sheet():
     def map_lead(self, lead: dict, headers: dict):
         assert(lead != None)
 
-        if not os.path.exists(self.mapping_file):
-            self.logger.error(f"El archivo {self.mapping_file} existe")
-            exit(1)
-
-        with open(self.mapping_file, "r") as f:
-            mapping = json.load(f)
-
         lead_row = ["" for _ in range(len(headers))]
 
         i = 0
         for header in headers:
-            route = mapping[header]
+            route = self.mapping[header]
             lead_row[i] = get_prop(lead, route, self.logger)
             i += 1
 

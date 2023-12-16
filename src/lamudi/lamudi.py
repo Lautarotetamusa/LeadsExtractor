@@ -189,14 +189,6 @@ def first_run():
         sheet.write([row_lead])
 
 if __name__ == "__main__":
-    main()
-    #login()
-    #send_message("4156ae85-36d0-4981-9e2d-fb1c0c08f750", "Hola muy buenos dias como estas")
-    #make_contacted("eab4a707-7585-4725-b447-c7f18f1d23af")
-
-    #mandar email a uno sin email
-    #send_email_message("4156ae85-36d0-4981-9e2d-fb1c0c08f750", "Hola muy buenos dias")
-    #{"error":{"message":"The parameters passed to the API were invalid. Check your inputs!\n\nto parameter is missing"}}
-
-    #mandar email a uno con email
-    #send_email_message("eab4a707-7585-4725-b447-c7f18f1d23af", "Hola muy buenos dias")
+    from sheets import Gmail
+    gmail = Gmail({'email': 'Prueba'}, logger)
+    gmail.send_message('mensaje de prueba', 'lautarotetamusa@gmail.com', 'Subject de prueba')
