@@ -5,13 +5,18 @@ from dotenv import load_dotenv
 from time import gmtime, strftime
 from datetime import datetime
 
+from src.message import generate_mensage
 from src.logger import Logger
-from src.sheets import Sheet
+from src.sheets import Gmail, Sheet
 from src.make_requests import Request
 
 load_dotenv()
 
 logger = Logger("casasyterrenos.com")
+gmail = Gmail({
+    "email": os.getenv("EMAIL_CONTACT"),
+}, logger)
+SUBJECT = os.getenv("SUBJECT")
 
 DATE_FORMAT = "%d/%m/%Y"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
@@ -166,7 +171,11 @@ def main():
             lead = extract_lead_info(raw_lead)
             logger.debug(lead)
 
+            msg = generate_mensage(lead)
             lead["message"] = ""
+            if lead["email"] != "":
+                gmail.send_message(msg, SUBJECT, lead["email"])
+                lead["message"] = msg.replace('\n', ' ')
             make_contacted(lead["id"])
 
             row_lead = sheet.map_lead(lead, headers)

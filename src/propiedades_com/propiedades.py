@@ -12,8 +12,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from src.message import generate_mensage
 from src.logger import Logger
-from src.sheets import Sheet
+from src.sheets import Gmail, Sheet
 from src.make_requests import Request
 
 #mis propiedades:
@@ -26,6 +27,10 @@ with open("src/propiedades_com/properties_obj.json") as f:
 load_dotenv()
 
 logger = Logger("propiedades.com")
+gmail = Gmail({
+    "email": os.getenv("EMAIL_CONTACT"),
+}, logger)
+SUBJECT = os.getenv("SUBJECT") or "subject"
 
 USERNAME=os.getenv('PROPIEDADES_USERNAME')
 PASSWORD=os.getenv('PROPIEDADES_PASSWORD')
@@ -204,7 +209,11 @@ def main():
             lead = extract_lead_info(raw_lead)
             logger.debug(lead)
 
-            lead["message"] = ""
+            msg = generate_mensage(lead)
+            lead["message"] = msg.replace('\n', '')
+            
+            if lead["email"] != "":
+                gmail.send_message(msg, SUBJECT, lead["email"])
             change_status(lead["id"], Status.CONTACTADO)
 
             row_lead = sheet.map_lead(lead, headers)

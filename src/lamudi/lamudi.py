@@ -8,11 +8,15 @@ import os
 
 from src.message import generate_mensage
 from src.logger import Logger
-from src.sheets import Sheet
+from src.sheets import Sheet, Gmail
 from src.make_requests import Request
 
 load_dotenv()
 logger = Logger("lamudi.com")
+gmail = Gmail({
+    "email": os.getenv("EMAIL_CONTACT"),
+}, logger)
+SUBJECT = os.getenv("SUBJECT") or "subject"
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
@@ -165,10 +169,13 @@ def main():
         msg = generate_mensage(lead)
         send_message(lead["id"], msg)
         lead["message"] = msg.replace('\n', '')
+        
+        if lead["email"] != "":
+            gmail.send_message(msg, SUBJECT, lead["email"])
+
         make_contacted(lead["id"])
 
         leads_info.append(lead)
-
         #Save the lead in the sheet
         row_lead = sheet.map_lead(lead, headers)
         sheet.write([row_lead])

@@ -7,7 +7,7 @@ import json
 
 from src.message import generate_mensage
 from src.logger import Logger
-from src.sheets import Sheet
+from src.sheets import Gmail, Sheet
 from src.make_requests import Request
 
 load_dotenv()
@@ -37,6 +37,10 @@ PARAMS = {
 }
 
 logger = Logger("inmuebles24.com")
+gmail = Gmail({
+    "email": os.getenv("EMAIL_CONTACT"),
+}, logger)
+SUBJECT = os.getenv("SUBJECT") or "subject"
 
 def login():
 	logger.debug("Iniciando sesion")
@@ -280,6 +284,8 @@ def main():
 			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
 				msg = generate_mensage(lead)
 				send_message(lead["id"], msg)
+				if lead["email"] != "":
+					gmail.send_message(msg, SUBJECT, lead["email"])
 				lead["message"] = msg.replace('\n', ' ')
 			else:
 				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")

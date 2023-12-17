@@ -1,5 +1,4 @@
 from __future__ import print_function
-
 import os
 from dotenv import load_dotenv
 import os.path
@@ -38,10 +37,14 @@ class Google():
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
+                #Tuve que editar el código de esta función,
+                #Donde se generar el redirect_uri, cambiar http por https y sacar el puerto {}:{} -> {}
                 creds = flow.run_local_server(
+                        bind_addr="0.0.0.0",
                         host=HOST,
-                        port=443,
-                        open_browser=False
+                        port=80,
+                        open_browser=False,
+                        redirect_uri_trailing_slash=False
                 )
 
             with open(TOKEN_FILE, 'w') as token:
@@ -64,12 +67,13 @@ class Gmail(Google):
         self.service = super()._connect_service('gmail', 'v1')
 
     def send_message(self, text: str, subject: str, reciver: str):
+        self.logger.debug(f"Enviando mensaje al correo: {reciver}")
         try:
             message = EmailMessage()
             message.set_content(text)
-            message["To"] = 'soypiki@gmail.com'
-            message["From"] = 'test@gmail.com'#self.sender_email 
-            message["Subject"] = 'hola idiotas'
+            message["To"] = reciver
+            message["From"] = self.sender_email 
+            message["Subject"] = subject
 
             encoded_message = urlsafe_b64encode(message.as_bytes()).decode()
 
@@ -148,3 +152,15 @@ def get_prop(obj: dict, route: str, logger: Logger):
         return obj[split[0]]
     
     return get_prop(obj[split[0]], '.'.join(split[1:]), logger)
+
+def set_prop(obj: dict, route: str, value: str) -> dict:
+    split = route.split('.')
+    if len(split) == 1:
+        if split[0] == "":
+            return obj
+        obj[split[0]] = value
+        return obj
+    
+    #obj[split[0]] = {}
+    obj[split[0]] = set_prop(obj[split[0]], '.'.join(split[1:]), value)
+    return obj
