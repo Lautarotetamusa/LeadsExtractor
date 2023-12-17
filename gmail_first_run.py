@@ -42,6 +42,11 @@ if __name__ == "__main__":
     headers = sheets.get_dict_headers("A2:W2")
     rows = sheets.get("A3:W2992")
 
+    with open('messages/gmail.html', 'r') as f:
+        gmail_spin = f.read()
+    with open('messages/gmail_subject.html', 'r') as f:
+        gmail_subject = f.read()
+
     mappings = []
     for header in headers:
         mappings.append(sheets.mapping[header])
@@ -50,9 +55,10 @@ if __name__ == "__main__":
         lead = LEAD_SCHEMA.copy()
         for i, col in enumerate(row):
             lead = set_prop(lead, mappings[i], col)
-        #print(json.dumps(lead, indent=4))
 
         if lead['email'] != '':
-            message = generate_mensage(lead)
-            print(message)
-            #gmail.send_message(message, 'subject', lead['email'])
+            message = generate_mensage(lead, gmail_spin)
+            subject = generate_mensage(lead, gmail_subject)
+            gmail.send_message(message, subject, 'soypiki@gmail.com')
+
+        break 
