@@ -66,11 +66,13 @@ if __name__ == "__main__":
         mappings.append(sheets.mapping[header])
 
     print(bottom_limit)
-    enviados = bottom_limit
+    enviados = 0
+    fila = bottom_limit
     for row in rows[bottom_limit:]:
         lead = LEAD_SCHEMA.copy()
         for i, col in enumerate(row):
             lead = set_prop(lead, mappings[i], col)
+        fila += 1
 
         if lead['email'] != '':
             if lead['email'] in sended:
@@ -93,7 +95,7 @@ if __name__ == "__main__":
             enviados += 1
             print("se enviaron: ", enviados)
             with open('last_sended.txt', 'w') as f:
-                f.write(str(enviados))
+                f.write(str(fila))
 
             time.sleep(30)
 
