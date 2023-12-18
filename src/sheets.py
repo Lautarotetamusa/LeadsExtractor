@@ -11,8 +11,8 @@ from googleapiclient.errors import HttpError
 
 #Estos dos son necesarios para crear y enviar el mensaje de email
 from base64 import urlsafe_b64encode
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.message import EmailMessage
 
 from src.logger import Logger
 
@@ -67,18 +67,24 @@ class Gmail(Google):
         self.sender_email = sender["email"]
         self.service = super()._connect_service('gmail', 'v1')
 
-    def create_message(self, to: str, subject: str, message_text: str):
-        message = MIMEText(message_text, 'html')
+    def create_message(self, to, subject, body_html, attachment):
+        message = MIMEMultipart()
         message['to'] = to
         message['from'] = self.sender_email
         message['subject'] = subject
+
+        # Agregar cuerpo HTML
+        message.attach(MIMEText(body_html, 'html'))
+
+        message.attach(attachment)
+
         raw_message = urlsafe_b64encode(message.as_bytes()).decode()
         return {'raw': raw_message}
 
-    def send_message(self, text: str, subject: str, reciver: str):
+    def send_message(self, text: str, subject: str, reciver: str, attachment):
         self.logger.debug(f"Enviando mensaje al correo: {reciver}")
         try:
-            message = self.create_message(reciver, subject, text) 
+            message = self.create_message(reciver, subject, text, attachment) 
 
             response = (
                     self.service.users()

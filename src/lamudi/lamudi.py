@@ -8,15 +8,11 @@ import os
 
 from src.message import generate_mensage
 from src.logger import Logger
-from src.sheets import Sheet, Gmail
+from src.sheets import Sheet
 from src.make_requests import Request
 
 load_dotenv()
 logger = Logger("lamudi.com")
-gmail = Gmail({
-    "email": os.getenv("EMAIL_CONTACT"),
-}, logger)
-SUBJECT = os.getenv("SUBJECT") or "subject"
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
@@ -162,20 +158,38 @@ def main():
     sheet = Sheet(logger, "mapping.json")
     headers = sheet.get("A2:Z2")[0]
 
+    with open('messages/gmail.html', 'r') as f:
+        gmail_spin = f.read()
+    with open('messages/gmail_subject.html', 'r') as f:
+        gmail_subject = f.read()
+
+    # Adjuntar archivo PDF
+    with open('messages/attachment.pdf', 'rb') as pdf_file:
+        attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
+        attachment.add_header('Content-Disposition', 'attachment', 
+              filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
+        )
+
     leads_info = []
     for lead_res in leads:
         lead = get_lead_info(lead_res)
+        if lead['email'] != '':
+            if lead["propiedad"]["ubicacion"] == "":
+                lead["propiedad"]["ubicacion"] = "que consultaste"
+            else:
+                lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
+
+        gmail_msg = generate_mensage(lead, gmail_spin)
+        subject = generate_mensage(lead, gmail_subject)
+        gmail.send_message(gmail_msg, subject, lead["email"], attachment)
 
         msg = generate_mensage(lead)
         send_message(lead["id"], msg)
         lead["message"] = msg.replace('\n', '')
-        
-        if lead["email"] != "":
-            gmail.send_message(msg, SUBJECT, lead["email"])
-
         make_contacted(lead["id"])
 
         leads_info.append(lead)
+
         #Save the lead in the sheet
         row_lead = sheet.map_lead(lead, headers)
         sheet.write([row_lead])
