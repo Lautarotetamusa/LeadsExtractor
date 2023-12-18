@@ -10,6 +10,7 @@ from src.logger import Logger
 from src.sheets import Gmail, Sheet
 from src.make_requests import Request
 
+from email.mime.application import MIMEApplication
 load_dotenv()
 
 #from .params import cookies, headers
@@ -105,11 +106,11 @@ def extract_busqueda_info(data: dict | None) -> dict:
 			"inicio_busqueda": ""
 		}
 
-	features = data["property_features"]
-	lead_info = data["lead_info"]
+	features = data.get("property_features", {})
+	lead_info = data.get("lead_info", {})
 
 	busqueda = {
-		"zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data["searched_locations"] else "",
+		"zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data.get("searched_locations", {}) else "",
 		"tipo": lead_info.get("search_type", {}).get("type", ""),
 		"presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
 		"cantidad_anuncios": lead_info.get("views", ""),
@@ -250,6 +251,18 @@ def main():
 	headers = sheet.get("A2:Z2")[0]
 	logger.debug(f"Extrayendo leads")
 
+	with open('messages/gmail.html', 'r') as f:
+		gmail_spin = f.read()
+	with open('messages/gmail_subject.html', 'r') as f:
+		gmail_subject = f.read()
+
+    # Adjuntar archivo PDF
+	with open('messages/attachment.pdf', 'rb') as pdf_file:
+		attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
+		attachment.add_header('Content-Disposition', 'attachment', 
+			  filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
+		)
+
 	status = "nondiscarded" #Filtramos solamente los leads nuevos
 	first = True
 	offset = 0
@@ -284,8 +297,16 @@ def main():
 			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
 				msg = generate_mensage(lead)
 				send_message(lead["id"], msg)
-				if lead["email"] != "":
-					gmail.send_message(msg, SUBJECT, lead["email"])
+				if lead['email'] != '':
+					if lead["propiedad"]["ubicacion"] == "":
+						lead["propiedad"]["ubicacion"] = "que consultaste"
+					else:
+						lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
+
+					gmail_msg = generate_mensage(lead, gmail_spin)
+					subject = generate_mensage(lead, gmail_subject)
+					gmail.send_message(gmail_msg, subject, lead["email"], attachment)
+
 				lead["message"] = msg.replace('\n', ' ')
 			else:
 				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")

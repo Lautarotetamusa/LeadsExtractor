@@ -9,6 +9,7 @@ from src.message import generate_mensage
 from src.logger import Logger
 from src.sheets import Gmail, Sheet
 from src.make_requests import Request
+from email.mime.application import MIMEApplication
 
 load_dotenv()
 
@@ -154,13 +155,25 @@ def main():
     headers = sheet.get("A2:Z2")[0]
     logger.debug(f"Extrayendo leads")
 
+    with open('messages/gmail.html', 'r') as f:
+        gmail_spin = f.read()
+    with open('messages/gmail_subject.html', 'r') as f:
+        gmail_subject = f.read()
+
+    # Adjuntar archivo PDF
+    with open('messages/attachment.pdf', 'rb') as pdf_file:
+        attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
+        attachment.add_header('Content-Disposition', 'attachment', 
+              filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
+        )
+
     status = "1" #Filtramos solamente los leads nuevos
     first = True
     page = 1
     url = f"{API_URL}/list_contact/?page={page}&status={status}"
 
+    leads = []
     while first == True or url != None:
-        leads = []
         data = request.make(url).json()
 
         url = data["next"]
@@ -171,11 +184,16 @@ def main():
             lead = extract_lead_info(raw_lead)
             logger.debug(lead)
 
-            msg = generate_mensage(lead)
-            lead["message"] = ""
-            if lead["email"] != "":
-                gmail.send_message(msg, SUBJECT, lead["email"])
-                lead["message"] = msg.replace('\n', ' ')
+            lead["message"] = generate_mensage(lead).replace('\n', '')
+            if lead['email'] != '':
+                if lead["propiedad"]["ubicacion"] == "":
+                    lead["propiedad"]["ubicacion"] = "que consultaste"
+                else:
+                    lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
+
+                gmail_msg = generate_mensage(lead, gmail_spin)
+                subject = generate_mensage(lead, gmail_subject)
+                gmail.send_message(gmail_msg, subject, lead["email"], attachment)
             make_contacted(lead["id"])
 
             row_lead = sheet.map_lead(lead, headers)

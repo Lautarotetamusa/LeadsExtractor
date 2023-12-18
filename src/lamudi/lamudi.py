@@ -8,11 +8,15 @@ import os
 
 from src.message import generate_mensage
 from src.logger import Logger
-from src.sheets import Sheet
+from src.sheets import Sheet, Gmail
 from src.make_requests import Request
+from email.mime.application import MIMEApplication
 
 load_dotenv()
 logger = Logger("lamudi.com")
+gmail = Gmail({
+    "email": os.getenv("EMAIL_CONTACT"),
+}, logger)
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
@@ -179,9 +183,9 @@ def main():
             else:
                 lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
 
-        gmail_msg = generate_mensage(lead, gmail_spin)
-        subject = generate_mensage(lead, gmail_subject)
-        gmail.send_message(gmail_msg, subject, lead["email"], attachment)
+            gmail_msg = generate_mensage(lead, gmail_spin)
+            subject = generate_mensage(lead, gmail_subject)
+            gmail.send_message(gmail_msg, subject, lead["email"], attachment)
 
         msg = generate_mensage(lead)
         send_message(lead["id"], msg)
@@ -208,8 +212,3 @@ def first_run():
         #Save the lead in the sheet
         row_lead = sheet.map_lead(lead, headers)
         sheet.write([row_lead])
-
-if __name__ == "__main__":
-    from sheets import Gmail
-    gmail = Gmail({'email': 'Prueba'}, logger)
-    gmail.send_message('mensaje de prueba', 'lautarotetamusa@gmail.com', 'Subject de prueba')
