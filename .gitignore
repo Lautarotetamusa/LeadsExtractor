@@ -10,3 +10,7 @@ credentials_prod.json
 src/inmuebles24/params.py
 params.json
 params.py
+
+#Primera corrida de gmail
+last_sended.txt
+sended.json

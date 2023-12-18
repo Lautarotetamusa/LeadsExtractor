@@ -92,7 +92,9 @@ class Gmail(Google):
                     .send(userId="me", body=message)
                     .execute()
             )
-            self.logger.success(f'Email enviando con exito, Id: {response["id"]}')
+            #self.logger.success(f'Email enviando con exito, Id: {response["id"]}')
+            # para no enviar mensaje al google chat cada vez
+            self.logger.debug(f'Email enviando con exito, Id: {response["id"]}')
         except HttpError as error:
             self.logger.error(f"Error enviando el email: {error}")
             response = None

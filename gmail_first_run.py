@@ -37,6 +37,7 @@ if __name__ == "__main__":
     from src.logger import Logger
     from src.message import generate_mensage
     import time
+    import sys
 
     logger = Logger("Gmail first run")
     sheets = Sheet(logger, "mapping.json")
@@ -53,6 +54,8 @@ if __name__ == "__main__":
         sended = json.load(f)
     with open('last_sended.txt', 'r') as f:
         bottom_limit = int(f.read())
+    top_limit = int(sys.argv[1])
+    #Agregamos un top limit para poder controlar cuantos faltan en el día, por ejemplo si ya corrimos 300 pondriamos 900
 
     # Adjuntar archivo PDF
     with open('messages/attachment.pdf', 'rb') as pdf_file:
@@ -65,7 +68,8 @@ if __name__ == "__main__":
     for header in headers:
         mappings.append(sheets.mapping[header])
 
-    print(bottom_limit)
+    print("bottom_limit:", bottom_limit)
+    print("top_limit:", top_limit)
     enviados = 0
     fila = bottom_limit
     for row in rows[bottom_limit:]:
@@ -100,5 +104,5 @@ if __name__ == "__main__":
             time.sleep(30)
 
         #Para no pasarnos del limite diaria de gmail
-        if enviados >= 1200:
+        if enviados >= top_limit:
             break
