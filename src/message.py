@@ -21,8 +21,8 @@ def generate_mensage(lead: dict, spin_msg: str | None=None):
     format = spin.replace("[","{").replace("]","}")
 
     ubicacion = lead["propiedad"]["ubicacion"]
-    if "municipio" in lead["propiedad"]:
-        ubicacion = lead["propiedad"]["municipio"]
+    #if "municipio" in lead["propiedad"]:
+    #    ubicacion = lead["propiedad"]["municipio"]
     return format.format(**{
         "nombre": lead["nombre"],
         "ubicacion": ubicacion,
