@@ -143,6 +143,7 @@ def extract_lead_info(data: dict) -> dict:
 
 	lead_info = {
 		"id": lead_id,
+		"contact_id": contact_id, 
 		"fuente": "Inmuebles24",
 		"fecha_lead": datetime.strptime(data["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
 		"fecha": strftime(DATE_FORMAT, gmtime()),
@@ -168,6 +169,7 @@ def change_status(contact_id, status="READ"):
 	status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={contact_id}"
 
 	PARAMS["url"] = status_url
+	PARAMS["autoparse"] = False
 	res = request.make(ZENROWS_API_URL, 'POST', params=PARAMS)
 
 	if res != None and res.status_code >= 200 and res.status_code < 300:
@@ -177,6 +179,7 @@ def change_status(contact_id, status="READ"):
 			logger.error(res.content)
 			logger.error(res.status_code)
 		logger.error(f"Error marcando al lead {contact_id} como {status}")
+	PARAMS["autoparse"] = True
 
 def send_message(lead_id, msg):
 	logger.debug(f"Enviando mensaje a lead {lead_id}")
@@ -195,56 +198,6 @@ def send_message(lead_id, msg):
 		logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
 	else:
 		logger.error(f"Error enviando mensaje al lead {lead_id}")
-
-#Esta sera la primera corrida
-def get_all_leads():
-	sheet = Sheet(logger, "mapping.json")
-	headers = sheet.get("A2:Z2")[0]
-
-	status = "nondiscarded" #Filtramos solamente los leads nuevos
-	first = True
-	offset = 900
-	total = 0
-	limit = 20
-	total_finded = 0
-
-	while first or offset < total:
-		leads = []
-		leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=last_activity"
-
-		logger.debug(f"GET {leads_url}")
-		PARAMS["url"] = leads_url
-		data = request.make(ZENROWS_API_URL, 'GET', params=PARAMS).json()
-
-		if first:
-			total = data["paging"]["total"]
-			logger.debug(f"Total: {total}")
-			first = False
-
-		for raw_lead in data["result"]:
-			lead = extract_lead_info(raw_lead)
-			
-			logger.debug(lead)
-
-			#Si nunca le enviamos un mensaje, la segunda condicion es para validar que no sea un mensaje enviado por el lead a notros
-			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
-				msg = generate_mensage(lead)
-				send_message(lead["id"], msg)
-				lead["message"] = msg.replace('\n', ' ')
-			else:
-				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
-				lead["message"] = ""
-
-			row_lead = sheet.map_lead(lead, headers)
-			sheet.write([row_lead])
-			leads.append(row_lead)
-			total_finded += 1
-		
-		offset += len(leads)
-		logger.debug(f"Mensajes enviados: {total_finded}")
-		logger.debug(f"len: {len(leads)}")
-
-	logger.success(f"Se encontraron {total_finded} nuevos Leads")
 
 def main():
 	sheet = Sheet(logger, "mapping.json")
@@ -296,7 +249,7 @@ def main():
 			#Si nunca le enviamos un mensaje, la segunda condicion es para validar que no sea un mensaje enviado por el lead a notros
 			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
 				msg = generate_mensage(lead)
-				send_message(lead["id"], msg)
+				#send_message(lead["id"], msg)
 				if lead['email'] != '':
 					if lead["propiedad"]["ubicacion"] == "":
 						lead["propiedad"]["ubicacion"] = "que consultaste"
@@ -311,6 +264,7 @@ def main():
 			else:
 				logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
 				lead["message"] = ""
+				change_status(lead["contact_id"], "READ")
 
 			row_lead = sheet.map_lead(lead, headers)
 			sheet.write([row_lead])

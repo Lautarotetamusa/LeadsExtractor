@@ -2,15 +2,16 @@
 __pycache__/
 session/
 .env
-token.json
+token*.json
 credentials.json
 credentials_prod.json
 
 #Headers y cookies
-src/inmuebles24/params.py
 params.json
 params.py
 
 #Primera corrida de gmail
 last_sended.txt
 sended.json
+
+.ngrok_codes
