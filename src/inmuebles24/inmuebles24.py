@@ -67,7 +67,8 @@ def login():
 	request.headers = {
 		"sessionId": data["contenido"]["sessionID"],
 		"x-panel-portal": "24MX",
-		"content-type": "application/json;charset=UTF-8"
+		"content-type": "application/json;charset=UTF-8",
+		"idUsuario": str(data["contenido"]["idUsuario"])
 	}
 
 	with open(PARAMS_FILE, "w") as f:
@@ -247,9 +248,11 @@ def main():
 			logger.debug(lead)
 
 			#Si nunca le enviamos un mensaje, la segunda condicion es para validar que no sea un mensaje enviado por el lead a notros
-			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == "57036554"):
+			if "last_message" not in raw_lead or (raw_lead.get("last_message", {}).get("to") == request.headers["idUsuario"]):
 				msg = generate_mensage(lead)
-				#send_message(lead["id"], msg)
+
+				#Enviar el mensaje ya lo marca como contactado, si no enviamos el mensaje se quedará en un bucle infinito
+				send_message(lead["id"], msg)
 				if lead['email'] != '':
 					if lead["propiedad"]["ubicacion"] == "":
 						lead["propiedad"]["ubicacion"] = "que consultaste"
