@@ -17,15 +17,11 @@ COPY messages/ messages/
 COPY credentials.json .
 
 COPY crontab.sh .
-COPY src/start_xvfb.sh .
 COPY mapping.json .
 COPY token.json .
 COPY scraper_mapping.json .
 COPY main.py .
 COPY auth.py .
-COPY gmail_first_run.py .
-COPY sended.json .
-COPY last_sended.txt .
 
 EXPOSE 80
 
