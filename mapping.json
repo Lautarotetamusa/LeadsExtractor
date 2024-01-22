@@ -1,7 +1,9 @@
 {
     "Fecha lead": "fecha_lead",
     "Fecha extraccion": "fecha", 
-    "Fuente": "fuente", 
+    "Estado de lead": "",
+    "Asesor asignado": "",
+    "Fuente": "fuente",
     "Nombre del lead": "nombre", 
     "Link a consulta": "link", 
     "Telefono 1": "telefono", 
