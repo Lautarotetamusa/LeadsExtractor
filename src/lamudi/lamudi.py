@@ -7,6 +7,7 @@ import uuid
 import os
 
 from src.message import generate_mensage
+import src.infobip as infobip
 from src.logger import Logger
 from src.sheets import Sheet, Gmail
 from src.make_requests import Request
@@ -186,6 +187,7 @@ def main():
             gmail_msg = generate_mensage(lead, gmail_spin)
             subject = generate_mensage(lead, gmail_subject)
             gmail.send_message(gmail_msg, subject, lead["email"], attachment)
+            infobip.create_person(logger, lead)
 
         msg = generate_mensage(lead)
         send_message(lead["id"], msg)

@@ -13,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.message import generate_mensage
+import src.infobip as infobip
 from src.logger import Logger
 from src.sheets import Gmail, Sheet
 from src.make_requests import Request
@@ -233,6 +234,8 @@ def main():
                 gmail_msg = generate_mensage(lead, gmail_spin)
                 subject = generate_mensage(lead, gmail_subject)
                 gmail.send_message(gmail_msg, subject, lead["email"], attachment)
+                infobip.create_person(logger, lead)
+
             change_status(lead["id"], Status.CONTACTADO)
 
             row_lead = sheet.map_lead(lead, headers)
