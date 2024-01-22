@@ -127,13 +127,16 @@ class Sheet(Google):
     def write(self, data, range_sheet="BD-General!A3"):
         body = {'values': data}
 
-        self.sheet.values().append(
-            spreadsheetId=self.id,
-            range=range_sheet,
-            valueInputOption="RAW",
-            body=body
-        ).execute()
-        self.logger.success("Se escribio el google sheets correctamente")
+        try:
+            self.sheet.values().append(
+                spreadsheetId=self.id,
+                range=range_sheet,
+                valueInputOption="RAW",
+                body=body
+            ).execute()
+            self.logger.success("Se escribio el google sheets correctamente")
+        except Exception as e:
+            self.logger.error("Ocurrio un error guardando en el sheets: " + str(e))
 
     # Convertir un objecto lead a algo que se pueda escribir en el sheets.
     def map_lead(self, lead: dict, headers: dict):
