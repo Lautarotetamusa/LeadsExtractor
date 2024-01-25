@@ -31,7 +31,7 @@ def create_person(logger: Logger, lead: dict):
         "lastName": "",
         "customAttributes": {
             "prop_link": lead['propiedad']['link'],
-            "prop_precio": lead['propiedad']['precio'],
+            "prop_precio": str(lead['propiedad']['precio']),
             "prop_ubicacion": lead['propiedad']['ubicacion'],
             "prop_titulo": lead['propiedad']['titulo'],
             "contacted": False,
