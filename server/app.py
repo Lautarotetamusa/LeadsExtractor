@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session
 from flask_cors import CORS
 import threading
 
@@ -35,6 +35,36 @@ def ejecutar_script(portal, url_or_filters, spin_msg):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+#Esta ruta hace el round robin del asesor para el flow de infobip
+#Si la llamamos con id=0, nos devuelve el asesor 1. luego llamamos al id=1 y nos devuelve el 2.
+#De este modo siempre podemos llamar al siguiente asesor desde el flow de infobip
+ASESOR_i = 0
+@app.route('/asesor', methods=['GET'])
+def get_asesor():
+    global ASESOR_i
+    print(request)
+    ASESORES = [
+        {
+            "id": 0,
+            "name": "Brenda Diaz",
+            "phone": "+523313420733"
+        },
+        {
+            "id": 1,
+            "name": "Juan Sanchez",
+            "phone": "+523317186543"
+        },
+        {
+            "id": 2,
+            "name": "Aldo Salcido",
+            "phone": "+523322563353"
+        } 
+    ]
+    ASESOR_i += 1
+    ASESOR_i %= len(ASESORES)
+    print("Asesor asignado: ", ASESORES[ASESOR_i])
+    return ASESORES[ASESOR_i]
 
 @app.route('/.well-known/pki-validation/<path:path>')
 def serve_static(path):
