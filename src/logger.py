@@ -11,6 +11,7 @@ class LogType(Enum):
 
 LOG_LEVEL = LogType.debug 
 CHAT_LOG_LEVEL = LogType.error
+GOOGLE_CHAT_ENABLE = False
 COLOR_MAP = {
     LogType.error: {
         "color": "\033[91m",
@@ -40,7 +41,7 @@ class Logger():
        
         time = strftime('%H:%M:%S', gmtime())
 
-        if log_type.value <= CHAT_LOG_LEVEL.value:
+        if GOOGLE_CHAT_ENABLE and log_type.value <= CHAT_LOG_LEVEL.value:
             chat_msg = Chat.generate_message(msg, html, time, self.fuente)
             Chat.send_message(chat_msg)
         

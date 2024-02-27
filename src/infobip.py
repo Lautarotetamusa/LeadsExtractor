@@ -11,6 +11,9 @@ API_URL = os.getenv("INFOBIP_APIURL")
 if API_KEY == None or API_URL == None:
     print("ERROR: INFOBIP_APIKEY or INFOBIP_APIURL env variables not set")
     exit(1)
+HEADERS = {
+    'Authorization': API_KEY
+}
 
 def parse_number(logger: Logger, phone: str) -> None | str:
     logger.debug("Parseando numero")
@@ -22,8 +25,53 @@ def parse_number(logger: Logger, phone: str) -> None | str:
     except phonenumbers.NumberParseException:
         logger.error("Error parseando el numero: " + phone)
         return None
-        
-def create_person(logger: Logger, lead: dict):
+
+def get_all_person(logger: Logger) -> list[dict]:
+    logger.debug("Buscando personas")
+
+    page = 1
+    persons = []
+
+    while True:
+        logger.debug(f"GET {API_URL}?page={page}")
+        res = requests.get(API_URL, params={"page": page}, headers=HEADERS)
+        if not res.ok:
+            logger.error("Error en la request: " + str(res.status_code))
+            logger.error(res.json())
+        else: 
+            data = res.json()
+            if len(data.get('persons', [])) == 0:
+                logger.debug("Se encontro un pagina vacia, terminando")
+                break
+
+            persons.append(data.get('persons', []))
+        page += 1
+
+    return persons
+
+#@filter -> url encoder filter
+def search_person(logger: Logger, filter: str) -> None | dict:
+    res = requests.get(f"{API_URL}?filter={filter}", headers=HEADERS)
+    if not res.ok:
+        logger.error("Error en la request: " + str(res.status_code))
+        logger.error(res.json())
+        return None
+
+    return res.json().get('persons', [None])[0]
+
+def update_person(logger: Logger, id: int, payload: dict):
+    logger.debug(f"Actualizando persona {id}")
+
+    res = requests.put(API_URL, params={"id": id}, json=payload, headers=HEADERS)
+    if not res.ok:
+        logger.error("Error en la request: " + str(res.status_code))
+        logger.error(res.json())
+        return
+
+    logger.success(f"Persona {id} actualizada correctamente")
+
+#Si valid_number es True, no se parseara el numero para no generar problemas
+def create_person(logger: Logger, lead: dict, valid_number = False):
     logger.debug("Cargando lead a infobip")
 
     payload = {
@@ -40,7 +88,7 @@ def create_person(logger: Logger, lead: dict):
         "contactInformation": {},
         "tags": "Seguimientos"
     }
-    if lead['telefono'] != '':
+    if lead['telefono'] != '' and not valid_number:
         lead['telefono'] = parse_number(logger, lead['telefono'])
         payload["contactInformation"]['phone'] = [{
             "number": lead['telefono']
@@ -49,12 +97,9 @@ def create_person(logger: Logger, lead: dict):
         payload["contactInformation"]['email'] = [{
             "address": lead['email']
         }]
-    headers = {
-        'Authorization': API_KEY
-    }
 
     logger.debug(payload)
-    res = requests.post(API_URL, json=payload, headers=headers)
+    res = requests.post(API_URL, json=payload, headers=HEADERS)
     if not res.ok:
         logger.error("Error en la request: " + str(res.status_code))
         logger.error(res.json())

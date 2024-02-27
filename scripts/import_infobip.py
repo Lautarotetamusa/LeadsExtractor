@@ -1,35 +1,6 @@
-LEAD_SCHEMA = {
-    "fuente": "",
-    "fecha_lead": "",
-    "id": "",
-    "fecha": "",
-    "nombre": "",
-    "link": "",
-    "telefono": "",
-    "email": "",
-    "propiedad": {
-        "id": "",
-        "titulo": "",
-        "link": "",
-        "precio": "",
-        "ubicacion": "",
-        "tipo": "",
-    },
-    "busquedas": {
-        "zonas": "",
-        "tipo": "",
-        "presupuesto": "",
-        "cantidad_anuncios": "",
-        "contactos": "",
-        "inicio_busqueda": "",
-        "total_area": "",
-        "covered_area": "",
-        "banios": "",
-        "recamaras": "",
-    }
-}  
 
 from src.sheets import Sheet, Logger, set_prop
+from src.schema import LEAD_SCHEMA
 import requests
 import phonenumbers
 

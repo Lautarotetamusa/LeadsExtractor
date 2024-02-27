@@ -140,6 +140,16 @@ crontab:
 
 Cambiando `0 10-18/4 * * *` podemos programar los scrapers cuando querramos.
 
+# Ejecutar scripts
+Para ejecutar los scripts deberemos primero asegurarnos de tener instalados todos los requerimientos del archivo
+`requirements.txt`. Luego ejecutaremos el siguiente comando:
+
+```shell
+python -m scripts.{script}
+```
+
+Es importante mencionar que no pondremos la extension .py al ejecutar el comando
+
 # El archivo .env
 
 El archivo .env será donde se configurarán todas las claves necesarias para correr el proyecto.
