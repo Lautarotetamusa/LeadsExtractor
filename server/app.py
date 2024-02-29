@@ -150,6 +150,7 @@ def webhook():
     message_type = 'text'
     lead = LEAD_SCHEMA.copy()
     lead['message'] = ''
+    lead['fuente'] = "Whatsapp"
     value = data['entry'][0]['changes'][0]['value']
     lead['telefono'] = value['contacts'][0]['wa_id']
     lead['nombre']   = value['contacts'][0]['profile']['name']

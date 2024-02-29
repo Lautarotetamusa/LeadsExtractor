@@ -15,3 +15,5 @@ last_sended.txt
 sended.json
 
 .ngrok_codes
+
+tests/
