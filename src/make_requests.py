@@ -53,8 +53,8 @@ class ApiRequest():
 
 class Request():
     def __init__(self, cookies, headers, logger, login_method):
-        self.cookies = cookies
-        self.headers = headers
+        self.cookies: dict[str, str] = cookies
+        self.headers: dict[str, str] = headers
         self.logger = logger
         self.login_method = login_method
 
@@ -86,7 +86,7 @@ class Request():
             status_code = res.status_code
 
             # Verifica el código de estado de la respuesta
-            if res.status_code == 401 or res.status_code == 422:
+            if res.status_code >= 400 and res.status_code < 500:
                 self.logger.error("El token de acceso expiro")
                 self.logger.debug(res.text)
                 self.login_method()

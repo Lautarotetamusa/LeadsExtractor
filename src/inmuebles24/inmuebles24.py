@@ -1,22 +1,11 @@
 from time import gmtime, strftime
 from datetime import datetime
-from dotenv import load_dotenv
-import requests
 import os
 import json
-from scraper import Scraper
+import requests
 
-from src.logger import Logger
-from src.make_requests import Request
+from src.scraper import Scraper
 
-load_dotenv()
-
-PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
-with open(PARAMS_FILE, "r") as f:
-    HEADERS = json.load(f)
-
-USERNAME = os.getenv("INMUEBLES24_USERNAME")
-PASSWORD = os.getenv("INMUEBLES24_PASSWORD")
 DATE_FORMAT = "%d/%m/%Y"
 SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
@@ -81,22 +70,25 @@ class Inmuebles24(Scraper):
         super().__init__(
             name="Inmuebles24",
             contact_id_field="contact_publisher_user_id",
-            send_msg_field="id"
+            send_msg_field="id",
+            username_env="INMUEBLES24_USERNAME",
+            password_env="INMUEBLES24_PASSWORD",
+            params_type="headers",
+            filename=__file__
         )
-        self.request = Request(None, HEADERS, self.logger, self.login)
 
     def login(self):
         self.logger.debug("Iniciando sesion")
         login_url = f"{SITE_URL}login_login.ajax"
 
         data = {
-            "email": USERNAME,
-            "password": PASSWORD,
+            "email": self.username,
+            "password": self.password,
             "recordarme": "true",
             "homeSeeker": "true",
             "urlActual": SITE_URL
         }
-        HEADERS["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
+        self.request.headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
 
         self.logger.debug(f"POST {login_url}")
         params = PARAMS.copy()
@@ -113,7 +105,7 @@ class Inmuebles24(Scraper):
             "idUsuario": str(data["contenido"]["idUsuario"])
         }
 
-        with open(PARAMS_FILE, "w") as f:
+        with open(self.params_file, "w") as f:
             json.dump(self.request.headers, f, indent=4)
         self.logger.success("Sesion iniciada con exito")
 
@@ -160,7 +152,7 @@ class Inmuebles24(Scraper):
         return {
             "id": lead_id,
             "contact_id": contact_id, 
-            "fuente": "Inmuebles24",
+            "fuente": self.name,
             "fecha_lead": datetime.strptime(lead["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre": lead.get("lead_user", {}).get("name"),

@@ -1,212 +1,156 @@
 import json
-import os
 import time
-from dotenv import load_dotenv
 from time import gmtime, strftime
 from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-from src.message import generate_mensage
-import src.infobip as infobip
-from src.logger import Logger
-from src.sheets import Gmail, Sheet
-from src.make_requests import Request
-from email.mime.application import MIMEApplication
-
-load_dotenv()
-
-logger = Logger("casasyterrenos.com")
-gmail = Gmail({
-    "email": os.getenv("EMAIL_CONTACT"),
-}, logger)
-SUBJECT = os.getenv("SUBJECT")
+from src.scraper import Scraper
 
 DATE_FORMAT = "%d/%m/%Y"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
 CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
-PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
-USERNAME=os.getenv('CASASYTERRENOS_USERNAME')
-PASSWORD=os.getenv('CASASYTERRENOS_PASSWORD')
 
-if (not os.path.exists(PARAMS_FILE)):
-    logger.error("El archivo params.json no existe")
-    with open(PARAMS_FILE, "a") as f:
-        json.dump({
-            "Authorization": ""
-        }, f, indent=4)
-    
-with open(PARAMS_FILE, "r") as f:
-    HEADERS = json.load(f)
+def main():
+    scraper = CasasYTerrenos()
+    scraper.main()
 
-# Takes the JSON object getted from the API and extract the usable information.
-def extract_lead_info(data: dict) -> dict:
-    lead_info = {
-            "fuente": "Casas y terrenos",
-            "fecha_lead": datetime.strptime(data["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
-            "id": data["id"],
-            "fecha": strftime(DATE_FORMAT, gmtime()),
-            "nombre": data["name"],
-            "link": "",
-            "telefono": data["phone"],
-            #"telefono_2": data["phone_list"][1],
-            "email": data["email"],
-            "propiedad": {
-                "id": data["property_id"],
-                "titulo": data["property_title"],
-                "link": f"https://www.casasyterrenos.com/propiedad/{data['property_id']}",
-                "precio": "",
-                "ubicacion": "",
-                "tipo": data["property_type"],
+class CasasYTerrenos(Scraper):
+    def __init__(self):
+        super().__init__(
+            name = "Casas y terrenos",
+            contact_id_field = "id",
+            send_msg_field = "",
+            username_env = "CASASYTERRENOS_USERNAME",
+            password_env = "CASASYTERRENOS_PASSWORD",
+            params_type = "headers",
+            filename=__file__
+        )
+
+    def get_leads(self) -> list[dict]:
+        status = "1" #Filtramos solamente los leads nuevos
+        page = 1
+        url = f"{API_URL}/list_contact/?page={page}&status={status}"
+
+        leads = []
+        while url != None:
+            res = self.request.make(url)
+            if res == None:
+                return leads
+            data = res.json()
+
+            url = data["next"]
+            self.logger.debug(f"total: {data['count']}")
+
+            leads += data["results"]
+        return leads
+
+    def make_contacted(self, id: str):
+        self.logger.debug(f"Marcando como contactacto a lead {id}")
+        url = f"{API_URL}/contact/{id}"
+
+        data = {
+            "id": id,
+            "status": 2, # 2 -> Contactado por correo
+            "status_description": "Correo"
+        }
+        res = self.request.make(url, 'PATCH', data=data)
+        
+        self.logger.success(f"Se contacto correctamente a lead {id}")
+
+    def get_lead_info(self, lead: dict) -> dict:
+        return {
+                "fuente": self.name,
+                "fecha_lead": datetime.strptime(lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
+                "id": lead["id"],
+                "fecha": strftime(DATE_FORMAT, gmtime()),
+                "nombre": lead["name"],
+                "link": "",
+                "telefono": lead["phone"],
+                #"telefono_2": lead["phone_list"][1],
+                "email": lead["email"],
+                "propiedad": {
+                    "id": lead["property_id"],
+                    "titulo": lead["property_title"],
+                    "link": f"https://www.casasyterrenos.com/propiedad/{lead['property_id']}",
+                    "precio": "",
+                    "ubicacion": "",
+                    "tipo": lead["property_type"],
                 },
-            "busquedas": {
-                "zonas": "",
-                "tipo": "",
-                "presupuesto": "",
-                "cantidad_anuncios": "",
-                "contactos": "",
-                "inicio_busqueda": "",
-                "total_area": "",
-                "covered_area": "",
-                "banios": "",
-                "recamaras": "",
+                "busquedas": {
+                    "zonas": "",
+                    "tipo": "",
+                    "presupuesto": "",
+                    "cantidad_anuncios": "",
+                    "contactos": "",
+                    "inicio_busqueda": "",
+                    "total_area": "",
+                    "covered_area": "",
+                    "banios": "",
+                    "recamaras": "",
                 }
             }
 
-    return lead_info
+    def login(self, session="session"):
+        login_url = "https://panel-pro.casasyterrenos.com/login"
+        panel_url = "https://panel-pro.casasyterrenos.com/contacts"
+        options = Options()
+        options.add_argument(f"--user-data-dir={session}") #Session
+        options.add_argument(f"--headless") #Session
+        options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
 
-# Obtener el access token necesario para las requests posteriores
-# Si la sesion no esta iniciada, la iniciamos.
-# Si la sesión ya está iniciada, generamos el access tokens
-def get_access_token(session="session"):
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+        driver = webdriver.Chrome(options=options)
+        access_token = None
 
-    login_url = "https://panel-pro.casasyterrenos.com/login"
-    panel_url = "https://panel-pro.casasyterrenos.com/contacts"
-    options = Options()
-    options.add_argument(f"--user-data-dir={session}") #Session
-    options.add_argument(f"--headless") #Session
-    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+        self.logger.debug("Generando un nuevo token de acceso")
+        try:
+            driver.get(panel_url)
 
-    driver = webdriver.Chrome(options=options)
-    access_token = None
+            if (driver.current_url == login_url):
+                self.logger.debug("La sesion no esta iniciada, iniciando..")
+                driver.get(login_url)
 
-    logger.debug("Generando un nuevo token de acceso")
-    try:
-        driver.get(panel_url)
+                #Esperar que cargue la pagina
+                WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//input[@name='username']")))
 
-        if (driver.current_url == login_url):
-            logger.debug("La sesion no esta iniciada, iniciando..")
-            driver.get(login_url)
+                username_input = driver.find_element(By.XPATH, "//input[@name='username']")
+                password_input = driver.find_element(By.XPATH, "//input[@name='password']")
+                send_btn = driver.find_element(By.XPATH, "//button[@data-splitbee-event='log-in']")
 
-            #Esperar que cargue la pagina
-            WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//input[@name='username']")))
+                username_input.send_keys(self.username)
+                password_input.send_keys(self.password)
+                send_btn.click()
 
-            username_input = driver.find_element(By.XPATH, "//input[@name='username']")
-            password_input = driver.find_element(By.XPATH, "//input[@name='password']")
-            send_btn = driver.find_element(By.XPATH, "//button[@data-splitbee-event='log-in']")
+                WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "/html/body/div/div/div/div[1]/div/nav/a")))
+                self.logger.success("Sesion iniciada con exito")
 
-            username_input.send_keys(USERNAME)
-            password_input.send_keys(PASSWORD)
-            send_btn.click()
+            self.logger.debug("Obteniendo access token")
+            access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{self.username}.idToken');")
+            if access_token != None:
+                self.logger.success("Access token obtenido con exito")
+                self.logger.success(access_token)
+            else:
+                self.logger.error("No se pudo obtener el access_token")
 
-            WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "/html/body/div/div/div/div[1]/div/nav/a")))
-            logger.success("Sesion iniciada con exito")
+            #Esperamos para que el token sea correcto
+            driver.implicitly_wait(10)
+            time.sleep(10) 
+        except Exception as e:
+            self.logger.error("Ocurrio un error generando el access token")
+            self.logger.error(str(e))
+        finally:
+            driver.quit()
 
-        logger.debug("Obteniendo access token")
-        access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{USERNAME}.idToken');")
-        logger.success("Access token obtenido con exito")
-        logger.success(access_token)
-        #Esperamos para que el token sea correcto
-        driver.implicitly_wait(10)
-        time.sleep(10) 
-    except Exception as e:
-        logger.error("Ocurrio un error generando el access token")
-        logger.error(str(e))
-    finally:
-        driver.quit()
-
-    request.headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-    with open(PARAMS_FILE, "w") as f:
-        json.dump(request.headers, f, indent=4)
-
-request = Request(None, HEADERS, logger, get_access_token)
-
-def make_contacted(lead_id):
-    logger.debug(f"Marcando como contactacto a lead {lead_id}")
-    url = f"{API_URL}/contact/{lead_id}"
-
-    data = {
-        "id": lead_id,
-        "status": 2, # 2 -> Contactado por correo
-        "status_description": "Correo"
-    }
-    res = request.make(url, 'PATCH', data=data)
-    
-    logger.success(f"Se contacto correctamente a lead {lead_id}")
-
-def main():
-    sheet = Sheet(logger, "mapping.json")
-    headers = sheet.get("A2:Z2")[0]
-    logger.debug(f"Extrayendo leads")
-
-    with open('messages/gmail.html', 'r') as f:
-        gmail_spin = f.read()
-    with open('messages/gmail_subject.html', 'r') as f:
-        gmail_subject = f.read()
-
-    # Adjuntar archivo PDF
-    with open('messages/attachment.pdf', 'rb') as pdf_file:
-        attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
-        attachment.add_header('Content-Disposition', 'attachment', 
-              filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
-        )
-
-    status = "1" #Filtramos solamente los leads nuevos
-    first = True
-    page = 1
-    url = f"{API_URL}/list_contact/?page={page}&status={status}"
-
-    leads = []
-    while first == True or url != None:
-        data = request.make(url).json()
-
-        url = data["next"]
-        total = data["count"]
-        logger.debug(f"total: {total}")
-
-        for raw_lead in data["results"]:
-            lead = extract_lead_info(raw_lead)
-            logger.debug(lead)
-
-            lead["message"] = generate_mensage(lead).replace('\n', '')
-            if lead['email'] != '':
-                if lead["propiedad"]["ubicacion"] == "":
-                    lead["propiedad"]["ubicacion"] = "que consultaste"
-                else:
-                    lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
-
-                gmail_msg = generate_mensage(lead, gmail_spin)
-                subject = generate_mensage(lead, gmail_subject)
-                gmail.send_message(gmail_msg, subject, lead["email"], attachment)
-                infobip.create_person(logger, lead)
-            make_contacted(lead["id"])
-
-            row_lead = sheet.map_lead(lead, headers)
-            leads.append(row_lead)
-
-        sheet.write(leads)
-
-        logger.debug(f"len: {len(leads)}")
-        first = False
-
-    logger.success(f"Se encontraron {len(leads)} nuevos Leads")
+        self.request.headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+        with open(self.params_file, "w") as f:
+            json.dump(self.request.headers, f, indent=4)
 
 if __name__ == "__main__":
-    main()
+    scraper = CasasYTerrenos()
+    scraper.main()

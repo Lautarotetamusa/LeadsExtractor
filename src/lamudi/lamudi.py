@@ -1,72 +1,12 @@
 from time import gmtime, strftime
 from datetime import datetime
-
-from dotenv import load_dotenv
 import json
 import uuid
-import os
 
-from src.logger import Logger
 from src.scraper import Scraper
-from src.make_requests import Request
-
-load_dotenv()
-logger = Logger("lamudi.com")
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
-USERNAME=os.getenv('LAMUDI_USERNAME')
-PASSWORD=os.getenv('LAMUDI_PASSWORD')
-PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
-
-if (not os.path.exists(PARAMS_FILE)):
-    logger.error("El archivo params.json no existe")
-    with open(PARAMS_FILE, "a") as f:
-        json.dump({
-            "authToken": ""
-        }, f, indent=4)
-
-with open(PARAMS_FILE, "r") as f:
-    COOKIES = json.load(f)
-
-def login():
-    logger.debug("Iniciando sesion")
-    login_url = f"{API_URL}/login"
-
-    data = {
-        "email": USERNAME,
-        "password": PASSWORD
-    }
-    res = request.make(login_url, 'POST', json=data)
-    #res = requests.post(login_url, json=data)
-    #print("cookies:", res.cookies.items())
-    
-    request.cookies = {
-        "authToken": res.cookies["authToken"]
-    }
-    with open(PARAMS_FILE, "w") as f:
-        json.dump(request.cookies, f, indent=4)
-    logger.success("Sesion iniciada con exito")
-
-request = Request(COOKIES, None, logger, login)
-
-def get_lead_property(lead_id):
-    property_url = f"{API_URL}/leads/{lead_id}/properties"
-    props = request.make(property_url).json().get("data")
-
-    formatted_props = []
-    for p in props:
-        formatted_props.append({
-            "titulo": p["title"],
-            "id": p['id'],
-            "link": f"https://www.lamudi.com.mx/detalle/{p['id']}",
-            "precio": p["price"]["amount"],
-            "ubicacion": p["address"], #Direccion completa
-            "tipo": p["propertyType"],
-            "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else "" #Solamente el municipio, lo usamos para generar el mensaje
-        })
-
-    return formatted_props
 
 def first_run():
     pass
@@ -80,8 +20,30 @@ class Lamudi(Scraper):
         super().__init__(
             name="Lamudi",
             contact_id_field="id",
-            send_msg_field="id"
+            send_msg_field="id",
+            username_env="LAMUDI_USERNAME",
+            password_env="LAMUDI_PASSWORD",
+            params_type="cookies",
+            filename=__file__
         )
+    def login(self):
+        self.logger.debug("Iniciando sesion")
+        login_url = f"{API_URL}/login"
+
+        data = {
+            "email": self.username,
+            "password": self.password
+        }
+        res = self.request.make(login_url, 'POST', json=data)
+        if res == None:
+            return
+        
+        self.request.cookies = {
+            "authToken": res.cookies["authToken"]
+        }
+        with open(self.params_file, "w") as f:
+            json.dump(self.request.cookies, f, indent=4)
+        self.logger.success("Sesion iniciada con exito")
 
     def get_leads(self) -> list[dict]:
         max = -1
@@ -93,7 +55,7 @@ class Lamudi(Scraper):
         url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
         self.logger.debug(f"Extrayendo leads")
 
-        res = request.make(url, 'GET')
+        res = self.request.make(url, 'GET')
         if res == None:
             return []
         data = res.json()["data"]
@@ -109,7 +71,7 @@ class Lamudi(Scraper):
             url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
             self.logger.debug(url)
 
-            res = request.make(url, 'GET')
+            res = self.request.make(url, 'GET')
             if res == None:
                 return leads
             data = res.json()["data"]
@@ -117,10 +79,39 @@ class Lamudi(Scraper):
         self.logger.success(f"Se encontraron {len(leads)} nuevos Leads")
         return leads
 
+    def get_lead_property(self, lead_id):
+        property_url = f"{API_URL}/leads/{lead_id}/properties"
+        res = self.request.make(property_url)
+        if res == None:
+            return [{
+                "titulo": "",
+                "id": "",
+                "link": "",
+                "precio": "",
+                "ubicacion": "",
+                "tipo": "",
+                "municipio": ""
+            }]
+        props = res.json().get("data")
+
+        formatted_props = []
+        for p in props:
+            formatted_props.append({
+                "titulo": p["title"],
+                "id": p['id'],
+                "link": f"https://www.lamudi.com.mx/detalle/{p['id']}",
+                "precio": p["price"]["amount"],
+                "ubicacion": p["address"], #Direccion completa
+                "tipo": p["propertyType"],
+                "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else "" #Solamente el municipio, lo usamos para generar el mensaje
+            })
+
+        return formatted_props
+
     def get_lead_info(self, lead: dict) -> dict:
         return {
             "id": lead["id"],
-            "fuente": "Lamudi",
+            "fuente": self.name,
             "fecha": strftime('%d/%m/%Y', gmtime()),
             "fecha_lead": datetime.strptime(lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
             "nombre": lead["name"],
@@ -128,7 +119,7 @@ class Lamudi(Scraper):
             "telefono": lead['phone'],
             "telefono_2": "",
             "email": lead['email'],
-            "propiedad": get_lead_property(lead["id"])[0],
+            "propiedad": self.get_lead_property(lead["id"])[0],
             "busquedas": {
                 "zonas": "",
                 "tipo": "",
@@ -142,6 +133,7 @@ class Lamudi(Scraper):
                 "inicio_busqueda": "" 
             }
         }
+
     def send_message(self, id, message):
         self.logger.debug(f"Enviando mensaje a lead {id}")
         #Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
@@ -152,7 +144,7 @@ class Lamudi(Scraper):
             "id": msg_id,
             "message": message
         }
-        request.make(msg_url, 'POST', json=data)
+        self.request.make(msg_url, 'POST', json=data)
         self.logger.success(f"Mensaje enviado correctamente a lead {id}")
 
     def make_contacted(self, id):
@@ -162,5 +154,5 @@ class Lamudi(Scraper):
         data = {
             "status": "contacted"
         }
-        request.make(read_url, 'PUT', json=data)
+        self.request.make(read_url, 'PUT', json=data)
         self.logger.success(f"Se contacto correctamente a lead {id}")

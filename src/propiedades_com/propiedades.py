@@ -1,8 +1,6 @@
 from time import gmtime, strftime
-from dotenv import load_dotenv
 from datetime import datetime
 import json
-import os
 from enum import IntEnum
 
 from selenium import webdriver
@@ -12,12 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.message import generate_mensage
-import src.infobip as infobip
-from src.logger import Logger
-from src.sheets import Gmail, Sheet
-from src.make_requests import Request
-from email.mime.application import MIMEApplication
+from src.scraper import Scraper
 #mis propiedades:
 #https://propiedades.com/api/v3/property/MyProperties
 
@@ -25,64 +18,8 @@ from email.mime.application import MIMEApplication
 with open("src/propiedades_com/properties_obj.json") as f:
     PROPS = json.load(f)
 
-load_dotenv()
-
-logger = Logger("propiedades.com")
-gmail = Gmail({
-    "email": os.getenv("EMAIL_CONTACT"),
-}, logger)
-SUBJECT = os.getenv("SUBJECT") or "subject"
-
-USERNAME=os.getenv('PROPIEDADES_USERNAME')
-PASSWORD=os.getenv('PROPIEDADES_PASSWORD')
-
 DATE_FORMAT = "%d/%m/%Y"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
-PARAMS_FILE = os.path.dirname(os.path.realpath(__file__)) + "/params.json"
-with open(PARAMS_FILE, "r") as f:
-    HEADERS = json.load(f)
-
-def login(session="propiedades_com/session"):
-    login_url = "https://propiedades.com/login"
-    options = Options()
-    options.add_argument(f"--user-data-dir={session}") #Session
-    #options.add_argument(f"--headless") #Session
-    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
-
-    driver = webdriver.Chrome(options=options)
-    access_token = None
-
-    logger.debug("Iniciando sesion")
-    try:
-        driver.get(login_url)
-
-        #Esperar que cargue la pagina
-        WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//input[@data-gtm='text_field_email']")))
-
-        username_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_email']")
-        username_input.send_keys(USERNAME)
-        driver.find_element(By.XPATH, "//button[@data-id='login_correo']").click()
-
-        password_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_password']")
-        password_input.send_keys(PASSWORD)
-        driver.find_element(By.XPATH, "//button[@data-id='login_password']").click()
-
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//img[@data-testid='user-avatar']")))
-        logger.success("Sesion iniciada con exito")
-
-        logger.debug("Obteniendo access token")
-        #access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{USERNAME}.idToken');")
-        cookies = driver.get_cookies()
-        print(cookies)
-        logger.success("Access token obtenido con exito")
-        logger.success(access_token)
-    except Exception as e:
-        logger.error("Ocurrio un error generando el access token")
-        logger.error(str(e))
-    finally:
-        driver.quit()
-
-request = Request(None, HEADERS, logger, login)
 
 #Lista de estados posibles de un lead
 #Los tomamos de la pagina
@@ -93,161 +30,157 @@ class Status(IntEnum):
     CONVERTIDO = 5,
     CERRADA = 6
 
-if (not os.path.exists(PARAMS_FILE)):
-    logger.error("El archivo params.json no existe")
-    with open(PARAMS_FILE, "a") as f:
-        json.dump({
-            "Authorization": "",
-            "x-api-key": ""
-        }, f, indent=4)
+def main():
+    scraper = Propiedades()
+    scraper.main()
 
-def get_lead_property(property_id: str):
-    if property_id not in PROPS:
-        logger.error(f"No se encontro la propiedad con id {property_id}")
+class Propiedades(Scraper):
+    def __init__(self):
+        super().__init__(
+            name = "Propiedades",
+            contact_id_field="id",
+            send_msg_field="",
+            username_env="PROPIEDADES_USERNAME",
+            password_env="PROPIEDADES_PASSWORD",
+            params_type="headers",
+            filename=__file__
+        )
+
+    def get_leads(self) -> list[dict]:
+        first = True
+        page = 1
+        end = False
+        url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
+
+        leads = []
+        while (not end) and (first == True or page != None):
+            res = self.request.make(url)
+            if res == None:
+                return leads
+            data = res.json()["leads"]
+            
+            page = data["page"]["next_page"]
+            url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
+            total = data["page"]["items"]
+            self.logger.debug(f"total: {total}")
+
+            for lead in data["properties"]:
+                if lead["status"] == Status.CONTACTADO:
+                    self.logger.debug("Se encontro un lead ya conctactado, paramos")
+                    end = True #Cuando encontramos un lead conctado paramos
+                    break
+                leads.append(lead)
+
+        return leads
+
+    def get_lead_info(self, lead: dict) -> dict:
+        prop = self.get_lead_property(str(lead["property_id"]))
+
+        prop["address"] = lead["address"]
+        if prop["titulo"] == "": prop["titulo"] = prop["address"]
+
         return {
-            "id": "",
-            "titulo": "",
-            "link": "",
-            "precio": "",
-            "ubicacion": "",
-            "tipo": "",
-            "municipio": ""
-        }
-    data = PROPS[property_id]
-
-    return {
-        "id": data["id"],
-        "titulo": data["short_address"],
-        "link": data["url"],
-        "precio": data["price"],
-        "ubicacion": data["address"],
-        "tipo": data["type_children_string"],
-        "municipio": data["municipality"]
-    }
-
-# Takes the JSON object getted from the API and extract the usable information.
-def extract_lead_info(data: dict) -> dict:
-    prop = get_lead_property(str(data["property_id"]))
-
-    prop["address"] = data["address"]
-    if prop["titulo"] == "": prop["titulo"] = prop["address"]
-
-    lead_info = {
-            "fuente": "Propiedades.com",
-            "fecha_lead": datetime.strptime(data["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
-            "id": data["id"],
-            "fecha": strftime(DATE_FORMAT, gmtime()),
-            "nombre": data["name"],
-            "link": "",
-            "telefono": data["phone"],
-            #"telefono_2": data["phone_list"][1],
-            "email": data["email"],
-            "propiedad": prop,
-            "busquedas": {
-                "zonas": "",
-                "tipo": "",
-                "presupuesto": "",
-                "cantidad_anuncios": "",
-                "contactos": "",
-                "inicio_busqueda": "",
-                "total_area": "",
-                "covered_area": "",
-                "banios": "",
-                "recamaras": "",
+                "fuente": self.name,
+                "fecha_lead": datetime.strptime(lead["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
+                "id": lead["id"],
+                "fecha": strftime(DATE_FORMAT, gmtime()),
+                "nombre": lead["name"],
+                "link": "",
+                "telefono": lead["phone"],
+                "email": lead["email"],
+                "propiedad": prop,
+                "busquedas": {
+                    "zonas": "",
+                    "tipo": "",
+                    "presupuesto": "",
+                    "cantidad_anuncios": "",
+                    "contactos": "",
+                    "inicio_busqueda": "",
+                    "total_area": "",
+                    "covered_area": "",
+                    "banios": "",
+                    "recamaras": "",
                 }
             }
 
-    return lead_info
+    def get_lead_property(self, property_id: str):
+        if property_id not in PROPS:
+            self.logger.error(f"No se encontro la propiedad con id {property_id}")
+            return {
+                "id": "",
+                "titulo": "",
+                "link": "",
+                "precio": "",
+                "ubicacion": "",
+                "tipo": "",
+                "municipio": ""
+            }
+        data = PROPS[property_id]
 
-def change_status(lead_id, status:Status):
-    logger.debug(f"Marcando como {status.name} al lead {lead_id}")
-    
-    url = f"{API_URL}/prod/leads/status"
+        return {
+            "id": data["id"],
+            "titulo": data["short_address"],
+            "link": data["url"],
+            "precio": data["price"],
+            "ubicacion": data["address"],
+            "tipo": data["type_children_string"],
+            "municipio": data["municipality"]
+        }
 
-    req = {
-        "lead_id": lead_id,
-        "status": status,
-        "country": "MX"
-    }
-
-    res = request.make(url, "PUT", json=req)
-    #res = requests.put(url, headers=HEADERS, json=req)
-    if (res.status_code != 200):
-        logger.error(res.status_code)
-        logger.error(res.text)
-    else:
-        logger.success(f"Se marco a lead {lead_id} como {status.name}")
-
-def main():
-    sheet = Sheet(logger, "mapping.json")
-    headers = sheet.get("A2:Z2")[0]
-    logger.debug(f"Extrayendo leads")
-
-    with open('messages/gmail.html', 'r') as f:
-        gmail_spin = f.read()
-    with open('messages/gmail_subject.html', 'r') as f:
-        gmail_subject = f.read()
-
-    # Adjuntar archivo PDF
-    with open('messages/attachment.pdf', 'rb') as pdf_file:
-        attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
-        attachment.add_header('Content-Disposition', 'attachment', 
-              filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
-        )
-
-    first = True
-    page = 1
-    end = False
-    url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
-
-    while (not end) and (first == True or page != None):
-        leads = []
-        logger.debug(url)
-
-        data = request.make(url).json()["leads"]
-        #data = get_data(url)["leads"]
-        #if data == None: return None
+    def make_contacted(self, id: str):
+        status: Status = Status.CONTACTADO
+        self.logger.debug(f"Marcando como {status.name} al lead {id}")
         
-        page = data["page"]["next_page"]
-        url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
-        total = data["page"]["items"]
-        logger.debug(f"total: {total}")
+        url = f"{API_URL}/prod/leads/status"
 
-        for raw_lead in data["properties"]:
-            if raw_lead["status"] == Status.CONTACTADO:
-                logger.debug("Se encontro un lead ya conctactado, paramos")
-                end = True #Cuando encontramos un lead conctado paramos
-                break
+        req = {
+            "lead_id": id,
+            "status": status,
+            "country": "MX"
+        }
 
-            lead = extract_lead_info(raw_lead)
-            logger.debug(lead)
+        res = self.request.make(url, "PUT", json=req)
+        if (res == None):
+            self.logger.error(f"No se pudo marcar al lead como {status.name}")
+        else:
+            self.logger.success(f"Se marco a lead {id} como {status.name}")
 
-            msg = generate_mensage(lead)
-            lead["message"] = msg.replace('\n', '')
-            
-            if lead['email'] != '':
-                if lead["propiedad"]["ubicacion"] == "":
-                    lead["propiedad"]["ubicacion"] = "que consultaste"
-                else:
-                    lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
+    def login(self, session="propiedades_com/session"):
+        login_url = "https://propiedades.com/login"
+        options = Options()
+        options.add_argument(f"--user-data-dir={session}") #Session
+        #options.add_argument(f"--headless") #Session
+        options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
 
-                gmail_msg = generate_mensage(lead, gmail_spin)
-                subject = generate_mensage(lead, gmail_subject)
-                gmail.send_message(gmail_msg, subject, lead["email"], attachment)
-                infobip.create_person(logger, lead)
+        driver = webdriver.Chrome(options=options)
+        access_token = None
 
-            change_status(lead["id"], Status.CONTACTADO)
+        self.logger.debug("Iniciando sesion")
+        try:
+            driver.get(login_url)
 
-            row_lead = sheet.map_lead(lead, headers)
-            leads.append(row_lead)
+            #Esperar que cargue la pagina
+            WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//input[@data-gtm='text_field_email']")))
 
-        sheet.write(leads)
+            username_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_email']")
+            username_input.send_keys(self.username)
+            driver.find_element(By.XPATH, "//button[@data-id='login_correo']").click()
 
-        logger.debug(f"Leads leidos: {len(leads)}")
-        first = False
+            password_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_password']")
+            password_input.send_keys(self.password)
+            driver.find_element(By.XPATH, "//button[@data-id='login_password']").click()
 
-    logger.success(f"Se encontraron {len(leads)} nuevos Leads")
+            WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//img[@data-testid='user-avatar']")))
+            self.logger.success("Sesion iniciada con exito")
+
+            self.logger.debug("Obteniendo access token")
+            cookies = driver.get_cookies()
+            self.logger.success("Cookies obtenidas con exito:"+str(cookies))
+        except Exception as e:
+            self.logger.error("Ocurrio un error generando el access token")
+            self.logger.error(str(e))
+        finally:
+            driver.quit()
 
 if __name__ == "__main__":
     main()
-    #change_all_status(Status.EN_PROCESO)
