@@ -66,6 +66,7 @@ class CasasYTerrenos(Portal):
         return {
                 "fuente": self.name,
                 "fecha_lead": datetime.strptime(lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
+                "asesor_name": "",
                 "id": lead["id"],
                 "fecha": strftime(DATE_FORMAT, gmtime()),
                 "nombre": lead["name"],

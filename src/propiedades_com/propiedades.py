@@ -80,6 +80,7 @@ class Propiedades(Portal):
         return {
                 "fuente": self.name,
                 "fecha_lead": datetime.strptime(lead["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
+                "asesor_name": "",
                 "id": lead["id"],
                 "fecha": strftime(DATE_FORMAT, gmtime()),
                 "nombre": lead["name"],

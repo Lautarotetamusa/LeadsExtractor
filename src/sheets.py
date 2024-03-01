@@ -124,7 +124,7 @@ class Sheet(Google):
             headers[element] = list_headers.index(element)
         return headers
 
-    def write(self, data, range_sheet="BD-General!A3"):
+    def write(self, data, range_sheet="BD-General"):
         body = {'values': data}
 
         try:

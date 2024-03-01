@@ -1,6 +1,7 @@
 LEAD_SCHEMA = {
     "fuente": "",
     "fecha_lead": "",
+    "asesor_name": "",
     "id": "",
     "fecha": "",
     "nombre": "",

@@ -153,6 +153,7 @@ class Inmuebles24(Portal):
             "id": lead_id,
             "contact_id": contact_id, 
             "fuente": self.name,
+            "asesor_name": "",
             "fecha_lead": datetime.strptime(lead["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre": lead.get("lead_user", {}).get("name"),

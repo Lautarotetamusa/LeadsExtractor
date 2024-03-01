@@ -16,4 +16,4 @@ sended.json
 
 .ngrok_codes
 
-tests/
+tests/*

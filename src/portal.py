@@ -7,6 +7,42 @@ from src.message import generate_mensage
 from src.sheets import Gmail, Sheet
 import src.infobip as infobip
 
+class Lead():
+    def __init__(self):
+        self.args = {
+            "fuente": "",
+            "fecha_lead": "",
+            "asesor_name": "",
+            "id": "",
+            "fecha": "",
+            "nombre": "",
+            "link": "",
+            "telefono": "",
+            "email": "",
+            "propiedad": {
+                "id": "",
+                "titulo": "",
+                "link": "",
+                "precio": "",
+                "ubicacion": "",
+                "tipo": "",
+            },
+            "busquedas": {
+                "zonas": "",
+                "tipo": "",
+                "presupuesto": "",
+                "cantidad_anuncios": "",
+                "contactos": "",
+                "inicio_busqueda": "",
+                "total_area": "",
+                "covered_area": "",
+                "banios": "",
+                "recamaras": "",
+            }
+        } 
+    def set_args(self, **args):
+        self.args = args
+
 class Portal():
     def __init__(self,
                  name: str,

@@ -113,6 +113,7 @@ class Lamudi(Portal):
             "id": lead["id"],
             "fuente": self.name,
             "fecha": strftime('%d/%m/%Y', gmtime()),
+            "asesor_name": "",
             "fecha_lead": datetime.strptime(lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
             "nombre": lead["name"],
             "link": f"https://proppit.com/leads/{lead['id']}",

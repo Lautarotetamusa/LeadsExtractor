@@ -21,7 +21,7 @@ headers = sheet.get("A2:Z2")[0]
 from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
 from src.propiedades_com.scraper import main as propiedades_scraper
-from src.casas_y_terrenos.scraper import main as casasyterrenos_scraper
+from src.casasyterrenos.scraper import main as casasyterrenos_scraper
 import src.infobip as infobip
 
 PORTALS = {
@@ -102,7 +102,7 @@ def get_asesor():
     lead = LEAD_SCHEMA.copy()
     lead['telefono'] = phone
     lead['fuente'] = fuente
-    lead['message'] = fuente
+    lead['message'] = ""
 
     asesor = round_robin()
     lead['asesor_name'] = asesor['name']
@@ -188,10 +188,9 @@ Telefono: {lead['telefono']}
 Comunicate con este lead lo antes posible.
     """)
 
-    #Cargar la persona en infobip para seguimientos
     infobip.create_person(logger, lead, valid_number=True)
-    #Cargar el lead en sheets
     row_lead = sheet.map_lead(lead, headers)
+    print(row_lead)
     sheet.write([row_lead])
     return ''
 
