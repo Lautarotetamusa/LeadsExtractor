@@ -1,4 +1,5 @@
 import requests
+from requests.models import Response
 
 class ApiRequest():
     def __init__(self, logger, api_url, api_params):
@@ -60,7 +61,7 @@ class Request():
     # Esta funcion realiza una peticion HTTP através de la libreria requests
     # Cuando el status_code es == 401 significa que el token de acceso a la API expiro, por
     # lo que deberemos llamar a la funcion login()
-    def make(self, url, method='GET', **kwargs):
+    def make(self, url, method='GET', **kwargs) -> Response | None:
         status_code = 401
         max_tries = 3
         tries = 0
@@ -78,7 +79,7 @@ class Request():
                 raise(requests.HTTPError)
 
             # Realiza la solicitud con el método especificado y los parámetros adicionales
-            res = allowed_methods[method](url, cookies=self.cookies, headers=self.headers, **kwargs)
+            res: Response = allowed_methods[method](url, cookies=self.cookies, headers=self.headers, **kwargs)
             #print(res.text)
             self.logger.debug(f"{method} {url}")
 

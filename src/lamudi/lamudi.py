@@ -1,23 +1,17 @@
 from time import gmtime, strftime
 from datetime import datetime
+
 from dotenv import load_dotenv
-#import requests
 import json
 import uuid
 import os
 
-from src.message import generate_mensage
-import src.infobip as infobip
 from src.logger import Logger
-from src.sheets import Sheet, Gmail
+from src.scraper import Scraper
 from src.make_requests import Request
-from email.mime.application import MIMEApplication
 
 load_dotenv()
 logger = Logger("lamudi.com")
-gmail = Gmail({
-    "email": os.getenv("EMAIL_CONTACT"),
-}, logger)
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
@@ -44,6 +38,8 @@ def login():
         "password": PASSWORD
     }
     res = request.make(login_url, 'POST', json=data)
+    #res = requests.post(login_url, json=data)
+    #print("cookies:", res.cookies.items())
     
     request.cookies = {
         "authToken": res.cookies["authToken"]
@@ -53,40 +49,6 @@ def login():
     logger.success("Sesion iniciada con exito")
 
 request = Request(COOKIES, None, logger, login)
-
-def send_email_message(lead_id, msg):
-    logger.debug(f"Enviando mensaje por email a lead {lead_id}")
-    msg_url = f"{API_URL}/leads/{lead_id}/emails"
-
-    data = {
-        "leadId": lead_id,
-        "message": msg
-    }
-    request.make(msg_url, 'POST', json=data)
-    logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
-
-def send_message(lead_id, msg):
-    logger.debug(f"Enviando mensaje a lead {lead_id}")
-    #Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
-    msg_id = str(uuid.uuid4())
-    msg_url = f"{API_URL}/leads/{lead_id}/notes/{msg_id}"
-
-    data = {
-        "id": msg_id,
-        "message": msg
-    }
-    request.make(msg_url, 'POST', json=data)
-    logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
-
-def make_contacted(lead_id):
-    logger.debug(f"Marcando como contactacto a lead {lead_id}")
-    read_url = f"{API_URL}/leads/{lead_id}/status"
-
-    data = {
-        "status": "contacted"
-    }
-    request.make(read_url, 'PUT', json=data)
-    logger.success(f"Se contacto correctamente a lead {lead_id}")
 
 def get_lead_property(lead_id):
     property_url = f"{API_URL}/leads/{lead_id}/properties"
@@ -105,112 +67,100 @@ def get_lead_property(lead_id):
         })
 
     return formatted_props
-        
-def get_lead_info(lead):
-    lead_info = {
-        "id": lead["id"],
-        "fuente": "Lamudi",
-        "fecha": strftime('%d/%m/%Y', gmtime()),
-        "fecha_lead": datetime.strptime(lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
-        "nombre": lead["name"],
-        "link": f"https://proppit.com/leads/{lead['id']}",
-        "telefono": lead['phone'],
-        "telefono_2": "",
-        "email": lead['email'],
-        "propiedad": get_lead_property(lead["id"])[0],
-        "busquedas": {
-            "zonas": "",
-            "tipo": "",
-            "total_area": "",
-            "covered_area": "",
-            "banios": "",
-            "recamaras": "",
-            "presupuesto": "",
-            "cantidad_anuncios": "",
-            "contactos": "",
-            "inicio_busqueda": "" 
-        }
-    }
-    return lead_info
 
-def get_leads(max=-1, status="new lead"):
-    page = 1
-    limit = 25
-    url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
-    logger.debug(f"Extrayendo leads")
+def first_run():
+    pass
 
-    data = request.make(url, 'GET').json()["data"]
-
-    total = data["totalFilteredRows"]
-    logger.debug(f"total: {total}")
-
-    leads = []
-    while (len(leads) < total and (len(leads) < max or max == -1)):
-        logger.debug(f"len: {len(leads)}")
-        leads += data["rows"]
-        page += 1
-
-        url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
-        logger.debug(url)
-        data = request.make(url, 'GET').json()["data"]
-
-    logger.success(f"Se encontraron {len(leads)} nuevos Leads")
-    return leads
-
-# Esta es la funcion que se ejecuta todo el tiempo
 def main():
-    leads = get_leads()
-    sheet = Sheet(logger, "mapping.json")
-    headers = sheet.get("A2:Z2")[0]
+    lamudi = Lamudi()
+    lamudi.main()
 
-    with open('messages/gmail.html', 'r') as f:
-        gmail_spin = f.read()
-    with open('messages/gmail_subject.html', 'r') as f:
-        gmail_subject = f.read()
-
-    # Adjuntar archivo PDF
-    with open('messages/attachment.pdf', 'rb') as pdf_file:
-        attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
-        attachment.add_header('Content-Disposition', 'attachment', 
-              filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
+class Lamudi(Scraper):
+    def __init__(self):
+        super().__init__(
+            name="Lamudi",
+            contact_id_field="id",
+            send_msg_field="id"
         )
 
-    leads_info = []
-    for lead_res in leads:
-        lead = get_lead_info(lead_res)
-        if lead['email'] != '':
-            if lead["propiedad"]["ubicacion"] == "":
-                lead["propiedad"]["ubicacion"] = "que consultaste"
-            else:
-                lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
+    def get_leads(self) -> list[dict]:
+        max = -1
+        status = "new lead"
+        page = 1
+        limit = 25
+        leads = []
 
-            gmail_msg = generate_mensage(lead, gmail_spin)
-            subject = generate_mensage(lead, gmail_subject)
-            gmail.send_message(gmail_msg, subject, lead["email"], attachment)
-            infobip.create_person(logger, lead)
+        url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+        self.logger.debug(f"Extrayendo leads")
 
-        msg = generate_mensage(lead)
-        send_message(lead["id"], msg)
-        lead["message"] = msg.replace('\n', '')
-        make_contacted(lead["id"])
+        res = request.make(url, 'GET')
+        if res == None:
+            return []
+        data = res.json()["data"]
 
-        leads_info.append(lead)
+        total = data["totalFilteredRows"]
+        self.logger.debug(f"total: {total}")
 
-        #Save the lead in the sheet
-        row_lead = sheet.map_lead(lead, headers)
-        sheet.write([row_lead])
+        while (len(leads) < total and (len(leads) < max or max == -1)):
+            self.logger.debug(f"len: {len(leads)}")
+            leads += data["rows"]
+            page += 1
 
-#Esta funcion ejecuta la primera corrida
-def first_run():
-    leads = get_leads(status="")
-    sheet = Sheet(logger, "mapping.json")
-    headers = sheet.get("A2:Z2")[0]
+            url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+            self.logger.debug(url)
 
-    for lead_res in leads:
-        lead = get_lead_info(lead_res)
-        msg = generate_mensage(lead)
-        lead["message"] = msg.replace('\n', '')
+            res = request.make(url, 'GET')
+            if res == None:
+                return leads
+            data = res.json()["data"]
 
-        #Save the lead in the sheet
-        row_lead = sheet.map_lead(lead, headers)
-        sheet.write([row_lead])
+        self.logger.success(f"Se encontraron {len(leads)} nuevos Leads")
+        return leads
+
+    def get_lead_info(self, lead: dict) -> dict:
+        return {
+            "id": lead["id"],
+            "fuente": "Lamudi",
+            "fecha": strftime('%d/%m/%Y', gmtime()),
+            "fecha_lead": datetime.strptime(lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
+            "nombre": lead["name"],
+            "link": f"https://proppit.com/leads/{lead['id']}",
+            "telefono": lead['phone'],
+            "telefono_2": "",
+            "email": lead['email'],
+            "propiedad": get_lead_property(lead["id"])[0],
+            "busquedas": {
+                "zonas": "",
+                "tipo": "",
+                "total_area": "",
+                "covered_area": "",
+                "banios": "",
+                "recamaras": "",
+                "presupuesto": "",
+                "cantidad_anuncios": "",
+                "contactos": "",
+                "inicio_busqueda": "" 
+            }
+        }
+    def send_message(self, id, message):
+        self.logger.debug(f"Enviando mensaje a lead {id}")
+        #Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
+        msg_id = str(uuid.uuid4())
+        msg_url = f"{API_URL}/leads/{id}/notes/{msg_id}"
+
+        data = {
+            "id": msg_id,
+            "message": message
+        }
+        request.make(msg_url, 'POST', json=data)
+        self.logger.success(f"Mensaje enviado correctamente a lead {id}")
+
+    def make_contacted(self, id):
+        self.logger.debug(f"Marcando como contactacto a lead {id}")
+        read_url = f"{API_URL}/leads/{id}/status"
+
+        data = {
+            "status": "contacted"
+        }
+        request.make(read_url, 'PUT', json=data)
+        self.logger.success(f"Se contacto correctamente a lead {id}")
