@@ -4,7 +4,7 @@ import os
 import json
 import requests
 
-from src.scraper import Scraper
+from src.portal import Portal
 
 DATE_FORMAT = "%d/%m/%Y"
 SITE_URL = "https://www.inmuebles24.com/"
@@ -65,7 +65,7 @@ def main():
     inmuebles24 = Inmuebles24()
     inmuebles24.main()
 
-class Inmuebles24(Scraper):
+class Inmuebles24(Portal):
     def __init__(self):
         super().__init__(
             name="Inmuebles24",

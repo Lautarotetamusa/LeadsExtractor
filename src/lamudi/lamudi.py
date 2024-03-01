@@ -3,7 +3,7 @@ from datetime import datetime
 import json
 import uuid
 
-from src.scraper import Scraper
+from src.portal import Portal
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
@@ -15,7 +15,7 @@ def main():
     lamudi = Lamudi()
     lamudi.main()
 
-class Lamudi(Scraper):
+class Lamudi(Portal):
     def __init__(self):
         super().__init__(
             name="Lamudi",

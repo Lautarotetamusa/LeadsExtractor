@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.scraper import Scraper
+from src.portal import Portal
 
 DATE_FORMAT = "%d/%m/%Y"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
@@ -19,7 +19,7 @@ def main():
     scraper = CasasYTerrenos()
     scraper.main()
 
-class CasasYTerrenos(Scraper):
+class CasasYTerrenos(Portal):
     def __init__(self):
         super().__init__(
             name = "Casas y terrenos",

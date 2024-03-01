@@ -2,7 +2,6 @@ from time import gmtime, strftime
 from datetime import datetime
 import json
 from enum import IntEnum
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,12 +9,11 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.scraper import Scraper
-#mis propiedades:
-#https://propiedades.com/api/v3/property/MyProperties
+from src.portal import Portal
 
+#mis propiedades: https://propiedades.com/api/v3/property/MyProperties
 #En este archivo tenemos todas las propieades previamente extraidas
-with open("src/propiedades_com/properties_obj.json") as f:
+with open("src/propiedades_com/properties.json") as f:
     PROPS = json.load(f)
 
 DATE_FORMAT = "%d/%m/%Y"
@@ -34,7 +32,7 @@ def main():
     scraper = Propiedades()
     scraper.main()
 
-class Propiedades(Scraper):
+class Propiedades(Portal):
     def __init__(self):
         super().__init__(
             name = "Propiedades",

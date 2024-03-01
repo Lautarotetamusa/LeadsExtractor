@@ -7,7 +7,7 @@ from src.message import generate_mensage
 from src.sheets import Gmail, Sheet
 import src.infobip as infobip
 
-class Scraper():
+class Portal():
     def __init__(self,
                  name: str,
                  contact_id_field: str,
