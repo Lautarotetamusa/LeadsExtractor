@@ -1,6 +1,6 @@
 from threading import Thread
 
-from src.casas_y_terrenos.casas_y_terrenos import main as casas_y_terrenos
+from src.casasyterrenos.casasyterrenos import main as casasyterrenos
 from src.propiedades_com.propiedades import main as propiedades
 from src.lamudi.lamudi import main as lamudi_main, first_run as lamudi_first_run
 from src.inmuebles24.inmuebles24 import main as inmuebles24
@@ -9,7 +9,7 @@ from src.inmuebles24.inmuebles24 import main as inmuebles24
 from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
 from src.propiedades_com.scraper import main as propiedades_scraper
-from src.casas_y_terrenos.scraper import main as casasyterrenos_scraper
+from src.casasyterrenos.scraper import main as casasyterrenos_scraper
 
 import sys
 
@@ -32,7 +32,7 @@ PORTALS = {
     },
     "casasyterrenos": {
         "first_run": "",
-        "main": casas_y_terrenos,
+        "main": casasyterrenos,
         "scraper": casasyterrenos_scraper
     },
     "propiedades": {
