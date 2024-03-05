@@ -115,6 +115,7 @@ def create_person(logger: Logger, lead: dict, valid_number = False):
         if not res.ok:
             logger.error("Error en la request: " + str(res.status_code))
             logger.error(res.json())
+            logger.error(payload)
             return
     except Exception as e:
         logger.error("Error cargando lead"+str(e))

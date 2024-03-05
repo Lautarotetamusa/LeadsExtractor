@@ -3,4 +3,4 @@ Quiero invitarte a ver el siguiente video donde explicamos en 1 minuto cómo pue
 {asesor_name} será tu asesor y se pondrá en contacto contigo en un par de minutos! 🙋‍♂️📲
 
 Telefono del asesor:
-{asesor_phone}
++{asesor_phone}

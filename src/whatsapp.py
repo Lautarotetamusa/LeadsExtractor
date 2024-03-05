@@ -57,7 +57,6 @@ class Whatsapp():
                 "components": components
             }
         }
-        print(payload)
         return self.send_request(payload)
 
     def send_bienvenida(self, to: str, asesor: dict[str, str]):
@@ -106,7 +105,7 @@ class Whatsapp():
                     "text": lead['nombre']
                 },{
                     "type": "text",
-                    "text": lead['telefono']
+                    "text": '+'+lead['telefono']
                 }]
             }])
 
