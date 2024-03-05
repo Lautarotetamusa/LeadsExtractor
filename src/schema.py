@@ -8,6 +8,7 @@ LEAD_SCHEMA = {
     "link": "",
     "telefono": "",
     "email": "",
+    "message": "",
     "propiedad": {
         "id": "",
         "titulo": "",

@@ -5,4 +5,4 @@ echo $CRON
 supercronic crontab.sh &
 
 # Run gunicorn
-gunicorn -c gunicorn_config.py app:app
+gunicorn -c gunicorn.py server:app

@@ -23,19 +23,12 @@ class Whatsapp():
     def send_request(self, payload, **args):
         res = requests.post(URL, data=json.dumps(payload), headers=self.headers, **args)
         if not res.ok:
-            if self.logger:
-                self.logger.error("Error enviando el mensaje")
-                self.logger.error(res.text)
-            else:
-                print("error enviando el mensaje")
-                print(res.text)
+            self.logger.error("Error enviando el mensaje")
+            self.logger.error(res.text)
             return
 
-        if self.logger:
-            self.logger.success("Mensaje enviado con exito")
-        else:
-            print("Mensaje enviado con exito")
-            print(res.text)
+        self.logger.success("Mensaje enviado con exito")
+        self.logger.debug(res.text)
 
     def send_message(self, to: str, message: str):
         payload = {
@@ -49,39 +42,73 @@ class Whatsapp():
             }
         }
         return self.send_request(payload)
-
-    def send_bienvenida(self, to: str, asesor: dict[str, str]):
+    
+    def send_template(self, to: str, name: str, components, language="es_MX"):
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
             "to": to,
             "type": "template",
             "template": { 
-                "name": "bienvenida", 
+                "name": name, 
                 "language": {
-                    "code": "es_MX"
+                    "code": language
                 },
-                "components": [{
-                    "type": "header",
-                    "parameters": [{
-                        "type": "image",
-                        "image": {
-                            "id": image_id
-                        }
-                    }]
-                },{
-                    "type": "body",
-                    "parameters": [{
-                        "type": "text",
-                        "text": asesor['name']
-                    },{
-                        "type": "text",
-                        "text": '+'+asesor['phone']
-                    }]
-                }]
+                "components": components
             }
         }
-        self.send_request(payload)
+        print(payload)
+        return self.send_request(payload)
+
+    def send_bienvenida(self, to: str, asesor: dict[str, str]):
+        self.send_template(
+            to=to,
+            name="bienvenida",
+            components=[{
+                "type": "header",
+                "parameters": [{
+                    "type": "image",
+                    "image": {
+                        "id": image_id
+                    }
+                }]
+            },{
+                "type": "body",
+                "parameters": [{
+                    "type": "text",
+                    "text": asesor['name']
+                },{
+                    "type": "text",
+                    "text": '+'+asesor['phone']
+                }]
+            }])
+
+    def send_response(self, to: str, asesor: dict[str, str]):
+        self.send_template(
+            to=to,
+            name="2do_mensaje_bienvenida",
+            components=[{
+                "type": "body",
+                "parameters": [{
+                    "type": "text",
+                    "text": asesor['name']
+                }]
+            }])
+
+    def send_msg_asesor(self, to: str, lead: dict[str, str]):
+        self.send_template(
+            to=to,
+            name="msg_asesor",
+            components=[{
+                "type": "body",
+                "parameters": [{
+                    "type": "text",
+                    "text": lead['nombre']
+                },{
+                    "type": "text",
+                    "text": lead['telefono']
+                }]
+            }])
 
     def send_image(self, to: str):
         payload = {
@@ -110,7 +137,7 @@ if __name__ == "__main__":
     nro_mio   =  "5493415854220"
     nro = nro_mio
 
-    whatsapp = Whatsapp(None)
+    whatsapp = Whatsapp()
     whatsapp.send_video(nro)
     #send_static_template('', nro)
     #send_message('', nro, "otro mensaje distinto")

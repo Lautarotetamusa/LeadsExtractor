@@ -10,18 +10,8 @@ WORKDIR app
 
 COPY requirements.txt src/
 RUN pip install -r src/requirements.txt
-COPY src/ src/
-COPY server/ .
-COPY messages/ messages/
 
-COPY credentials.json .
-
-COPY crontab.sh .
-COPY mapping.json .
-COPY token.json .
-COPY scraper_mapping.json .
-COPY main.py .
-COPY auth.py .
+COPY . .
 
 EXPOSE 80
 

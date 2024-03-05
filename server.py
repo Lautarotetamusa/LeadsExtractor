@@ -3,6 +3,7 @@ from flask_cors import CORS
 import threading
 import urllib.parse
 import json
+from time import gmtime, strftime
 
 from src.logger import Logger
 from src.sheets import Sheet
@@ -16,6 +17,11 @@ logger = Logger("Server")
 sheet = Sheet(logger, "mapping.json")
 whatsapp = Whatsapp()
 headers = sheet.get("A2:Z2")[0]
+
+with open('messages/bienvenida_1.txt') as f:
+    bienvenida_1 = f.read()
+with open('messages/bienvenida_2.txt') as f:
+    bienvenida_2 = f.read()
 
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
@@ -47,10 +53,16 @@ def ejecutar_script(portal, url_or_filters, spin_msg):
 @app.route('/')
 def index():
     return render_template('index.html')
+@app.route('/webhooks', methods=['GET'])
+def webhooks_validate():
+    print(request.args)
+    #hub_mode = request.args.get('hub.mode')
+    hub_challenge = request.args.get('hub.challenge')
+    #hub_verify_token = request.args.get('hub.verify_token')
+    #TOKEN = 'Lautaro123.'
 
-#Esta ruta hace el round robin del asesor para el flow de infobip
-#Si la llamamos con id=0, nos devuelve el asesor 1. luego llamamos al id=1 y nos devuelve el 2.
-#De este modo siempre podemos llamar al siguiente asesor desde el flow de infobip
+    return hub_challenge
+
 ASESOR_i = 0
 def round_robin():
     global ASESOR_i
@@ -67,8 +79,40 @@ def round_robin():
     logger.debug("Asesor asignado: "+asesor["name"])
     return asesor
 
+#Si la persona no existe en infobip hacemos round robin para otorgarle un asesor
+#Si ya existe devolvemos el asesor que ya tiene
+def assign_asesor(phone, fuente):
+    json_filter = {"#contains": {"contactInformation": {"phone": {"number": phone}}}}
+    filtro = urllib.parse.quote(json.dumps(json_filter))
+    person = infobip.search_person(logger, filtro)
+
+    asesor = {}
+    lead = LEAD_SCHEMA.copy()
+    lead['fuente'] = fuente
+    fecha = strftime("%d/%m/%Y", gmtime())
+    lead['fecha_lead'] = fecha
+    lead['fecha'] = fecha
+    
+    if person == None:
+        logger.debug(f"Un nuevo lead se comunico via: {fuente}")
+        is_new = True
+
+        asesor = round_robin()
+    else:
+        logger.debug(f"Un lead existente se volvio a comunicar via: {fuente}")
+        is_new = False
+
+        asesor['name']   = person.get('customAttributes', {}).get('asesor_name', None)
+        asesor['phone']  = person.get('customAttributes', {}).get('asesor_phone', None)
+        lead['nombre']   = person.get('firstName', '') + ' ' + person.get('lastName', '')
+        lead['telefono'] = person.get('contactInformation', {}).get('phone', [{}])[0].get('number', None)
+
+    lead['asesor_name'] = asesor['name']
+    lead['asesor_phone'] = asesor['phone']
+    return is_new, lead, asesor
+
 @app.route('/asesor', methods=['GET'])
-def get_asesor():
+def recive_ivr_call():
     args = request.args.to_dict()
     phone = args.get("msidsn", None)
     fuente = args.get("fuente", None)
@@ -81,57 +125,18 @@ def get_asesor():
     #Pero este campo no esta correcatmente formatedo, por ejemplo para el numero:
     #5493411234567, devolveria 523411234567. Es decir agregando un 52 como si fuese de mexico
     phone = phone[2::] #Removemos el '52'
-    json_filter = {"#contains": {"contactInformation": {"phone": {"number": phone}}}}
-    filtro = urllib.parse.quote(json.dumps(json_filter))
-    person = infobip.search_person(logger, filtro)
+    is_new, lead, asesor = assign_asesor(phone, fuente)
+    if is_new: #Lead nuevo
+        lead['telefono'] = phone 
+        infobip.create_person(logger, lead)
 
-    #si la persona ya existe buscamos el asesor de esa persona
-    if person != None:
-        logger.debug("Una persona que ya existe realizo una llamada")
-        name =  person.get('customAttributes', {}).get('asesor_name', None)
-        phone = person.get('customAttributes', {}).get('asesor_phone', None)
-        #Si la persona ya tiene asesor asignado (que debería ser siempre), pero por si acasol lo chequeamos
-        if name != None and phone != None:
-            return {
-                "name":  name,
-                "phone": phone
-            }
-
-    logger.debug("Una persona nueva realizo una llamada")
-    #Si la persona no existe creamos una persona nueva
-    lead = LEAD_SCHEMA.copy()
-    lead['telefono'] = phone
-    lead['fuente'] = fuente
-    lead['message'] = ""
-
-    asesor = round_robin()
-    lead['asesor_name'] = asesor['name']
-    lead['asesor_phone'] = asesor['phone']
-
-    whatsapp.send_message(asesor['phone'], f"""Tienes un nuevo lead asignado. 
-Nombre: {lead['nombre']}
-Telefono: {lead['telefono']}
-Comunicate con este lead lo antes posible.
-    """)
-
-    infobip.create_person(logger, lead)
+    whatsapp.send_msg_asesor(asesor['phone'], lead)
     row_lead = sheet.map_lead(lead, headers)
     sheet.write([row_lead])
-
     return asesor
 
-@app.route('/webhooks', methods=['GET'])
-def webhooks_validate():
-    print(request.args)
-    hub_mode = request.args.get('hub.mode')
-    hub_challenge = request.args.get('hub.challenge')
-    hub_verify_token = request.args.get('hub.verify_token')
-    TOKEN = 'Lautaro123.'
-
-    return hub_challenge
-
 @app.route('/webhooks', methods=['POST'])
-def webhook():
+def recive_wpp_msg():
     data = request.get_json()
 
     try:
@@ -146,53 +151,26 @@ def webhook():
 
     logger.success("Nuevo mensaje del lead recibido!")
     print(json.dumps(data, indent=4))
-
-    message_type = 'text'
-    lead = LEAD_SCHEMA.copy()
-    lead['message'] = ''
-    lead['fuente'] = "Whatsapp"
     value = data['entry'][0]['changes'][0]['value']
-    lead['telefono'] = value['contacts'][0]['wa_id']
-    lead['nombre']   = value['contacts'][0]['profile']['name']
-    #Por algun motivo el tipo request_welcome no se envia bien. Tarda muchisimo y no se envía bien.
-    message_type     = value['messages'][0]['type']
-    #message_type = 'request_welcome' if value['messages'][0]['text']['body'] == "Asigname con un asesor" else 'text'
 
-    #Cuando el lead ya se habia comunicado con rebora
-    if message_type != 'request_welcome': 
-        #whatsapp.send_message(logger, lead['telefono'], "Ya te hemos asignado a un asesor, en unos momentos se comunicará contigo")
-        return ''
+    is_new, lead, asesor = assign_asesor(value['contacts'][0]['wa_id'], "Whatsapp")
+    if is_new: #Lead nuevo
+        lead['telefono'] = value['contacts'][0]['wa_id']
+        lead['nombre']   = value['contacts'][0]['profile']['name']
 
-    #Asignar asesor
-    asesor = round_robin()
-    lead['asesor_name']   = asesor['name']
-    lead['asesor_phone']  = asesor['phone']
+        whatsapp.send_image(lead['telefono'])
+        whatsapp.send_message(lead['telefono'], bienvenida_1)
+        whatsapp.send_message(lead['telefono'], bienvenida_2.format(asesor_name=asesor['name'], asesor_phone=asesor['phone']))
+        whatsapp.send_video(lead['telefono'])
 
-    #Enviar bienvida de whatsapp a la persona
-    whatsapp.send_image(lead['telefono'])
-    whatsapp.send_message(lead['telefono'], """Bienvenido a Rebora 👋, ahorra un 15% al comprar tu casa. 🏡
-
-En Rebora la incertidumbre pasó a convertirse en tranquilidad, transparencia y precios justos.""")
-    whatsapp.send_message(lead['telefono'], f"""Quiero invitarte a ver el siguiente video donde explicamos en 1 minuto cómo puedes ahorrar un 15% al comprar tu casa con Rebora. 
-
-{asesor['name']} será tu asesor y se pondrá en contacto contigo en un par de minutos! 🙋‍♂️📲
-
-Telefono del asesor:
-+{asesor['phone']}""")
-
-    whatsapp.send_video(lead['telefono'])
-
-    whatsapp.send_message(asesor['phone'], f"""Tienes un nuevo lead asignado. 
-Nombre: {lead['nombre']}
-Telefono: {lead['telefono']}
-Comunicate con este lead lo antes posible.
-    """)
-
-    infobip.create_person(logger, lead, valid_number=True)
+        infobip.create_person(logger, lead, valid_number=True)
+    else: #Lead existente
+        whatsapp.send_response(lead['telefono'], asesor)
+    
+    whatsapp.send_msg_asesor(asesor['phone'], lead)
     row_lead = sheet.map_lead(lead, headers)
-    print(row_lead)
     sheet.write([row_lead])
-    return ''
+    return asesor
 
 @app.route('/.well-known/pki-validation/<path:path>')
 def serve_static(path):

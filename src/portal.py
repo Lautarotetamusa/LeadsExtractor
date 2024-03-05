@@ -19,6 +19,7 @@ class Lead():
             "link": "",
             "telefono": "",
             "email": "",
+            "message": "",
             "propiedad": {
                 "id": "",
                 "titulo": "",
@@ -40,8 +41,8 @@ class Lead():
                 "recamaras": "",
             }
         } 
-    def set_args(self, **args):
-        self.args = args
+    def set_args(self, args: dict[str, str]):
+        self.args = {**self.args, **args}
 
 class Portal():
     def __init__(self,

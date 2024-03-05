@@ -52,12 +52,21 @@ def get_all_person(logger: Logger) -> list[dict]:
 #@filter -> url encoder filter
 def search_person(logger: Logger, filter: str) -> None | dict:
     res = requests.get(f"{API_URL}?filter={filter}", headers=HEADERS)
-    if not res.ok:
-        logger.error("Error en la request: " + str(res.status_code))
-        logger.error(res.json())
+    try:
+        if not res.ok:
+            logger.error("Error en la request: " + str(res.status_code))
+            logger.error(res.json())
+            return None
+    except Exception as e:
+        logger.error("Error peticion infobip "+str(e))
         return None
 
-    return res.json().get('persons', [None])[0]
+    persons = res.json().get('persons', [])
+    
+    if len(persons) == 0:
+        return None
+
+    return persons[0]
 
 def update_person(logger: Logger, id: int, payload: dict):
     logger.debug(f"Actualizando persona {id}")
@@ -83,13 +92,16 @@ def create_person(logger: Logger, lead: dict, valid_number = False):
             "prop_ubicacion": lead['propiedad']['ubicacion'],
             "prop_titulo": lead['propiedad']['titulo'],
             "contacted": False,
-            "fuente": lead['fuente']
+            "fuente": lead['fuente'],
+            "asesor_name": lead['asesor_name'],
+            "asesor_phone": lead['asesor_phone']
         },
         "contactInformation": {},
         "tags": "Seguimientos"
     }
-    if lead['telefono'] != '' and not valid_number:
-        lead['telefono'] = parse_number(logger, lead['telefono'])
+    if lead['telefono'] != '':
+        if not valid_number:
+            lead['telefono'] = parse_number(logger, lead['telefono'])
         payload["contactInformation"]['phone'] = [{
             "number": lead['telefono']
         }]
@@ -98,11 +110,14 @@ def create_person(logger: Logger, lead: dict, valid_number = False):
             "address": lead['email']
         }]
 
-    logger.debug(payload)
-    res = requests.post(API_URL, json=payload, headers=HEADERS)
-    if not res.ok:
-        logger.error("Error en la request: " + str(res.status_code))
-        logger.error(res.json())
+    try:
+        res = requests.post(API_URL, json=payload, headers=HEADERS)
+        if not res.ok:
+            logger.error("Error en la request: " + str(res.status_code))
+            logger.error(res.json())
+            return
+    except Exception as e:
+        logger.error("Error cargando lead"+str(e))
         return
 
     logger.success("Lead cargada correctamente")
