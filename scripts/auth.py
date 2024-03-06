@@ -1,3 +1,5 @@
+#Este script nos permite generar los archivos de autenticacion de google
+
 if __name__ == "__main__":
     from src.sheets import Sheet
     from src.sheets import Gmail
