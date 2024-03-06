@@ -113,8 +113,7 @@ class Portal():
 
             self.make_contacted(lead_res[self.contact_id_field])
 
-            asesor = assign_asesor(lead.telefono, lead.fuente)
-            lead.set_asesor(asesor)
+            _, lead = assign_asesor(lead)
             wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             leads_info.append(lead)

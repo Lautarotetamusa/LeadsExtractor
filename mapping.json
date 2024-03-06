@@ -1,7 +1,7 @@
 {
     "Fecha lead": "fecha_lead",
     "Fecha extraccion": "fecha", 
-    "Estado de lead": "",
+    "Estado de lead": "estado",
     "Asesor asignado": "asesor.name",
     "Fuente": "fuente",
     "Nombre del lead": "nombre", 

@@ -1,11 +1,15 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory, session
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from time import gmtime, strftime
 from flask_cors import CORS
 import threading
 import json
 
+from src.asesor import assign_asesor
+import src.infobip as infobip
+from src.whatsapp import Whatsapp
 from src.logger import Logger
 from src.sheets import Sheet
-from src.whatsapp import Whatsapp
+from src.lead import Lead
 
 app = Flask(__name__)
 CORS(app)
@@ -49,6 +53,7 @@ def ejecutar_script(portal, url_or_filters, spin_msg):
 @app.route('/')
 def index():
     return render_template('index.html')
+
 @app.route('/webhooks', methods=['GET'])
 def webhooks_validate():
     print(request.args)
@@ -58,8 +63,6 @@ def webhooks_validate():
     #TOKEN = 'Lautaro123.'
 
     return hub_challenge
-
-
 
 @app.route('/asesor', methods=['GET'])
 def recive_ivr_call():
@@ -75,15 +78,24 @@ def recive_ivr_call():
     #Pero este campo no esta correcatmente formatedo, por ejemplo para el numero:
     #5493411234567, devolveria 523411234567. Es decir agregando un 52 como si fuese de mexico
     phone = phone[2::] #Removemos el '52'
-    is_new, lead, asesor = assign_asesor(phone, fuente)
+    lead = Lead()
+    fecha = strftime("%d/%m/%Y", gmtime())
+    lead.set_args({
+        "telefono": phone,
+        "fuente": fuente,
+        "fecha_lead": fecha,
+        "fecha": fecha
+    })
+
+    is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
-        lead['telefono'] = phone 
+        lead.telefono = phone 
         infobip.create_person(logger, lead)
 
-    whatsapp.send_msg_asesor(asesor['phone'], lead)
+    whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
     row_lead = sheet.map_lead(lead, headers)
     sheet.write([row_lead])
-    return asesor
+    return lead.asesor
 
 @app.route('/webhooks', methods=['POST'])
 def recive_wpp_msg():
@@ -103,24 +115,33 @@ def recive_wpp_msg():
     print(json.dumps(data, indent=4))
     value = data['entry'][0]['changes'][0]['value']
 
-    is_new, lead, asesor = assign_asesor(value['contacts'][0]['wa_id'], "Whatsapp")
+    lead = Lead()
+    fecha = strftime("%d/%m/%Y", gmtime())
+    lead.set_args({
+        "telefono": value['contacts'][0]['wa_id'],
+        "nombre": value['contacts'][0]['profile']['name'],
+        "fuente": "Whatsapp",
+        "fecha_lead": fecha,
+        "fecha": fecha
+    })
+    is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
-        lead['telefono'] = value['contacts'][0]['wa_id']
-        lead['nombre']   = value['contacts'][0]['profile']['name']
-
-        whatsapp.send_image(lead['telefono'])
-        whatsapp.send_message(lead['telefono'], bienvenida_1)
-        whatsapp.send_message(lead['telefono'], bienvenida_2.format(asesor_name=asesor['name'], asesor_phone=asesor['phone']))
-        whatsapp.send_video(lead['telefono'])
+        whatsapp.send_image(lead.telefono)
+        whatsapp.send_message(lead.telefono, bienvenida_1)
+        whatsapp.send_message(lead.telefono, bienvenida_2.format(
+            asesor_name=lead.asesor['name'], 
+            asesor_phone=lead.asesor['phone'])
+        )
+        whatsapp.send_video(lead.telefono)
 
         infobip.create_person(logger, lead, valid_number=True)
     else: #Lead existente
-        whatsapp.send_response(lead['telefono'], asesor)
+        whatsapp.send_response(lead.telefono, lead.asesor)
     
-    whatsapp.send_msg_asesor(asesor['phone'], lead)
+    whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
     row_lead = sheet.map_lead(lead, headers)
     sheet.write([row_lead])
-    return asesor
+    return lead.asesor
 
 @app.route('/.well-known/pki-validation/<path:path>')
 def serve_static(path):

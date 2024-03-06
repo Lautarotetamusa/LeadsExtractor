@@ -9,6 +9,7 @@ class Lead():
         self.telefono = ""
         self.email = ""
         self.message = ""
+        self.estado = ""
         self.asesor = {
             "name": "",
             "phone": ""
