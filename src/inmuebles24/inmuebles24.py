@@ -5,6 +5,7 @@ import json
 import requests
 
 from src.portal import Portal
+from src.lead import Lead
 
 DATE_FORMAT = "%d/%m/%Y"
 SITE_URL = "https://www.inmuebles24.com/"
@@ -142,35 +143,35 @@ class Inmuebles24(Portal):
 
         return leads
     
-    def get_lead_info(self, lead):
-        lead_id = lead["id"]
-        contact_id = lead[self.contact_id_field]
+    def get_lead_info(self, raw_lead):
+        raw_lead_id = raw_lead["id"]
+        contact_id = raw_lead[self.contact_id_field]
         raw_busqueda = self.get_busqueda_info(contact_id)
         busqueda = extract_busqueda_info(raw_busqueda)
-        posting = lead.get("posting", {})
+        posting = raw_lead.get("posting", {})
 
-        return {
-            "id": lead_id,
+        lead = Lead()
+        lead.set_args({
+            "id": raw_lead_id,
             "contact_id": contact_id, 
             "fuente": self.name,
-            "asesor_name": "",
-            "fecha_lead": datetime.strptime(lead["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
+            "fecha_lead": datetime.strptime(raw_lead["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
             "fecha": strftime(DATE_FORMAT, gmtime()),
-            "nombre": lead.get("lead_user", {}).get("name"),
+            "nombre": raw_lead.get("lead_user", {}).get("name"),
             "link": f"{SITE_URL}panel/interesados/{contact_id}",
-            "telefono": lead.get("phone", ""),
-            #"telefono_2": lead["phone_list"][1],
-            "email": lead.get("lead_user", {}).get("email"),
-            "propiedad": {
-                "titulo": posting.get("title", ""),
-                "link": "",
-                "precio": posting.get("price", {}).get("amount", ""),
-                "ubicacion": posting.get("address", ""),
-                "tipo": posting.get("real_estate_type", {}).get("name"),
-                "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
-            },
-            "busquedas": busqueda
-        }
+            "telefono": raw_lead.get("phone", ""),
+            "email": raw_lead.get("lead_user", {}).get("email"),
+        })
+        lead.set_busquedas(busqueda)
+        lead.set_propiedad({
+            "titulo": posting.get("title", ""),
+            "precio": posting.get("price", {}).get("amount", ""),
+            "ubicacion": posting.get("address", ""),
+            "tipo": posting.get("real_estate_type", {}).get("name"),
+            "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
+        });
+
+        return lead
 
     # Get the information about the searchers of the lead
     def get_busqueda_info(self, lead_id) -> dict | None:

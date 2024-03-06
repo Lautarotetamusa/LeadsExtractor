@@ -2,7 +2,7 @@
     "Fecha lead": "fecha_lead",
     "Fecha extraccion": "fecha", 
     "Estado de lead": "",
-    "Asesor asignado": "asesor_name",
+    "Asesor asignado": "asesor.name",
     "Fuente": "fuente",
     "Nombre del lead": "nombre", 
     "Link a consulta": "link", 

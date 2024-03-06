@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.portal import Portal
+from src.lead import Lead
 
 #mis propiedades: https://propiedades.com/api/v3/property/MyProperties
 #En este archivo tenemos todas las propieades previamente extraidas
@@ -71,36 +72,22 @@ class Propiedades(Portal):
 
         return leads
 
-    def get_lead_info(self, lead: dict) -> dict:
-        prop = self.get_lead_property(str(lead["property_id"]))
-
-        prop["address"] = lead["address"]
+    def get_lead_info(self, raw_lead: dict) -> Lead:
+        prop = self.get_lead_property(str(raw_lead["property_id"]))
+        prop["address"] = raw_lead["address"]
         if prop["titulo"] == "": prop["titulo"] = prop["address"]
 
-        return {
-                "fuente": self.name,
-                "fecha_lead": datetime.strptime(lead["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
-                "asesor_name": "",
-                "id": lead["id"],
-                "fecha": strftime(DATE_FORMAT, gmtime()),
-                "nombre": lead["name"],
-                "link": "",
-                "telefono": lead["phone"],
-                "email": lead["email"],
-                "propiedad": prop,
-                "busquedas": {
-                    "zonas": "",
-                    "tipo": "",
-                    "presupuesto": "",
-                    "cantidad_anuncios": "",
-                    "contactos": "",
-                    "inicio_busqueda": "",
-                    "total_area": "",
-                    "covered_area": "",
-                    "banios": "",
-                    "recamaras": "",
-                }
-            }
+        lead = Lead()
+        lead.set_args({
+            "fuente": self.name,
+            "fecha_lead": datetime.strptime(raw_lead["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
+            "id": raw_lead["id"],
+            "fecha": strftime(DATE_FORMAT, gmtime()),
+            "nombre": raw_lead["name"],
+            "telefono": raw_lead["phone"],
+            "email": raw_lead["email"],
+            "propiedad": prop,
+        })
 
     def get_lead_property(self, property_id: str):
         if property_id not in PROPS:

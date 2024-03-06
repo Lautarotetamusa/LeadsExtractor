@@ -1,48 +1,16 @@
 from email.mime.application import MIMEApplication
 import json
 import os
+from src.asesor import next_asesor
+from src.lead import Lead
 from src.make_requests import Request
 from src.logger import Logger
 from src.message import generate_mensage
 from src.sheets import Gmail, Sheet
+from src.whatsapp import Whatsapp
 import src.infobip as infobip
 
-class Lead():
-    def __init__(self):
-        self.args = {
-            "fuente": "",
-            "fecha_lead": "",
-            "asesor_name": "",
-            "id": "",
-            "fecha": "",
-            "nombre": "",
-            "link": "",
-            "telefono": "",
-            "email": "",
-            "message": "",
-            "propiedad": {
-                "id": "",
-                "titulo": "",
-                "link": "",
-                "precio": "",
-                "ubicacion": "",
-                "tipo": "",
-            },
-            "busquedas": {
-                "zonas": "",
-                "tipo": "",
-                "presupuesto": "",
-                "cantidad_anuncios": "",
-                "contactos": "",
-                "inicio_busqueda": "",
-                "total_area": "",
-                "covered_area": "",
-                "banios": "",
-                "recamaras": "",
-            }
-        } 
-    def set_args(self, args: dict[str, str]):
-        self.args = {**self.args, **args}
+wpp = Whatsapp()
 
 class Portal():
     def __init__(self,
@@ -105,8 +73,8 @@ class Portal():
         return True
     def get_leads(self) -> list[dict]:
         return []
-    def get_lead_info(self, lead: dict) -> dict:
-        return {}
+    def get_lead_info(self, raw_lead: dict) -> Lead:
+        return Lead()
     def send_message(self, id: str,  message: str):
         pass
     def make_contacted(self, id: str):
@@ -122,27 +90,29 @@ class Portal():
             print(lead_res)
             lead = self.get_lead_info(lead_res)
 
-            if self.send_message_condition(lead):
-                if lead['email'] != '':
-                    if lead["propiedad"]["ubicacion"] == "":
-                        lead["propiedad"]["ubicacion"] = "que consultaste"
+            if self.send_message_condition(lead_res):
+                if lead.email != '':
+                    if lead.propiedad["ubicacion"] == "":
+                        lead.propiedad["ubicacion"] = "que consultaste"
                     else:
-                        lead["propiedad"]["ubicacion"] = "ubicada en " + lead["propiedad"]["ubicacion"]
+                        lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
 
                     gmail_msg = generate_mensage(lead, self.gmail_spin)
                     subject = generate_mensage(lead, self.gmail_subject)
-                    self.gmail.send_message(gmail_msg, subject, lead["email"], self.attachment)
+                    self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
 
                     infobip.create_person(self.logger, lead)
 
                 msg = generate_mensage(lead)
-                lead["message"] = msg.replace('\n', '')
+                lead.message = msg.replace('\n', '')
                 self.send_message(lead_res[self.send_msg_field], msg)
             else:
-                self.logger.debug(f"Ya le hemos enviado un mensaje al lead {lead['nombre']}, lo salteamos")
-                lead['message'] = ''
+                self.logger.debug(f"Ya le hemos enviado un mensaje al lead {lead.nombre}, lo salteamos")
+                lead.message = ''
 
             self.make_contacted(lead_res[self.contact_id_field])
+            lead.set_asesor(next_asesor())
+            wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             leads_info.append(lead)
             row_lead = self.sheet.map_lead(lead, self.headers)

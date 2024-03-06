@@ -4,6 +4,7 @@ import json
 import uuid
 
 from src.portal import Portal
+from src.lead import Lead
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = "%d/%m/%Y"
@@ -108,32 +109,20 @@ class Lamudi(Portal):
 
         return formatted_props
 
-    def get_lead_info(self, lead: dict) -> dict:
-        return {
-            "id": lead["id"],
+    def get_lead_info(self, raw_lead: dict) -> Lead:
+        lead = Lead()
+        lead.set_args({
+            "id": raw_lead["id"],
             "fuente": self.name,
             "fecha": strftime('%d/%m/%Y', gmtime()),
-            "asesor_name": "",
-            "fecha_lead": datetime.strptime(lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
-            "nombre": lead["name"],
-            "link": f"https://proppit.com/leads/{lead['id']}",
-            "telefono": lead['phone'],
-            "telefono_2": "",
-            "email": lead['email'],
-            "propiedad": self.get_lead_property(lead["id"])[0],
-            "busquedas": {
-                "zonas": "",
-                "tipo": "",
-                "total_area": "",
-                "covered_area": "",
-                "banios": "",
-                "recamaras": "",
-                "presupuesto": "",
-                "cantidad_anuncios": "",
-                "contactos": "",
-                "inicio_busqueda": "" 
-            }
-        }
+            "fecha_lead": datetime.strptime(raw_lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
+            "nombre": raw_lead["name"],
+            "link": f"https://proppit.com/raw_leads/{raw_lead['id']}",
+            "telefono": raw_lead['phone'],
+            "email": raw_lead['email'],
+            "propiedad": self.get_lead_property(raw_lead["id"])[0],
+        })
+        return lead
 
     def send_message(self, id, message):
         self.logger.debug(f"Enviando mensaje a lead {id}")

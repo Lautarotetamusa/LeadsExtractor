@@ -3,6 +3,7 @@ import json
 import os
 
 from src.logger import Logger
+from src.lead import Lead
 
 NUMBER_ID = os.getenv("WHATSAPP_NUMBER_ID")
 ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
@@ -94,7 +95,7 @@ class Whatsapp():
                 }]
             }])
 
-    def send_msg_asesor(self, to: str, lead: dict[str, str]):
+    def send_msg_asesor(self, to: str, lead: Lead):
         self.send_template(
             to=to,
             name="msg_asesor",
@@ -102,10 +103,10 @@ class Whatsapp():
                 "type": "body",
                 "parameters": [{
                     "type": "text",
-                    "text": lead['nombre']
+                    "text": lead.nombre
                 },{
                     "type": "text",
-                    "text": '+'+lead['telefono']
+                    "text": '+'+lead.telefono
                 }]
             }])
 

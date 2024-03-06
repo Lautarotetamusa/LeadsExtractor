@@ -9,6 +9,10 @@ LEAD_SCHEMA = {
     "telefono": "",
     "email": "",
     "message": "",
+    "asesor":{
+        "name": "",
+        "phone": ""
+    },
     "propiedad": {
         "id": "",
         "titulo": "",

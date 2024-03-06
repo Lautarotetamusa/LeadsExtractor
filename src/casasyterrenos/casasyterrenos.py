@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.portal import Portal
+from src.lead import Lead
 
 DATE_FORMAT = "%d/%m/%Y"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
@@ -62,39 +63,26 @@ class CasasYTerrenos(Portal):
         
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
-    def get_lead_info(self, lead: dict) -> dict:
-        return {
-                "fuente": self.name,
-                "fecha_lead": datetime.strptime(lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
-                "asesor_name": "",
-                "id": lead["id"],
-                "fecha": strftime(DATE_FORMAT, gmtime()),
-                "nombre": lead["name"],
-                "link": "",
-                "telefono": lead["phone"],
-                #"telefono_2": lead["phone_list"][1],
-                "email": lead["email"],
-                "propiedad": {
-                    "id": lead["property_id"],
-                    "titulo": lead["property_title"],
-                    "link": f"https://www.casasyterrenos.com/propiedad/{lead['property_id']}",
-                    "precio": "",
-                    "ubicacion": "",
-                    "tipo": lead["property_type"],
-                },
-                "busquedas": {
-                    "zonas": "",
-                    "tipo": "",
-                    "presupuesto": "",
-                    "cantidad_anuncios": "",
-                    "contactos": "",
-                    "inicio_busqueda": "",
-                    "total_area": "",
-                    "covered_area": "",
-                    "banios": "",
-                    "recamaras": "",
-                }
-            }
+    def get_lead_info(self, raw_lead: dict) -> Lead:
+        lead = Lead()
+        lead.set_args({
+            "fuente": self.name,
+            "fecha_lead": datetime.strptime(raw_lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
+            "asesor_name": "",
+            "id":  raw_lead["id"],
+            "fecha": strftime(DATE_FORMAT, gmtime()),
+            "nombre":  raw_lead["name"],
+            "link": "",
+            "telefono":  raw_lead["phone"],
+            "email":  raw_lead["email"],
+        })
+        lead.set_propiedad({
+            "id":  raw_lead["property_id"],
+            "titulo":  raw_lead["property_title"],
+            "link": f"https://www.casasyterrenos.com/propiedad/{raw_lead['property_id']}",
+            "tipo":  raw_lead["property_type"],
+        })
+        return lead
 
     def login(self, session="session"):
         login_url = "https://panel-pro.casasyterrenos.com/login"

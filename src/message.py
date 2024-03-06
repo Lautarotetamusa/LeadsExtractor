@@ -1,3 +1,4 @@
+from src.lead import Lead
 import spintax
 import re
 
@@ -7,7 +8,7 @@ def get_fields(msg):
     pat = r'(?<=\[).+?(?=\])'
     return re.findall(pat, msg)
 
-def generate_mensage(lead: dict, spin_msg: str | None=None):
+def generate_mensage(lead: Lead, spin_msg: str | None=None):
     if not spin_msg:
         spin_msg = """Hola que tal [nombre] ¿cómo estás?, muy buenas tardes ¡Bienvenido a Rebora!
         Somos una empresa especializada en la venta de residencias 100% personalizadas con un
@@ -20,13 +21,13 @@ def generate_mensage(lead: dict, spin_msg: str | None=None):
     spin = spintax.spin(spin_msg)
     format = spin.replace("[","{").replace("]","}")
 
-    ubicacion = lead["propiedad"]["ubicacion"]
-    #if "municipio" in lead["propiedad"]:
-    #    ubicacion = lead["propiedad"]["municipio"]
+    ubicacion = lead.propiedad["ubicacion"]
+    #if "municipio" in lead.propiedad"]:
+    #    ubicacion = lead.propiedad"]["municipio"]
     return format.format(**{
-        "nombre": lead["nombre"],
+        "nombre": lead.nombre,
         "ubicacion": ubicacion,
-        "titulo": lead["propiedad"]["titulo"]
+        "titulo": lead.propiedad["titulo"]
     })
 
 def generate_post_message(post: dict, spin_msg: str):

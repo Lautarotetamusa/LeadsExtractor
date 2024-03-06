@@ -1,9 +1,10 @@
-from src.sheets import Logger 
 import requests
 import phonenumbers
-
 from dotenv import load_dotenv
 import os
+
+from src.lead import Lead
+from src.sheets import Logger 
 
 load_dotenv()
 API_KEY = os.getenv("INFOBIP_APIKEY")
@@ -80,34 +81,35 @@ def update_person(logger: Logger, id: int, payload: dict):
     logger.success(f"Persona {id} actualizada correctamente")
 
 #Si valid_number es True, no se parseara el numero para no generar problemas
-def create_person(logger: Logger, lead: dict, valid_number = False):
+def create_person(logger: Logger, lead: Lead, valid_number = False):
     logger.debug("Cargando lead a infobip")
 
     payload = {
-        "firstName": lead['nombre'],
+        "firstName": lead.nombre,
         "lastName": "",
         "customAttributes": {
-            "prop_link": lead['propiedad']['link'],
-            "prop_precio": str(lead['propiedad']['precio']),
-            "prop_ubicacion": lead['propiedad']['ubicacion'],
-            "prop_titulo": lead['propiedad']['titulo'],
+            "prop_link": lead.propiedad['link'],
+            "prop_precio": str(lead.propiedad['precio']),
+            "prop_ubicacion": lead.propiedad['ubicacion'],
+            "prop_titulo": lead.propiedad['titulo'],
             "contacted": False,
-            "fuente": lead['fuente'],
-            "asesor_name": lead['asesor_name'],
-            "asesor_phone": lead['asesor_phone']
+            "fuente": lead.fuente,
+            "asesor_name": lead.asesor['name'],
+            "asesor_phone": lead.asesor['phone']
         },
         "contactInformation": {},
         "tags": "Seguimientos"
     }
-    if lead['telefono'] != '':
+    if lead.telefono != '':
         if not valid_number:
-            lead['telefono'] = parse_number(logger, lead['telefono'])
-        payload["contactInformation"]['phone'] = [{
-            "number": lead['telefono']
+            number = parse_number(logger, lead.telefono)
+            lead.telefono = number if number != None else lead.telefono
+        payload["contactInformation"]['phone']= [{
+            "number": lead.telefono
         }]
-    if lead['email'] != '':
+    if lead.email != '':
         payload["contactInformation"]['email'] = [{
-            "address": lead['email']
+            "address": lead.email
         }]
 
     try:
