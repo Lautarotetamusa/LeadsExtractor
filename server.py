@@ -1,13 +1,10 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory, session
 from flask_cors import CORS
 import threading
-import urllib.parse
 import json
-from time import gmtime, strftime
 
 from src.logger import Logger
 from src.sheets import Sheet
-from src.schema import LEAD_SCHEMA
 from src.whatsapp import Whatsapp
 
 app = Flask(__name__)
@@ -28,7 +25,6 @@ from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
 from src.propiedades_com.scraper import main as propiedades_scraper
 from src.casasyterrenos.scraper import main as casasyterrenos_scraper
-import src.infobip as infobip
 
 PORTALS = {
     "casasyterrenos": {
@@ -63,53 +59,7 @@ def webhooks_validate():
 
     return hub_challenge
 
-ASESOR_i = 0
-def round_robin():
-    global ASESOR_i
-    rows = sheet.get('Asesores!A2:C25')
-    activos = [row for row in rows if row[2] == "Activo"]
-    print("Activos: ", activos)
-    ASESOR_i += 1
-    ASESOR_i %= len(activos)
-    
-    asesor = {
-        "name":  activos[ASESOR_i][0],
-        "phone": activos[ASESOR_i][1]
-    }
-    logger.debug("Asesor asignado: "+asesor["name"])
-    return asesor
 
-#Si la persona no existe en infobip hacemos round robin para otorgarle un asesor
-#Si ya existe devolvemos el asesor que ya tiene
-def assign_asesor(phone, fuente):
-    json_filter = {"#contains": {"contactInformation": {"phone": {"number": phone}}}}
-    filtro = urllib.parse.quote(json.dumps(json_filter))
-    person = infobip.search_person(logger, filtro)
-
-    asesor = {}
-    lead = LEAD_SCHEMA.copy()
-    lead['fuente'] = fuente
-    fecha = strftime("%d/%m/%Y", gmtime())
-    lead['fecha_lead'] = fecha
-    lead['fecha'] = fecha
-    
-    if person == None:
-        logger.debug(f"Un nuevo lead se comunico via: {fuente}")
-        is_new = True
-
-        asesor = round_robin()
-    else:
-        logger.debug(f"Un lead existente se volvio a comunicar via: {fuente}")
-        is_new = False
-
-        asesor['name']   = person.get('customAttributes', {}).get('asesor_name', None)
-        asesor['phone']  = person.get('customAttributes', {}).get('asesor_phone', None)
-        lead['nombre']   = person.get('firstName', '') + ' ' + person.get('lastName', '')
-        lead['telefono'] = person.get('contactInformation', {}).get('phone', [{}])[0].get('number', None)
-
-    lead['asesor_name'] = asesor['name']
-    lead['asesor_phone'] = asesor['phone']
-    return is_new, lead, asesor
 
 @app.route('/asesor', methods=['GET'])
 def recive_ivr_call():

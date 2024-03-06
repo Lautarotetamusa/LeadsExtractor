@@ -1,7 +1,8 @@
 from email.mime.application import MIMEApplication
 import json
 import os
-from src.asesor import next_asesor
+
+from src.asesor import assign_asesor
 from src.lead import Lead
 from src.make_requests import Request
 from src.logger import Logger
@@ -111,7 +112,9 @@ class Portal():
                 lead.message = ''
 
             self.make_contacted(lead_res[self.contact_id_field])
-            lead.set_asesor(next_asesor())
+
+            asesor = assign_asesor(lead.telefono, lead.fuente)
+            lead.set_asesor(asesor)
             wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             leads_info.append(lead)
