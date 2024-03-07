@@ -3,6 +3,7 @@ from time import gmtime, strftime
 from flask_cors import CORS
 import threading
 import json
+from numbers import parse_number, parse_wpp_number
 
 from src.asesor import assign_asesor
 import src.infobip as infobip
@@ -81,7 +82,7 @@ def recive_ivr_call():
     lead = Lead()
     fecha = strftime("%d/%m/%Y", gmtime())
     lead.set_args({
-        "telefono": phone,
+        "telefono": parse_number(logger, phone),
         "fuente": fuente,
         "fecha_lead": fecha,
         "fecha": fecha
@@ -89,7 +90,6 @@ def recive_ivr_call():
 
     is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
-        lead.telefono = phone 
         infobip.create_person(logger, lead)
 
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
@@ -120,6 +120,7 @@ def recive_wpp_msg():
     lead.set_args({
         "telefono": value['contacts'][0]['wa_id'],
         "nombre": value['contacts'][0]['profile']['name'],
+        "link": f"https://web.whatsapp.com/send/?phone={lead.telefono}", 
         "fuente": "Whatsapp",
         "fecha_lead": fecha,
         "fecha": fecha
@@ -134,7 +135,8 @@ def recive_wpp_msg():
         )
         whatsapp.send_video(lead.telefono)
 
-        infobip.create_person(logger, lead, valid_number=True)
+        lead.telefono = parse_wpp_number(logger, lead.telefono)
+        infobip.create_person(logger, lead)
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
     

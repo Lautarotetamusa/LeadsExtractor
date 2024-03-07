@@ -35,7 +35,6 @@ class Portal():
         self.setup()
 
         self.params_file   = os.path.dirname(os.path.realpath(filename)) + "/params.json"
-        print(self.params_file)
         self.username = os.getenv(username_env)
         self.password = os.getenv(password_env)
 
@@ -88,7 +87,6 @@ class Portal():
 
         leads_info = []
         for lead_res in leads:
-            print(lead_res)
             lead = self.get_lead_info(lead_res)
 
             if self.send_message_condition(lead_res):

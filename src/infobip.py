@@ -1,5 +1,4 @@
 import requests
-import phonenumbers
 from dotenv import load_dotenv
 import os
 
@@ -16,16 +15,6 @@ HEADERS = {
     'Authorization': API_KEY
 }
 
-def parse_number(logger: Logger, phone: str) -> None | str:
-    logger.debug("Parseando numero")
-    try:
-        number = phonenumbers.parse(phone, "MX")
-        parsed_number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
-        logger.success("Numero obtenido: " + parsed_number)
-        return parsed_number
-    except phonenumbers.NumberParseException:
-        logger.error("Error parseando el numero: " + phone)
-        return None
 
 def get_all_person(logger: Logger) -> list[dict]:
     logger.debug("Buscando personas")
@@ -81,7 +70,7 @@ def update_person(logger: Logger, id: int, payload: dict):
     logger.success(f"Persona {id} actualizada correctamente")
 
 #Si valid_number es True, no se parseara el numero para no generar problemas
-def create_person(logger: Logger, lead: Lead, valid_number = False):
+def create_person(logger: Logger, lead: Lead):
     logger.debug("Cargando lead a infobip")
 
     payload = {
@@ -101,9 +90,6 @@ def create_person(logger: Logger, lead: Lead, valid_number = False):
         "tags": "Seguimientos"
     }
     if lead.telefono != '':
-        if not valid_number:
-            number = parse_number(logger, lead.telefono)
-            lead.telefono = number if number != None else lead.telefono
         payload["contactInformation"]['phone']= [{
             "number": lead.telefono
         }]

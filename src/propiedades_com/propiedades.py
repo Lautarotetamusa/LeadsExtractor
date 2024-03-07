@@ -88,6 +88,7 @@ class Propiedades(Portal):
             "email": raw_lead["email"],
             "propiedad": prop,
         })
+        return lead
 
     def get_lead_property(self, property_id: str):
         if property_id not in PROPS:
