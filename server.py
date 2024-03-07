@@ -70,9 +70,10 @@ def recive_ivr_call():
     args = request.args.to_dict()
     phone = args.get("msidsn", None)
     fuente = args.get("fuente", None)
+    name = args.get("name", None)
     if not phone or not fuente:
         return {
-            "error": "Falta el campo 'msidsn' o el campo 'fuente' en los args"
+            "error": "Falta algun campo en la peticion desde infobip (phone, fuente, name)"
         }, 400
     logger.debug("msidsn: "+str(phone))
 
@@ -83,6 +84,7 @@ def recive_ivr_call():
     lead = Lead()
     fecha = strftime("%d/%m/%Y", gmtime())
     lead.set_args({
+        "nombre": name,
         "telefono": parse_number(logger, phone),
         "fuente": fuente,
         "fecha_lead": fecha,
