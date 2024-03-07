@@ -3,7 +3,6 @@ from time import gmtime, strftime
 from flask_cors import CORS
 import threading
 import json
-from numbers import parse_number, parse_wpp_number
 
 from src.asesor import assign_asesor
 import src.infobip as infobip
@@ -11,6 +10,7 @@ from src.whatsapp import Whatsapp
 from src.logger import Logger
 from src.sheets import Sheet
 from src.lead import Lead
+from src.numbers import parse_number, parse_wpp_number
 
 app = Flask(__name__)
 CORS(app)
