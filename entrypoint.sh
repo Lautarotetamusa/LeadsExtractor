@@ -5,4 +5,4 @@ echo $CRON
 supercronic crontab.sh &
 
 # Run gunicorn
-gunicorn -c gunicorn.py server:app
+gunicorn --log-level=debug -c gunicorn.py server:app

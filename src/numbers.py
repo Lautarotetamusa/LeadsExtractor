@@ -10,7 +10,7 @@ def parse_number(logger: Logger, phone: str) -> None | str:
         return parsed_number
     except phonenumbers.NumberParseException:
         logger.error("Error parseando el numero: " + phone)
-        return None
+        return phone
 
 def parse_wpp_number(logger: Logger, phone: str) -> str:
     logger.debug("Parseando numero")

@@ -74,6 +74,7 @@ def recive_ivr_call():
         return {
             "error": "Falta el campo 'msidsn' o el campo 'fuente' en los args"
         }, 400
+    logger.debug("msidsn: "+str(phone))
 
     #Hacemos esto porque infobip nos devuelve un campo msidn con el numero,
     #Pero este campo no esta correcatmente formatedo, por ejemplo para el numero:
@@ -120,11 +121,12 @@ def recive_wpp_msg():
     lead.set_args({
         "telefono": value['contacts'][0]['wa_id'],
         "nombre": value['contacts'][0]['profile']['name'],
-        "link": f"https://web.whatsapp.com/send/?phone={lead.telefono}", 
         "fuente": "Whatsapp",
         "fecha_lead": fecha,
         "fecha": fecha
     })
+    lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
+
     is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)

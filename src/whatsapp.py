@@ -7,6 +7,7 @@ from src.lead import Lead
 
 NUMBER_ID = os.getenv("WHATSAPP_NUMBER_ID")
 ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+print("TOKEN:", ACCESS_TOKEN)
 
 URL = f"https://graph.facebook.com/v17.0/{NUMBER_ID}/messages"
 image_link = "https://buffer.com/library/content/images/size/w1200/2023/10/free-images.jpg"
