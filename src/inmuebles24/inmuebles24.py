@@ -6,7 +6,7 @@ import requests
 
 from src.portal import Portal
 from src.lead import Lead
-from src.numbers import parse_wpp_numbers
+from src.numbers import parse_number 
 
 DATE_FORMAT = "%d/%m/%Y"
 SITE_URL = "https://www.inmuebles24.com/"
@@ -160,7 +160,6 @@ class Inmuebles24(Portal):
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre": raw_lead.get("lead_user", {}).get("name"),
             "link": f"{SITE_URL}panel/interesados/{contact_id}",
-            "telefono": parse_wpp_number(raw_lead.get("phone", "")),
             "email": raw_lead.get("lead_user", {}).get("email"),
         })
         lead.set_busquedas(busqueda)
@@ -171,6 +170,10 @@ class Inmuebles24(Portal):
             "tipo": posting.get("real_estate_type", {}).get("name"),
             "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
         });
+        telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
+        if not telefono:
+            telefono = parse_number(self.logger, raw_lead.get("phone", ""))
+        lead.telefono = telefono or lead.telefono
 
         return lead
 

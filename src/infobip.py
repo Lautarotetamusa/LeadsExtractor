@@ -15,7 +15,6 @@ HEADERS = {
     'Authorization': API_KEY
 }
 
-
 def get_all_person(logger: Logger) -> list[dict]:
     logger.debug("Buscando personas")
 

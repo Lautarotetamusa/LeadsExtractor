@@ -10,7 +10,7 @@ from src.whatsapp import Whatsapp
 from src.logger import Logger
 from src.sheets import Sheet
 from src.lead import Lead
-from src.numbers import parse_number, parse_wpp_number
+from src.numbers import parse_number, 
 
 app = Flask(__name__)
 CORS(app)
@@ -70,8 +70,9 @@ def recive_ivr_call():
     args = request.args.to_dict()
     phone = args.get("msidsn", None)
     fuente = args.get("fuente", None)
+    #No se puede obtener el nombre desde infobip
     name = args.get("name", None)
-    if not phone or not fuente:
+    if not phone or not fuente or not name:
         return {
             "error": "Falta algun campo en la peticion desde infobip (phone, fuente, name)"
         }, 400
@@ -84,8 +85,8 @@ def recive_ivr_call():
     lead = Lead()
     fecha = strftime("%d/%m/%Y", gmtime())
     lead.set_args({
-        "nombre": name,
-        "telefono": parse_number(logger, phone),
+        "nombre": phone,
+        "telefono": parse_number(logger, phone, code="MX") or phone,
         "fuente": fuente,
         "fecha_lead": fecha,
         "fecha": fecha
@@ -139,7 +140,7 @@ def recive_wpp_msg():
         )
         whatsapp.send_video(lead.telefono)
 
-        lead.telefono = parse_wpp_number(logger, lead.telefono)
+        lead.telefono = parse_number(logger, "+"+lead.telefono) or lead.telefono
         infobip.create_person(logger, lead)
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
