@@ -6,7 +6,7 @@ from src.asesor import assign_asesor
 from src.lead import Lead
 from src.make_requests import Request
 from src.logger import Logger
-from src.message import generate_mensage
+from src.message import format_msg
 from src.sheets import Gmail, Sheet
 from src.whatsapp import Whatsapp
 import src.infobip as infobip
@@ -61,6 +61,8 @@ class Portal():
             self.gmail_spin = f.read()
         with open('messages/gmail_subject.html', 'r') as f:
             self.gmail_subject = f.read()
+        with open('messages/mensaje_portals.txt', 'r') as f:
+            self.msg_spin = f.read()
 
         # Adjuntar archivo PDF
         with open('messages/attachment.pdf', 'rb') as pdf_file:
@@ -89,6 +91,9 @@ class Portal():
         for lead_res in leads:
             lead = self.get_lead_info(lead_res)
 
+            _, lead = assign_asesor(lead)
+            wpp.send_msg_asesor(lead.asesor['phone'], lead)
+
             if self.send_message_condition(lead_res):
                 if lead.email != '':
                     if lead.propiedad["ubicacion"] == "":
@@ -96,13 +101,13 @@ class Portal():
                     else:
                         lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
 
-                    gmail_msg = generate_mensage(lead, self.gmail_spin)
-                    subject = generate_mensage(lead, self.gmail_subject)
+                    gmail_msg = format_msg(lead, self.gmail_spin)
+                    subject = format_msg(lead, self.gmail_subject)
                     self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
 
                     infobip.create_person(self.logger, lead)
 
-                msg = generate_mensage(lead)
+                msg = format_msg(lead, self.msg_spin)
                 lead.message = msg.replace('\n', '')
                 self.send_message(lead_res[self.send_msg_field], msg)
             else:
@@ -110,9 +115,6 @@ class Portal():
                 lead.message = ''
 
             self.make_contacted(lead_res[self.contact_id_field])
-
-            _, lead = assign_asesor(lead)
-            wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             leads_info.append(lead)
             row_lead = self.sheet.map_lead(lead, self.headers)
