@@ -39,7 +39,7 @@ def get_all_person(logger: Logger) -> list[dict]:
     return persons
 
 #@filter -> url encoder filter
-def search_person(logger: Logger, phone: str) -> None | dict:
+def search_person(logger: Logger, phone: str) -> None | Lead:
     res = requests.get(f"{API_URL}?type=PHONE&identifier={phone}", headers=HEADERS)
     try:
         if not res.ok:
@@ -50,12 +50,22 @@ def search_person(logger: Logger, phone: str) -> None | dict:
         logger.error("Error peticion infobip "+str(e))
         return None
 
-    persons = res.json().get('persons', [])
+    person = res.json()
     
-    if len(persons) == 0:
+    if person.get("errorCode", None) != None:
         return None
 
-    return persons[0]
+    lead = Lead()
+    lead.set_asesor({
+        'name': person.get('customAttributes', {}).get('asesor_name', None),
+        'phone': person.get('customAttributes', {}).get('asesor_phone', None)
+    })
+    lead.set_args({
+        'nombre': person.get('firstName', '') + ' ' + person.get('lastName', ''),
+        'telefono': person.get('contactInformation', {}).get('phone', [{}])[0].get('number', None),
+        'estado': 'Duplicado'
+    })
+    return lead
 
 def update_person(logger: Logger, id: int, payload: dict):
     logger.debug(f"Actualizando persona {id}")

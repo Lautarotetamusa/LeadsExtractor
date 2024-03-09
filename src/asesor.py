@@ -29,25 +29,13 @@ def next_asesor():
 #Si ya existe devolvemos el asesor que ya tiene
 def assign_asesor(lead: Lead) -> tuple[bool, Lead]:
     telefono = lead.telefono.replace('+', '') #Removemos el + para poder buscarlo bien en infobip
-    person = infobip.search_person(logger, telefono)
+    infobip_lead = infobip.search_person(logger, telefono)
     
-    if person == None:
+    if infobip_lead == None:
         logger.debug(f"Un nuevo lead se comunico via: {lead.fuente}")
-        is_new = True
-
         asesor = next_asesor()
-    else:
-        logger.debug(f"Un lead existente se volvio a comunicar via: {lead.fuente}")
-        is_new = False
+        lead.set_asesor(asesor)
+        return True, lead
 
-        asesor = {
-            'name': person.get('customAttributes', {}).get('asesor_name', None),
-            'phone': person.get('customAttributes', {}).get('asesor_phone', None)
-        }
-        lead.set_args({
-            'nombre': person.get('firstName', '') + ' ' + person.get('lastName', ''),
-            'telefono': person.get('contactInformation', {}).get('phone', [{}])[0].get('number', None),
-            'estado': 'Duplicado'
-        })
-    lead.set_asesor(asesor)
-    return is_new, lead
+    logger.debug(f"Un lead existente se volvio a comunicar via: {lead.fuente}")
+    return False, infobip_lead
