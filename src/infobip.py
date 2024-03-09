@@ -39,8 +39,8 @@ def get_all_person(logger: Logger) -> list[dict]:
     return persons
 
 #@filter -> url encoder filter
-def search_person(logger: Logger, filter: str) -> None | dict:
-    res = requests.get(f"{API_URL}?filter={filter}", headers=HEADERS)
+def search_person(logger: Logger, phone: str) -> None | dict:
+    res = requests.get(f"{API_URL}?type=PHONE&identifier={phone}", headers=HEADERS)
     try:
         if not res.ok:
             logger.error("Error en la request: " + str(res.status_code))

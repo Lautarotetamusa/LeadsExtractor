@@ -91,7 +91,7 @@ class Portal():
         for lead_res in leads:
             lead = self.get_lead_info(lead_res)
 
-            _, lead = assign_asesor(lead)
+            is_new, lead = assign_asesor(lead)
             wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             if self.send_message_condition(lead_res):
@@ -105,8 +105,6 @@ class Portal():
                     subject = format_msg(lead, self.gmail_subject)
                     self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
 
-                    infobip.create_person(self.logger, lead)
-
                 msg = format_msg(lead, self.msg_spin)
                 lead.message = msg.replace('\n', '')
                 self.send_message(lead_res[self.send_msg_field], msg)
@@ -114,8 +112,11 @@ class Portal():
                 self.logger.debug(f"Ya le hemos enviado un mensaje al lead {lead.nombre}, lo salteamos")
                 lead.message = ''
 
+            if is_new:
+                infobip.create_person(self.logger, lead)
+
             self.make_contacted(lead_res[self.contact_id_field])
 
             leads_info.append(lead)
-            row_lead = self.sheet.map_lead(lead, self.headers)
+            row_lead = self.sheet.map_lead(lead.__dict__, self.headers)
             self.sheet.write([row_lead])

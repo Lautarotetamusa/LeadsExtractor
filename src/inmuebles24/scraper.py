@@ -220,9 +220,9 @@ def get_filters(url):
     finally:
         driver.quit()
 
-def main(filters: dict):
+def main(filters: dict, spin_msg):
     print(type(filters))
-    get_postings(filters)
+    get_postings(filters, spin_msg)
     #url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"
     #get_filters(url)
 

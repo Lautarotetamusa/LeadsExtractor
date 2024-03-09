@@ -140,7 +140,7 @@ class Sheet(Google):
             self.logger.error("Ocurrio un error guardando en el sheets: " + str(e))
 
     # Convertir un objecto lead a algo que se pueda escribir en el sheets.
-    def map_lead(self, lead: Lead, headers: dict):
+    def map_lead(self, lead: dict, headers: dict):
         assert(lead != None)
 
         lead_row = ["" for _ in range(len(headers))]
@@ -148,7 +148,7 @@ class Sheet(Google):
         i = 0
         for header in headers:
             route = self.mapping[header]
-            lead_row[i] = get_prop(lead.__dict__, route, self.logger)
+            lead_row[i] = get_prop(lead, route, self.logger)
             i += 1
 
         return lead_row

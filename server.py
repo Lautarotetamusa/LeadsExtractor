@@ -10,7 +10,7 @@ from src.whatsapp import Whatsapp
 from src.logger import Logger
 from src.sheets import Sheet
 from src.lead import Lead
-from src.numbers import parse_number, 
+from src.numbers import parse_number 
 
 app = Flask(__name__)
 CORS(app)
@@ -97,7 +97,7 @@ def recive_ivr_call():
         infobip.create_person(logger, lead)
 
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
-    row_lead = sheet.map_lead(lead, headers)
+    row_lead = sheet.map_lead(lead.__dict__, headers)
     sheet.write([row_lead])
     return lead.asesor
 
@@ -146,7 +146,7 @@ def recive_wpp_msg():
         whatsapp.send_response(lead.telefono, lead.asesor)
     
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
-    row_lead = sheet.map_lead(lead, headers)
+    row_lead = sheet.map_lead(lead.__dict__, headers)
     sheet.write([row_lead])
     return lead.asesor
 

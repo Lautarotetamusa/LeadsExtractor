@@ -28,9 +28,8 @@ def next_asesor():
 #Si la persona no existe en infobip hacemos round robin para otorgarle un asesor
 #Si ya existe devolvemos el asesor que ya tiene
 def assign_asesor(lead: Lead) -> tuple[bool, Lead]:
-    json_filter = {"#contains": {"contactInformation": {"phone": {"number": lead.telefono}}}}
-    filtro = urllib.parse.quote(json.dumps(json_filter))
-    person = infobip.search_person(logger, filtro)
+    telefono = lead.telefono.replace('+', '') #Removemos el + para poder buscarlo bien en infobip
+    person = infobip.search_person(logger, telefono)
     
     if person == None:
         logger.debug(f"Un nuevo lead se comunico via: {lead.fuente}")
