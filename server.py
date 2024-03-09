@@ -128,10 +128,7 @@ def recive_wpp_msg():
         "fecha_lead": fecha,
         "fecha": fecha
     })
-    telefono = parse_number(logger, lead.telefono, "MX")
-    if not telefono:
-        telefono = parse_number(logger, lead.telefono)
-    lead.telefono = telefono or lead.telefono
+    lead.telefono = parse_number(logger, '+'+lead.telefono) or lead.telefono
     lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
 
     is_new, lead = assign_asesor(lead)
