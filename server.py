@@ -104,9 +104,10 @@ def recive_ivr_call():
 @app.route('/webhooks', methods=['POST'])
 def recive_wpp_msg():
     data = request.get_json()
+    value = data['entry'][0]['changes'][0]['value']
 
     try:
-        if not 'contacts' in data['entry'][0]['changes'][0]['value']:
+        if not 'contacts' in value:
             #Mensaje que envia el bot o cambio de estado en el mensaje
             #logger.debug(json.dumps(data, indent=4))
             return ''
@@ -117,7 +118,10 @@ def recive_wpp_msg():
 
     logger.success("Nuevo mensaje del lead recibido!")
     print(json.dumps(data, indent=4))
-    value = data['entry'][0]['changes'][0]['value']
+    msg_type = value.get('messages', [{}])[0].get('type', None)
+    if msg_type == "request_welcome":
+        logger.debug("Nuevo mensaje request_welcome, lo salteamos")
+        return '' 
 
     lead = Lead()
     fecha = strftime("%d/%m/%Y", gmtime())
