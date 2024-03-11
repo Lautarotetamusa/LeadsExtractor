@@ -39,7 +39,7 @@ class ApiRequest():
                 continue
 
             tries += 1
-            if 200 > res.status_code >= 300:
+            if not res.ok:
                 self.logger.error(f"Error request to: {url}")
                 self.logger.error(res.status_code)
                 self.logger.error(res.text)

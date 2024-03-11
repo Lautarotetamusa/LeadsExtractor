@@ -13,7 +13,7 @@ from src.make_requests import ApiRequest
 SITE = "https://www.inmuebles24.com"
 VIEW_URL = f"{SITE}/rp-api/leads/view"
 LIST_URL = f"{SITE}/rplis-api/postings"
-CONTACT_URL = f"{SITE}/rp-api/leads/contact"
+CONTACT_URL =  f"{SITE}/rp-api/leads/contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
@@ -46,6 +46,21 @@ def get_publisher(post: dict, msg=""):
         "publisherId": post["publisher"]["id"],
         "postingId": post["id"]
     }
+    cookies = {
+		"__cf_bm": "hoDyQ_mtImkdY5HD29Se6J2Aqv_Yz44dNM5FJh0n9SI-1710160201-1.0.1.1-tFEriZezq30JgcOPw135QgEzZV3.OXKocDieHa_VY14FKL1celv9Om5.o81Ae2WyJoWmW8rF3tXUxSP.t2oOKcxibwb7e98sqSGbfJ_Y_1k",
+		"_ga": "GA1.1.666477216.1710160203",
+		"_ga_8XFRKTEF9J": "GS1.1.1710160203.1.1.1710160222.41.0.0",
+		"_gcl_au": "1.1.894966547.1710160202",
+		"cf_clearance": "Q7RkPoggohxEnA5JIdYYfyYZyHUQ3uMC_im1hbjItzM-1710160201-1.0.1.1-YmcpkWwDvzKyb3a54VxdeB8VmSjpcb9OQZxLWbrumJ2vQ4NQDwrTeiaTWfXhPlpVTVrPJ9nWKKsy7Si_dSi7Pw",
+		"g_state": "{\"i_p\":1710167409819,\"i_l\":1}",
+		"JSESSIONID": "FCB57AE475324D4D0F664D11D17B678F",
+		"mousestats_si": "0e23e2327c539da7d990",
+		"mousestats_vi": "fe5d6cc48141971925a4",
+		"sessionId": "6898964a-b6d4-44fc-af0b-07306ebdf91a"
+    }
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0"
+    }
 
     if msg == "":
         #View the phone but not send message
@@ -60,7 +75,13 @@ def get_publisher(post: dict, msg=""):
         if msg != "":
             detail_data["message"] = msg
 
-        data = request.make(url, 'POST', json=detail_data).json()[0]
+        res = request.make(url, 'POST', json=detail_data, cookies=cookies, headers=headers)
+        if res == None: 
+            logger.error("No se pudo enviar mensaje al post")
+            return None
+        logger.debug(res.json())
+        data = res.json()[0]
+
         result = data.get("resultLeadOutput", {})
         if result.get("code", 0) == 409: #El mensaje esta repetido
             logger.debug("Mensaje repetido, reenviando")

@@ -1,6 +1,3 @@
-import urllib.parse
-import json
-
 import src.infobip as infobip
 from src.logger import Logger
 from src.sheets import Sheet
@@ -30,12 +27,14 @@ def next_asesor():
 def assign_asesor(lead: Lead) -> tuple[bool, Lead]:
     telefono = lead.telefono.replace('+', '') #Removemos el + para poder buscarlo bien en infobip
     infobip_lead = infobip.search_person(logger, telefono)
+    is_new = False
     
     if infobip_lead == None:
         logger.debug(f"Un nuevo lead se comunico via: {lead.fuente}")
         asesor = next_asesor()
         lead.set_asesor(asesor)
-        return True, lead
+        is_new = True
 
     logger.debug(f"Un lead existente se volvio a comunicar via: {lead.fuente}")
-    return False, infobip_lead
+    lead.set_args(infobip_lead.__dict__) #Agregamos los datos del lead desde infobip
+    return is_new, lead

@@ -32,8 +32,7 @@ def get_all_person(logger: Logger) -> list[dict]:
             if len(data.get('persons', [])) == 0:
                 logger.debug("Se encontro un pagina vacia, terminando")
                 break
-
-            persons.append(data.get('persons', []))
+            persons += data.get('persons', [])
         page += 1
 
     return persons
@@ -85,6 +84,7 @@ def create_person(logger: Logger, lead: Lead):
     payload = {
         "firstName": lead.nombre,
         "lastName": "",
+        "type": "LEAD", #Para que los leads entren en el flow
         "customAttributes": {
             "prop_link": lead.propiedad['link'],
             "prop_precio": str(lead.propiedad['precio']),
