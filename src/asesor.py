@@ -35,7 +35,7 @@ def assign_asesor(lead: Lead) -> tuple[bool, Lead]:
         is_new = True
     else:
         logger.debug(f"Un lead existente se volvio a comunicar via: {lead.fuente}")
-        lead.set_args(infobip_lead.__dict__) #Agregamos los datos del lead desde infobip
+        lead.set_args(infobip_lead.get_no_empty_values()) #Agregamos los datos del lead desde infobip
         is_new = False
 
     return is_new, lead

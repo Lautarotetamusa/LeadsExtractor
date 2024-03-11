@@ -43,6 +43,10 @@ class Lead():
     def set_asesor(self, args: dict):
         self.asesor = {**self.asesor, **args}
 
+    #No funciona recursivamente, si por ejemplo asesor solo tiene nombre devolverá el asesor con nombre y el telefono vacio.
+    def get_no_empty_values(self) -> dict[str, str]:
+        return {k: v for k, v in self.__dict__.items() if v != "" and type(v) is not dict}
+
 if __name__ == "__main__":
     lead = Lead()
     lead.set_args({
