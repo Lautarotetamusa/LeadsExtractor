@@ -129,9 +129,9 @@ def recive_wpp_msg():
         "fecha": fecha
     })
     lead.telefono = parse_number(logger, '+'+lead.telefono) or lead.telefono
+    lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
 
     is_new, lead = assign_asesor(lead)
-    lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)
         whatsapp.send_message(lead.telefono, bienvenida_1)

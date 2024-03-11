@@ -61,6 +61,7 @@ class Whatsapp():
         return self.send_request(payload)
 
     def send_bienvenida(self, to: str, asesor: dict[str, str]):
+        self.logger.debug("Enviando bienvenida lead "+to)
         self.send_template(
             to=to,
             name="bienvenida",
@@ -84,6 +85,7 @@ class Whatsapp():
             }])
 
     def send_response(self, to: str, asesor: dict[str, str]):
+        self.logger.debug("Enviando respuesta al lead "+to)
         self.send_template(
             to=to,
             name="2do_mensaje_bienvenida",
@@ -96,6 +98,7 @@ class Whatsapp():
             }])
 
     def send_msg_asesor(self, to: str, lead: Lead):
+        self.logger.debug("Enviando mensaje al asesor "+to)
         self.send_template(
             to=to,
             name="msg_asesor",
@@ -111,6 +114,7 @@ class Whatsapp():
             }])
 
     def send_image(self, to: str):
+        self.logger.debug("Enviando imagen a "+to)
         payload = {
             "messaging_product": "whatsapp",
             "to": to,
@@ -122,6 +126,7 @@ class Whatsapp():
         self.send_request(payload)
 
     def send_video(self, to: str):
+        self.logger.debug("Enviando video a "+to)
         payload = {
             "messaging_product": "whatsapp",
             "to": to,
