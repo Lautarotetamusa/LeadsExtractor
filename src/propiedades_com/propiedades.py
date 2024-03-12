@@ -9,6 +9,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from src.numbers import parse_number
 from src.portal import Portal
 from src.lead import Lead
 
@@ -69,7 +70,8 @@ class Propiedades(Portal):
                     end = True #Cuando encontramos un lead conctado paramos
                     break
                 leads.append(lead)
-
+    
+        print(leads)
         return leads
 
     def get_lead_info(self, raw_lead: dict) -> Lead:
@@ -84,10 +86,13 @@ class Propiedades(Portal):
             "id": raw_lead["id"],
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre": raw_lead["name"],
-            "telefono": raw_lead["phone"],
             "email": raw_lead["email"],
             "propiedad": prop,
         })
+        telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
+        if not telefono:
+            telefono = parse_number(self.logger, raw_lead.get("phone", ""))
+        lead.telefono = telefono or lead.telefono
         return lead
 
     def get_lead_property(self, property_id: str):
@@ -132,11 +137,11 @@ class Propiedades(Portal):
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")
 
-    def login(self, session="propiedades_com/session"):
+    def login(self, session="session"):
         login_url = "https://propiedades.com/login"
         options = Options()
         options.add_argument(f"--user-data-dir={session}") #Session
-        #options.add_argument(f"--headless") #Session
+        options.add_argument(f"--headless") #Session
         options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
 
         driver = webdriver.Chrome(options=options)

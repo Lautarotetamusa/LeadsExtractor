@@ -95,7 +95,7 @@ class Portal():
             wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             if self.send_message_condition(lead_res):
-                if lead.email != '':
+                if lead.email != None and lead.email != '':
                     if lead.propiedad["ubicacion"] == "":
                         lead.propiedad["ubicacion"] = "que consultaste"
                     else:
@@ -107,7 +107,9 @@ class Portal():
 
                 msg = format_msg(lead, self.msg_spin)
                 lead.message = msg.replace('\n', '')
-                self.send_message(lead_res[self.send_msg_field], msg)
+
+                if self.send_msg_field in lead_res:
+                    self.send_message(lead_res[self.send_msg_field], msg)
             else:
                 self.logger.debug(f"Ya le hemos enviado un mensaje al lead {lead.nombre}, lo salteamos")
                 lead.message = ''

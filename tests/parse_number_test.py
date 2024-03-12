@@ -6,7 +6,7 @@ if __name__ == "__main__":
     number = "+5217441036217"
     number = "3314156138" #numero que llega desde inmuebles24, lo tengo que parsear como "MX" para que ande
     number = "+5213319466986" #numero wa_id mexicano
-    #number = "+5293415854220"
+    number = "523327919473" #Propiedades.com
 
     #Para poder parsear los numeros bien tienen que tener un + adelante
     #        +52 3327919473  # -> E164
