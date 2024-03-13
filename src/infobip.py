@@ -15,6 +15,29 @@ HEADERS = {
     'Authorization': API_KEY
 }
 
+def get_all_with_filter(logger: Logger, filter: str) -> list[dict]:
+    logger.debug("Buscando personas")
+
+    page = 1
+    persons = []
+
+    while True:
+        url = f"{API_URL}?filter={filter}&page={page}" 
+        logger.debug("GET "+url)
+        res = requests.get(f"{API_URL}?filter={filter}&page={page}", headers=HEADERS)
+        if not res.ok:
+            logger.error("Error en la request: " + str(res.status_code))
+            logger.error(res.json())
+        else: 
+            data = res.json()
+            if len(data.get('persons', [])) == 0:
+                logger.debug("Se encontro un pagina vacia, terminando")
+                break
+            persons += data.get('persons', [])
+        page += 1
+
+    return persons
+
 def get_all_person(logger: Logger) -> list[dict]:
     logger.debug("Buscando personas")
 
