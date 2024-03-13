@@ -119,9 +119,6 @@ def recive_wpp_msg():
     logger.success("Nuevo mensaje del lead recibido!")
     print(json.dumps(data, indent=4))
     msg_type = value.get('messages', [{}])[0].get('type', None)
-    if msg_type == "request_welcome":
-        logger.debug("Nuevo mensaje request_welcome, lo salteamos")
-        return '' 
 
     lead = Lead()
     fecha = strftime("%d/%m/%Y", gmtime())
@@ -147,6 +144,9 @@ def recive_wpp_msg():
 
         infobip.create_person(logger, lead)
     else: #Lead existente
+        if msg_type == "request_welcome":
+            logger.debug("Nuevo request_welcome en lead ya asignado, lo salteamos")
+            return '' 
         whatsapp.send_response(lead.telefono, lead.asesor)
     
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead)

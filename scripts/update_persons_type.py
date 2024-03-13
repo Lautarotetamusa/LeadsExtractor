@@ -12,5 +12,5 @@ if __name__ == "__main__":
     for person in persons:
         infobip.update_person(logger, person['id'], {
             **person,
-            "type": "LEAD"
+            "type": "CUSTOMER"
         }) 
