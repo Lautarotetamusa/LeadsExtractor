@@ -86,11 +86,14 @@ def recive_ivr_call():
     fecha = strftime("%d/%m/%Y", gmtime())
     lead.set_args({
         "nombre": phone,
-        "telefono": parse_number(logger, phone, code="MX") or phone,
         "fuente": fuente,
         "fecha_lead": fecha,
         "fecha": fecha
     })
+    telefono = parse_number(logger, "+"+phone, "MX")
+    if not telefono:
+        telefono = parse_number(logger, "+"+phone)
+    lead.telefono = telefono or lead.telefono
 
     is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
