@@ -70,9 +70,9 @@ def recive_ivr_call():
     args = request.args.to_dict()
     phone = args.get("msidsn", None)
     fuente = args.get("fuente", None)
-    #No se puede obtener el nombre desde infobip
-    name = args.get("name", None)
-    if not phone or not fuente or not name:
+
+    if not phone or not fuente:
+        logger.error("Falta algun campo en la peticion")
         return {
             "error": "Falta algun campo en la peticion desde infobip (msidsn, fuente, name)"
         }, 400
@@ -95,7 +95,17 @@ def recive_ivr_call():
 
     is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
+        whatsapp.send_image(lead.telefono)
+        whatsapp.send_message(lead.telefono, bienvenida_1)
+        whatsapp.send_message(lead.telefono, bienvenida_2.format(
+            asesor_name=lead.asesor['name'], 
+            asesor_phone=lead.asesor['phone'])
+        )
+        whatsapp.send_video(lead.telefono)
+
         infobip.create_person(logger, lead)
+    else: #Lead existente
+        whatsapp.send_response(lead.telefono, lead.asesor)
 
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
     row_lead = sheet.map_lead(lead.__dict__, headers)

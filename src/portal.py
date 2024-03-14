@@ -63,6 +63,10 @@ class Portal():
             self.gmail_subject = f.read()
         with open('messages/mensaje_portals.txt', 'r') as f:
             self.msg_spin = f.read()
+        with open('messages/bienvenida_1.txt') as f:
+            self.bienvenida_1 = f.read()
+        with open('messages/bienvenida_2.txt') as f:
+            self.bienvenida_2 = f.read()
 
         # Adjuntar archivo PDF
         with open('messages/attachment.pdf', 'rb') as pdf_file:
@@ -92,6 +96,19 @@ class Portal():
             lead = self.get_lead_info(lead_res)
 
             is_new, lead = assign_asesor(lead)
+            if is_new: #Lead nuevo
+                wpp.send_image(lead.telefono)
+                wpp.send_message(lead.telefono, self.bienvenida_1)
+                wpp.send_message(lead.telefono, self.bienvenida_2.format(
+                    asesor_name=lead.asesor['name'], 
+                    asesor_phone=lead.asesor['phone'])
+                )
+                wpp.send_video(lead.telefono)
+
+                infobip.create_person(self.logger, lead)
+            else: #Lead existente
+                wpp.send_response(lead.telefono, lead.asesor)
+            
             wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
             if self.send_message_condition(lead_res):
@@ -113,9 +130,6 @@ class Portal():
             else:
                 self.logger.debug(f"Ya le hemos enviado un mensaje al lead {lead.nombre}, lo salteamos")
                 lead.message = ''
-
-            if is_new:
-                infobip.create_person(self.logger, lead)
 
             self.make_contacted(lead_res[self.contact_id_field])
 

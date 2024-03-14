@@ -7,12 +7,16 @@ if __name__ == "__main__":
     number = "3314156138" #numero que llega desde inmuebles24, lo tengo que parsear como "MX" para que ande
     number = "+5213319466986" #numero wa_id mexicano
     number = "523327919473" #Propiedades.com
-    number = "523411234567" #IVR CALL
+    number = "523411234567" #IVR CALL Mexico
+    number = "525493415854220" #IVR CALL Argentina
 
     #Para poder parsear los numeros bien tienen que tener un + adelante
     #        +52 3327919473  # -> E164
-    x = phonenumbers.parse(number, "MX")
-    #x = phonenumbers.parse(number, None)
+    try:
+        x = phonenumbers.parse(number, None)
+    except Exception as e:
+        x = phonenumbers.parse(number, "MX")
+
     print(x)
     parsed_number = phonenumbers.format_number(x, phonenumbers.PhoneNumberFormat.E164)
     print(parsed_number)
