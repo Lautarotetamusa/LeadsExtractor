@@ -32,6 +32,8 @@ class Whatsapp():
         self.logger.debug(res.text)
 
     def send_message(self, to: str, message: str):
+        assert to != None, "El numero de telefono receptor es None"
+
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
@@ -45,6 +47,8 @@ class Whatsapp():
         return self.send_request(payload)
     
     def send_template(self, to: str, name: str, components, language="es_MX"):
+        assert to != None, "El numero de telefono receptor es None"
+
         payload = {
             "messaging_product": "whatsapp",
             "recipient_type": "individual",
@@ -61,6 +65,10 @@ class Whatsapp():
         return self.send_request(payload)
 
     def send_bienvenida(self, to: str, asesor: dict[str, str]):
+        assert to != None, "El numero de telefono receptor es None"
+        assert 'name' in asesor and asesor['name'] != "" and asesor['name'] != None, "El asesor no tiene nombre"
+        assert 'phone' in asesor and asesor['phone'] != "" and asesor['phone'] != None, "El asesor no tiene telefono"
+
         self.logger.debug("Enviando bienvenida lead "+to)
         self.send_template(
             to=to,
@@ -85,6 +93,9 @@ class Whatsapp():
             }])
 
     def send_response(self, to: str, asesor: dict[str, str]):
+        assert to != None, "El numero de telefono receptor es None"
+        assert 'name' in asesor and asesor['name'] != "" and asesor['name'] != None, "El asesor no tiene nombre"
+
         self.logger.debug("Enviando respuesta al lead "+to)
         self.send_template(
             to=to,
@@ -98,6 +109,10 @@ class Whatsapp():
             }])
 
     def send_msg_asesor(self, to: str, lead: Lead):
+        assert to != None, "El numero de telefono es None"
+        assert lead.telefono != "", "El telefono del lead esta vacio"
+        assert lead.nombre != "", "El nombre del lead esta vacio"
+
         self.logger.debug("Enviando mensaje al asesor "+to)
         self.send_template(
             to=to,
@@ -114,6 +129,8 @@ class Whatsapp():
             }])
 
     def send_image(self, to: str):
+        assert to != None, "El numero de telefono receptor es None"
+
         self.logger.debug("Enviando imagen a "+to)
         payload = {
             "messaging_product": "whatsapp",
@@ -126,6 +143,8 @@ class Whatsapp():
         self.send_request(payload)
 
     def send_video(self, to: str):
+        assert to != None, "El numero de telefono receptor es None"
+
         self.logger.debug("Enviando video a "+to)
         payload = {
             "messaging_product": "whatsapp",

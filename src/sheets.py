@@ -83,6 +83,10 @@ class Gmail(Google):
         return {'raw': raw_message}
 
     def send_message(self, text: str, subject: str, reciver: str, attachment):
+        assert text != None and text != "", "El texto enviado al correo no existe"
+        assert subject != None and subject != "", "El subject enviado al correo no existe"
+        assert reciver != None and reciver != "", "El reciver del correo no existe"
+
         self.logger.debug(f"Enviando mensaje al correo: {reciver}")
         try:
             message = self.create_message(reciver, subject, text, attachment) 

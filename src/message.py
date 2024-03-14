@@ -1,7 +1,7 @@
 from src.lead import Lead
 import spintax
 
-def format_msg(lead: Lead, spin_msg: str):
+def format_msg(lead: Lead, spin_msg: str) -> str:
     spin = spintax.spin(spin_msg)
     format = spin.replace("[","{").replace("]","}")
 

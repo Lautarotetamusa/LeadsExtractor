@@ -146,8 +146,8 @@ def recive_wpp_msg():
     else: #Lead existente
         if msg_type == "request_welcome":
             logger.debug("Nuevo request_welcome en lead ya asignado, lo salteamos")
-            return '' 
-        whatsapp.send_response(lead.telefono, lead.asesor)
+        else:
+            whatsapp.send_response(lead.telefono, lead.asesor)
     
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
     row_lead = sheet.map_lead(lead.__dict__, headers)
