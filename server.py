@@ -74,14 +74,10 @@ def recive_ivr_call():
     name = args.get("name", None)
     if not phone or not fuente or not name:
         return {
-            "error": "Falta algun campo en la peticion desde infobip (phone, fuente, name)"
+            "error": "Falta algun campo en la peticion desde infobip (msidsn, fuente, name)"
         }, 400
     logger.debug("msidsn: "+str(phone))
 
-    #Hacemos esto porque infobip nos devuelve un campo msidn con el numero,
-    #Pero este campo no esta correcatmente formatedo, por ejemplo para el numero:
-    #5493411234567, devolveria 523411234567. Es decir agregando un 52 como si fuese de mexico
-    phone = phone[2::] #Removemos el '52'
     lead = Lead()
     fecha = strftime("%d/%m/%Y", gmtime())
     lead.set_args({
@@ -90,8 +86,10 @@ def recive_ivr_call():
         "fecha_lead": fecha,
         "fecha": fecha
     })
-    telefono = parse_number(logger, "+"+phone, "MX")
+    telefono = parse_number(logger, phone, "MX")
     if not telefono:
+        #Si el numero no es mexicano va a llegar con un 52 adelante igual por ejemplo 525493415854220
+        phone = phone[2::] #Removemos el '52'
         telefono = parse_number(logger, "+"+phone)
     lead.telefono = telefono or lead.telefono
 
