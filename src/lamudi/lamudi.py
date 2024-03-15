@@ -3,6 +3,8 @@ from datetime import datetime
 import json
 import uuid
 
+import requests
+
 from src.portal import Portal
 from src.lead import Lead
 
@@ -35,7 +37,7 @@ class Lamudi(Portal):
             "email": self.username,
             "password": self.password
         }
-        res = self.request.make(login_url, 'POST', json=data)
+        res = requests.post(login_url, json=data)
         if res == None:
             return
         
