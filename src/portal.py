@@ -57,18 +57,23 @@ class Portal():
         self.sheet = Sheet(self.logger, "mapping.json")
         self.headers = self.sheet.get("A2:Z2")[0]
 
-        with open('messages/gmail.html', 'r') as f:
-            self.gmail_spin = f.read()
-        with open('messages/gmail_subject.html', 'r') as f:
-            self.gmail_subject = f.read()
-        with open('messages/response_message.txt', 'r') as f:
-            self.response_msg = f.read()
-        with open('messages/bienvenida_1.txt') as f:
-            self.bienvenida_1 = f.read()
-        with open('messages/bienvenida_2.txt') as f:
-            self.bienvenida_2 = f.read()
+        resources = {
+            'gmail_spin': 'gmail.html',
+            'gmail_subject': 'gmail_subject.html',
+            'response_msg': 'response_message.txt',
+            'bienvenida_1': 'bienvenida_1.txt',
+            'bienvenida_2': 'bienvenida_2.txt',
+        }
+        self.gmail_spin = ""
+        self.gmail_subject = ""
+        self.response_msg = ""
+        self.bienvenida_1 = ""
+        self.bienvenida_2 = ""
 
-        assert self.gmail_spin
+        for resource in resources:
+            with open(f"messages/{resources[resource]}", 'r') as f:
+                self.__dict__[resource] = f.read()
+            assert resource in self.__dict__ and self.__dict__[resource] != "", f"{resource} no se cargo correctamente"
 
         # Adjuntar archivo PDF
         with open('messages/attachment.pdf', 'rb') as pdf_file:
