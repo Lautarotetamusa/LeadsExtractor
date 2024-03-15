@@ -1,3 +1,5 @@
+import json
+
 class Lead():
     def __init__(self):
         self.fuente = ""
@@ -46,6 +48,9 @@ class Lead():
     #No funciona recursivamente, si por ejemplo asesor solo tiene nombre devolverá el asesor con nombre y el telefono vacio.
     def get_no_empty_values(self) -> dict[str, str]:
         return {k: v for k, v in self.__dict__.items() if v != "" and type(v) is not dict}
+
+    def print(self):
+        print(json.dumps(self.__dict__, indent=4))
 
 if __name__ == "__main__":
     lead = Lead()

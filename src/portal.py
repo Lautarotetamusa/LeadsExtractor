@@ -95,6 +95,11 @@ class Portal():
         for lead_res in leads:
             lead = self.get_lead_info(lead_res)
 
+            if lead.telefono == None or lead.telefono == "":
+                self.logger.debug("El lead no tiene telefono, no hacemos nada")
+                self.make_contacted(lead_res[self.contact_id_field])
+                continue
+
             is_new, lead = assign_asesor(lead)
             if is_new: #Lead nuevo
                 wpp.send_image(lead.telefono)

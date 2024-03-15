@@ -2,7 +2,7 @@ import phonenumbers
 from src.logger import Logger
 
 def parse_number(logger: Logger, phone: str, code=None) -> str | None:
-    logger.debug("Parseando numero, code: "+str(code))
+    logger.debug(f"Parseando numero: {phone}. code: {code}")
     try:
         number = phonenumbers.parse(phone, code)
         parsed_number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
