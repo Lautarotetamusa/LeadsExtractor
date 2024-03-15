@@ -61,12 +61,14 @@ class Portal():
             self.gmail_spin = f.read()
         with open('messages/gmail_subject.html', 'r') as f:
             self.gmail_subject = f.read()
-        with open('messages/mensaje_portals.txt', 'r') as f:
-            self.msg_spin = f.read()
+        with open('messages/response_message.txt', 'r') as f:
+            self.response_msg = f.read()
         with open('messages/bienvenida_1.txt') as f:
             self.bienvenida_1 = f.read()
         with open('messages/bienvenida_2.txt') as f:
             self.bienvenida_2 = f.read()
+
+        assert self.gmail_spin
 
         # Adjuntar archivo PDF
         with open('messages/attachment.pdf', 'rb') as pdf_file:
@@ -102,39 +104,37 @@ class Portal():
 
             is_new, lead = assign_asesor(lead)
             if is_new: #Lead nuevo
+                bienvenida_2 = format_msg(lead, self.bienvenida_2)
+
                 wpp.send_image(lead.telefono)
                 wpp.send_message(lead.telefono, self.bienvenida_1)
-                wpp.send_message(lead.telefono, self.bienvenida_2.format(
-                    asesor_name=lead.asesor['name'], 
-                    asesor_phone=lead.asesor['phone'])
-                )
+                wpp.send_message(lead.telefono, bienvenida_2)
                 wpp.send_video(lead.telefono)
+
+                portal_msg = self.bienvenida_1 + '\n' + bienvenida_2
 
                 infobip.create_person(self.logger, lead)
             else: #Lead existente
+                portal_msg = format_msg(lead, self.response_msg)
+
                 wpp.send_response(lead.telefono, lead.asesor)
             
             wpp.send_msg_asesor(lead.asesor['phone'], lead)
 
-            if self.send_message_condition(lead_res):
-                if lead.email != None and lead.email != '':
-                    if lead.propiedad["ubicacion"] == "":
-                        lead.propiedad["ubicacion"] = "que consultaste"
-                    else:
-                        lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
+            #Mensaje del portal
+            if self.send_msg_field in lead_res:
+                self.send_message(lead_res[self.send_msg_field], portal_msg)
+            lead.message = portal_msg.replace('\n', '')
 
-                    gmail_msg = format_msg(lead, self.gmail_spin)
-                    subject = format_msg(lead, self.gmail_subject)
-                    self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
+            if lead.email != None and lead.email != '':
+                if lead.propiedad["ubicacion"] == "":
+                    lead.propiedad["ubicacion"] = "que consultaste"
+                else:
+                    lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
 
-                msg = format_msg(lead, self.msg_spin)
-                lead.message = msg.replace('\n', '')
-
-                if self.send_msg_field in lead_res:
-                    self.send_message(lead_res[self.send_msg_field], msg)
-            else:
-                self.logger.debug(f"Ya le hemos enviado un mensaje al lead {lead.nombre}, lo salteamos")
-                lead.message = ''
+                gmail_msg = format_msg(lead, self.gmail_spin)
+                subject = format_msg(lead, self.gmail_subject)
+                self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
 
             self.make_contacted(lead_res[self.contact_id_field])
 

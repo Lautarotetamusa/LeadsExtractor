@@ -203,6 +203,7 @@ class Inmuebles24(Portal):
         self.logger.debug(f"Enviando mensaje a lead {id}")
         msg_url = f"{SITE_URL}leads-api/leads/{id}/messages"
 
+        print(message)
         data = {
             "is_comment": False,
             "message": message,
