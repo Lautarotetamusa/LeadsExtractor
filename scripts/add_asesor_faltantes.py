@@ -1,3 +1,6 @@
+#Este script asigna asesores a todos los leads de Infobip que todavia no lo tengan
+#Actualizado el día - 15 marzo 2024
+
 import sys
 import json
 import urllib.parse
@@ -15,11 +18,11 @@ if __name__ == "__main__":
     json_filter = {"customAttributes": {"asesor_name": None}}
     filtro = urllib.parse.quote(json.dumps(json_filter))
     persons = infobip.get_all_with_filter(logger, filtro)
-    print("Personas sin asesor:", len(persons))
+    logger.debug(f"Personas sin asesor: {len(persons)}")
     
     rows = sheet.get('Asesores!A2:C25')
     activos = [row for row in rows if row[2] == "Activo"]
-    print("Activos: ", activos)
+    logger.debug(f"Activos: {activos}")
 
     asesor_i = 0
     for person in persons:

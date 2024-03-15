@@ -139,6 +139,7 @@ def create_person(logger: Logger, lead: Lead):
             return
     except Exception as e:
         logger.error("Error cargando lead"+str(e))
-        return
+        return False
 
     logger.success("Lead cargada correctamente")
+    return True

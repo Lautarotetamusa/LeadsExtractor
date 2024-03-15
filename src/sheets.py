@@ -157,6 +157,19 @@ class Sheet(Google):
 
         return lead_row
 
+    # Convertir un objecto lead a algo que se pueda escribir en el sheets.
+    def get_lead(self, row: list, headers: dict):
+        lead = Lead()
+
+        i = 0
+        for value in row:
+            if value != '':
+                route = self.mapping[headers[i]]
+                lead.__dict__ = set_prop(lead.__dict__, route, value)
+            i += 1
+
+        return lead
+
 # route: propiedad.link -> lead['propiedad']['link']
 def get_prop(obj: dict, route: str, logger: Logger):
     split = route.split('.')

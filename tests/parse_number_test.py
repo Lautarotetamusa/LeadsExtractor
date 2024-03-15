@@ -9,6 +9,8 @@ if __name__ == "__main__":
     number = "523327919473" #Propiedades.com
     number = "523411234567" #IVR CALL Mexico
     number = "525493415854220" #IVR CALL Argentina
+    number = "3344556677" #Casas y terrenos
+    number = "+524151510540" #Cassa y terrenos
 
     #Para poder parsear los numeros bien tienen que tener un + adelante
     #        +52 3327919473  # -> E164

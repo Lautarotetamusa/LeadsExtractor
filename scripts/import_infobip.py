@@ -1,69 +1,45 @@
+#Este script sirve para volcar toda la informacion del sheets en el CDP de Infobip
+#Actualizado el día - 15 marzo 2024
 
-from src.sheets import Sheet, Logger, set_prop
-from src.schema import LEAD_SCHEMA
-import requests
-import phonenumbers
+import sys
+sys.path.append('.')
 
-def create_person(lead: dict):
-    logger.debug("Cargando lead a infobip")
-    api_url = 'https://8gzewr.api.infobip.com/people/2/persons'
-    payload = {
-        "firstName": lead['nombre'],
-        "lastName": "",
-        "customAttributes": {
-            "prop_link": lead['propiedad']['link'],
-            "prop_precio": lead['propiedad']['precio'],
-            "prop_ubicacion": lead['propiedad']['ubicacion'],
-            "prop_titulo": lead['propiedad']['titulo'],
-            "contacted": False,
-            "fuente": lead['fuente']
-        },
-        "contactInformation": {},
-        "tags": "Seguimientos"
-    }
-    if lead['telefono'] != '':
-        payload["contactInformation"]['phone'] = [{
-            "number": lead['telefono']
-        }]
-    if lead['email'] != '':
-        payload["contactInformation"]['email'] = [{
-            "address": lead['email']
-        }]
-    headers = {
-        'Authorization': 'App 97a01ad468d7489a60d851446c30725f-4f33fbc8-67eb-4443-8603-d26ab0c58298'
-    }
+from src.sheets import Sheet
+from src.logger import Logger
+import src.infobip as infobip
+from src.numbers import parse_number
 
-    logger.debug(payload)
-    res = requests.post(api_url, json=payload, headers=headers)
-    if not res.ok:
-        logger.error("Error en la request: " + str(res.status_code))
-        logger.error(res.json())
-        return
+THREADS = 16
 
-    logger.success("Lead cargada correctamente")
+if __name__ == "__main__":
+    logger = Logger("SHEETS into INFOBIP")
+    sheet = Sheet(logger, "mapping.json")
 
-logger = Logger("Infobip import")
-sheets = Sheet(logger, "mapping.json")
+    headers = sheet.get("A2:Z2")[0]
 
-headers = sheets.get_dict_headers("A2:Y2")
-rows = sheets.get("A3:4065")
+    init = 3000
+    stop = init + THREADS
+    stop = 3500
 
-mappings = []
-for header in headers:
-    mappings.append(sheets.mapping[header])
+    rows = sheet.get(f"A{init}:Z{stop}")
 
-fila = 0
-for row in rows:
-    fila += 1
-    lead = LEAD_SCHEMA.copy()
-    for i, col in enumerate(row):
-        lead = set_prop(lead, mappings[i], col)
-    try:
-        number = phonenumbers.parse(lead['telefono'], "MX")
-        parsed_number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
-        lead['telefono'] = parsed_number
-        logger.debug("Numero obtenido: " + parsed_number)
-    except phonenumbers.NumberParseException:
-        logger.error("Error parseando el numero: " + lead['telefono'])
-    create_person(lead)
-    #exit(1)
+    news = 0
+    duplicateds = 0
+    for row in rows:
+        lead = sheet.get_lead(row, headers)
+        telefono = parse_number(logger, lead.telefono)
+        if not telefono:
+            telefono = parse_number(logger, lead.telefono, "MX")
+        if not telefono:
+            logger.debug("No se pudo parsear el numero de telefono")
+            continue
+        lead.telefono = telefono
+
+        load = infobip.create_person(logger, lead)
+        if not load: #La persona no se cargó
+            duplicateds += 1
+            logger.debug("Se encontro un Lead duplicado")
+        else:
+            news += 1
+
+        logger.debug(f"news: {news}. duplicateds: {duplicateds}")
