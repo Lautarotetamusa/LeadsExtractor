@@ -6,9 +6,11 @@ from src.lead import Lead
 logger = Logger("Asesor")
 sheet = Sheet(logger, "mapping.json")
 
-ASESOR_i = 0
 def next_asesor():
-    global ASESOR_i
+    asesor_i_save = 'asesor_i.txt'
+    with open(asesor_i_save, 'r') as f:
+        ASESOR_i = int(f.read())
+
     rows = sheet.get('Asesores!A2:C25')
     activos = [row for row in rows if row[2] == "Activo"]
     print("Activos: ", activos)
@@ -20,6 +22,9 @@ def next_asesor():
         "phone": activos[ASESOR_i][1]
     }
     logger.debug("Asesor asignado: "+str(asesor['name']))
+
+    with open(asesor_i_save, 'w') as f:
+        f.write(str(ASESOR_i))
     return asesor
 
 #Si la persona no existe en infobip hacemos round robin para otorgarle un asesor

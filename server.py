@@ -4,7 +4,7 @@ from flask_cors import CORS
 import threading
 import json
 
-from src.asesor import assign_asesor
+from src.asesor import assign_asesor, next_asesor
 import src.infobip as infobip
 from src.whatsapp import Whatsapp
 from src.logger import Logger
@@ -64,6 +64,11 @@ def webhooks_validate():
     #TOKEN = 'Lautaro123.'
 
     return hub_challenge
+
+@app.route('/roundrobin', methods=['GET'])
+def round_robin():
+    asesor = next_asesor()  
+    return asesor
 
 @app.route('/asesor', methods=['GET'])
 def recive_ivr_call():
