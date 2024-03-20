@@ -1,22 +1,24 @@
 from time import gmtime, strftime
 from datetime import datetime
 import json
+from typing import Iterator
 import uuid
 
 import requests
 
-from src.portal import Portal
+from src.numbers import parse_number
+from src.portal import Mode, Portal
 from src.lead import Lead
 
 API_URL = "https://api.proppit.com"
-DATE_FORMAT = "%d/%m/%Y"
-
-def first_run():
-    pass
+DATE_FORMAT = "%Y-%m-%d"
 
 def main():
     lamudi = Lamudi()
     lamudi.main()
+def first_run():
+    lamudi = Lamudi()
+    lamudi.first_run()
 
 class Lamudi(Portal):
     def __init__(self):
@@ -48,39 +50,45 @@ class Lamudi(Portal):
             json.dump(self.request.cookies, f, indent=4)
         self.logger.success("Sesion iniciada con exito")
 
-    def get_leads(self) -> list[dict]:
+    def get_leads(self, mode=Mode.NEW) -> Iterator[list[dict]]:
         max = -1
         status = "new lead"
         page = 1
         limit = 25
-        leads = []
+        cant = 0
 
-        url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+        if mode == Mode.NEW:
+            url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+        else:
+            url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity"
         self.logger.debug(f"Extrayendo leads")
 
         res = self.request.make(url, 'GET')
         if res == None:
-            return []
+           exit(1) 
         data = res.json()["data"]
 
         total = data["totalFilteredRows"]
         self.logger.debug(f"total: {total}")
 
-        while (len(leads) < total and (len(leads) < max or max == -1)):
-            self.logger.debug(f"len: {len(leads)}")
-            leads += data["rows"]
+        while (cant < total and (cant < max or max == -1)):
+            self.logger.debug(f"len: {cant}")
+            yield data["rows"]
+            cant += len(data["rows"])
             page += 1
 
-            url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+            if mode == Mode.NEW:
+                url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
+            else:
+                url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity"
             self.logger.debug(url)
 
             res = self.request.make(url, 'GET')
             if res == None:
-                return leads
+                break
             data = res.json()["data"]
 
-        self.logger.success(f"Se encontraron {len(leads)} nuevos Leads")
-        return leads
+        self.logger.success(f"Se encontraron {cant} nuevos Leads")
 
     def get_lead_property(self, lead_id):
         property_url = f"{API_URL}/leads/{lead_id}/properties"
@@ -119,11 +127,15 @@ class Lamudi(Portal):
             "fecha": strftime('%d/%m/%Y', gmtime()),
             "fecha_lead": datetime.strptime(raw_lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
             "nombre": raw_lead["name"],
-            "link": f"https://proppit.com/raw_leads/{raw_lead['id']}",
-            "telefono": raw_lead['phone'],
+            "link": f"https://proppit.com/leads/{raw_lead['id']}",
             "email": raw_lead['email'],
             "propiedad": self.get_lead_property(raw_lead["id"])[0],
         })
+
+        telefono = parse_number(self.logger, raw_lead.get("phone", ""), None)
+        if not telefono:
+            telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
+        lead.telefono = telefono or lead.telefono
         return lead
 
     def send_message(self, id, message):

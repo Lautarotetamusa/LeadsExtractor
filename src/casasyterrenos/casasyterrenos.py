@@ -2,6 +2,7 @@ import json
 import time
 from time import gmtime, strftime
 from datetime import datetime
+from typing import Iterator
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -9,16 +10,20 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.portal import Portal
+from src.numbers import parse_number
+from src.portal import Mode, Portal
 from src.lead import Lead
 
-DATE_FORMAT = "%d/%m/%Y"
+DATE_FORMAT = "%Y-%m-%d"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
 CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
 
 def main():
     scraper = CasasYTerrenos()
     scraper.main()
+def first_run():
+    scraper = CasasYTerrenos()
+    scraper.first_run()
 
 class CasasYTerrenos(Portal):
     def __init__(self):
@@ -32,23 +37,25 @@ class CasasYTerrenos(Portal):
             filename=__file__
         )
 
-    def get_leads(self) -> list[dict]:
-        status = "1" #Filtramos solamente los leads nuevos
+    def get_leads(self, mode=Mode.NEW) -> Iterator[list[dict]]:
         page = 1
-        url = f"{API_URL}/list_contact/?page={page}&status={status}"
 
-        leads = []
+        if mode == Mode.NEW:
+            status = "1" #Filtramos solamente los leads nuevos
+            url = f"{API_URL}/list_contact/?page={page}&status={status}"
+        else:
+            url = f"{API_URL}/list_contact/?page={page}"
+
         while url != None:
             res = self.request.make(url)
             if res == None:
-                return leads
+                break
             data = res.json()
 
             url = data["next"]
             self.logger.debug(f"total: {data['count']}")
 
-            leads += data["results"]
-        return leads
+            yield data["results"]
 
     def make_contacted(self, id: str):
         self.logger.debug(f"Marcando como contactacto a lead {id}")
@@ -73,7 +80,6 @@ class CasasYTerrenos(Portal):
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre":  raw_lead["name"],
             "link": "",
-            "telefono":  raw_lead["phone"],
             "email":  raw_lead["email"],
         })
         lead.set_propiedad({
@@ -82,6 +88,11 @@ class CasasYTerrenos(Portal):
             "link": f"https://www.casasyterrenos.com/propiedad/{raw_lead['property_id']}",
             "tipo":  raw_lead["property_type"],
         })
+
+        telefono = parse_number(self.logger, raw_lead.get("phone", ""), None)
+        if not telefono:
+            telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
+        lead.telefono = telefono or lead.telefono
         return lead
 
     def login(self, session="session"):

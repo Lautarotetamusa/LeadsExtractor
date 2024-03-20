@@ -2,6 +2,7 @@ from time import gmtime, strftime
 from datetime import datetime
 import json
 from enum import IntEnum
+from typing import Generator
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.numbers import parse_number
-from src.portal import Portal
+from src.portal import Mode, Portal
 from src.lead import Lead
 
 #mis propiedades: https://propiedades.com/api/v3/property/MyProperties
@@ -18,21 +19,24 @@ from src.lead import Lead
 with open("src/propiedades_com/properties.json") as f:
     PROPS = json.load(f)
 
-DATE_FORMAT = "%d/%m/%Y"
+DATE_FORMAT = "%Y-%m-%d"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 
 #Lista de estados posibles de un lead
 #Los tomamos de la pagina
 class Status(IntEnum):
-    CONTACTADO = 2,
-    CALIFICADO = 3,
-    EN_PROCESO = 4,
-    CONVERTIDO = 5,
+    CONTACTADO = 2
+    CALIFICADO = 3
+    EN_PROCESO = 4
+    CONVERTIDO = 5
     CERRADA = 6
 
 def main():
     scraper = Propiedades()
     scraper.main()
+def first_run():
+    scraper = Propiedades()
+    scraper.first_run()
 
 class Propiedades(Portal):
     def __init__(self):
@@ -46,33 +50,37 @@ class Propiedades(Portal):
             filename=__file__
         )
 
-    def get_leads(self) -> list[dict]:
+    def get_leads(self, mode=Mode.ALL) -> Generator:
         first = True
         page = 1
         end = False
         url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
 
-        leads = []
         while (not end) and (first == True or page != None):
             res = self.request.make(url)
             if res == None:
-                return leads
+                break
             data = res.json()["leads"]
             
             page = data["page"]["next_page"]
             url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
             total = data["page"]["items"]
-            self.logger.debug(f"total: {total}")
+            
+            if first:
+                self.logger.debug(f"total: {total}")
+                first = False
 
-            for lead in data["properties"]:
-                if lead["status"] == Status.CONTACTADO:
-                    self.logger.debug("Se encontro un lead ya conctactado, paramos")
-                    end = True #Cuando encontramos un lead conctado paramos
-                    break
-                leads.append(lead)
-    
-        print(leads)
-        return leads
+            if mode == Mode.NEW: #Si el modo es NEW Buscamos solamente los leads sin leer
+                leads = []
+                for lead in data["properties"]:
+                    if lead["status"] == Status.CONTACTADO:
+                        self.logger.debug("Se encontro un lead ya contactado, paramos")
+                        end = True #Cuando encontramos un lead conctado paramos
+                        break
+                    leads.append(lead)
+                yield leads
+            else: #SI el modo es ALL vamos a traernos todos los leads
+                yield data["properties"]
 
     def get_lead_info(self, raw_lead: dict) -> Lead:
         prop = self.get_lead_property(str(raw_lead["property_id"]))
@@ -85,8 +93,8 @@ class Propiedades(Portal):
             "fecha_lead": datetime.strptime(raw_lead["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
             "id": raw_lead["id"],
             "fecha": strftime(DATE_FORMAT, gmtime()),
-            "nombre": raw_lead["name"],
-            "email": raw_lead["email"],
+            "nombre": raw_lead.get("name", ""),
+            "email": raw_lead.get("email", ""),
             "propiedad": prop,
         })
         telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")

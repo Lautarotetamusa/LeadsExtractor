@@ -1,6 +1,9 @@
 from email.mime.application import MIMEApplication
 import json
+import time
 import os
+from threading import Thread
+from typing import Generator, Iterator
 
 from src.asesor import assign_asesor
 from src.lead import Lead
@@ -10,6 +13,12 @@ from src.message import format_msg
 from src.sheets import Gmail, Sheet
 from src.whatsapp import Whatsapp
 import src.infobip as infobip
+
+from enum import IntEnum
+
+class Mode(IntEnum):
+    NEW = 1
+    ALL = 2
 
 wpp = Whatsapp()
 
@@ -84,8 +93,8 @@ class Portal():
     
     def send_message_condition(self, lead: dict) -> bool:
         return True
-    def get_leads(self) -> list[dict]:
-        return []
+    def get_leads(self, mode: Mode) -> Iterator[list[dict]]:
+        yield []
     def get_lead_info(self, raw_lead: dict) -> Lead:
         return Lead()
     def send_message(self, id: str,  message: str):
@@ -96,53 +105,95 @@ class Portal():
         pass
 
     def main(self):
-        leads = self.get_leads()
+        for page in self.get_leads(Mode.NEW):
+            for lead_res in page:
+                lead = self.get_lead_info(lead_res)
 
-        leads_info = []
-        for lead_res in leads:
-            lead = self.get_lead_info(lead_res)
+                if lead.telefono == None or lead.telefono == "":
+                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
+                    self.make_contacted(lead_res[self.contact_id_field])
+                    continue
 
-            if lead.telefono == None or lead.telefono == "":
-                self.logger.debug("El lead no tiene telefono, no hacemos nada")
+                is_new, lead = assign_asesor(lead)
+                if is_new: #Lead nuevo
+                    bienvenida_2 = format_msg(lead, self.bienvenida_2)
+
+                    wpp.send_image(lead.telefono)
+                    wpp.send_message(lead.telefono, self.bienvenida_1)
+                    wpp.send_message(lead.telefono, bienvenida_2)
+                    wpp.send_video(lead.telefono)
+
+                    portal_msg = self.bienvenida_1 + '\n' + bienvenida_2
+
+                    infobip.create_person(self.logger, lead)
+                else: #Lead existente
+                    portal_msg = format_msg(lead, self.response_msg)
+
+                    wpp.send_response(lead.telefono, lead.asesor)
+                
+                wpp.send_msg_asesor(lead.asesor['phone'], lead)
+
+                #Mensaje del portal
+                if self.send_msg_field in lead_res:
+                    self.send_message(lead_res[self.send_msg_field], portal_msg)
+                lead.message = portal_msg.replace('\n', '')
+
+                if lead.email != None and lead.email != '':
+                    if lead.propiedad["ubicacion"] == "":
+                        lead.propiedad["ubicacion"] = "que consultaste"
+                    else:
+                        lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
+
+                    gmail_msg = format_msg(lead, self.gmail_spin)
+                    subject = format_msg(lead, self.gmail_subject)
+                    self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
+
                 self.make_contacted(lead_res[self.contact_id_field])
-                continue
 
-            is_new, lead = assign_asesor(lead)
-            if is_new: #Lead nuevo
-                bienvenida_2 = format_msg(lead, self.bienvenida_2)
+                row_lead = self.sheet.map_lead(lead.__dict__, self.headers)
+                self.sheet.write([row_lead])
 
-                wpp.send_image(lead.telefono)
-                wpp.send_message(lead.telefono, self.bienvenida_1)
-                wpp.send_message(lead.telefono, bienvenida_2)
-                wpp.send_video(lead.telefono)
+    def first_run(self):
+        from multiprocessing.pool import ThreadPool
+        pool = ThreadPool(processes=20)
 
-                portal_msg = self.bienvenida_1 + '\n' + bienvenida_2
+        for page in self.get_leads(Mode.ALL):
+            row_leads = []
+            leads: list[Lead] = []
+            results = []
+            for lead_res in page:
+                r = pool.apply_async(self.get_lead_info, args=(lead_res, ))
+                time.sleep(0.5)
+                results.append(r)
+        
+            for r in results:
+                lead = r.get()
+                if lead.telefono == None or lead.telefono == "":
+                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
+                    continue
 
-                infobip.create_person(self.logger, lead)
-            else: #Lead existente
-                portal_msg = format_msg(lead, self.response_msg)
+                row_leads.append(self.sheet.map_lead(lead.__dict__, self.headers))
+                leads.append(lead)  
 
-                wpp.send_response(lead.telefono, lead.asesor)
-            
-            wpp.send_msg_asesor(lead.asesor['phone'], lead)
+            results = infobip.add_fecha_lead(self.logger, leads)
+            self.logger.debug(results)
+            if type(results) is bool:
+                self.logger.debug("Ocurrio un error vamos a crear las personas")
+                infobip.create_persons(self.logger, leads)
+            else:
+                new_phones = []
+                for result in results:
+                    if 'errors' in result:
+                        phone = result.get('query', {}).get('identifier')
+                        new_phones.append(phone)
+                        self.logger.debug(f"El lead con telefono no existe: {phone}, cargando")
+                        #infobip.create_persons(self.logger, leads)
+                    else:
+                        self.logger.debug("Todas las personas se actualizaron correctamente")
+                for phone in new_phones:
+                    for lead in leads:
+                        if lead.telefono[1:] == phone:
+                            infobip.create_person(self.logger, lead)
+                            break
 
-            #Mensaje del portal
-            if self.send_msg_field in lead_res:
-                self.send_message(lead_res[self.send_msg_field], portal_msg)
-            lead.message = portal_msg.replace('\n', '')
-
-            if lead.email != None and lead.email != '':
-                if lead.propiedad["ubicacion"] == "":
-                    lead.propiedad["ubicacion"] = "que consultaste"
-                else:
-                    lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
-
-                gmail_msg = format_msg(lead, self.gmail_spin)
-                subject = format_msg(lead, self.gmail_subject)
-                self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
-
-            self.make_contacted(lead_res[self.contact_id_field])
-
-            leads_info.append(lead)
-            row_lead = self.sheet.map_lead(lead.__dict__, self.headers)
-            self.sheet.write([row_lead])
+            self.sheet.write(row_leads, range_sheet="2da-Corrida")

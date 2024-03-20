@@ -4,11 +4,11 @@ import os
 import json
 import requests
 
-from src.portal import Portal
+from src.portal import Mode, Portal
 from src.lead import Lead
 from src.numbers import parse_number 
 
-DATE_FORMAT = "%d/%m/%Y"
+DATE_FORMAT = "%Y-%m-%d"
 SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 PARAMS = {
@@ -66,6 +66,9 @@ def extract_busqueda_info(data: dict | None) -> dict:
 def main():
     inmuebles24 = Inmuebles24()
     inmuebles24.main()
+def first_run():
+    inmuebles24 = Inmuebles24()
+    inmuebles24.first_run()
 
 class Inmuebles24(Portal):
     def __init__(self):
@@ -111,22 +114,23 @@ class Inmuebles24(Portal):
             json.dump(self.request.headers, f, indent=4)
         self.logger.success("Sesion iniciada con exito")
 
-    def get_leads(self):
-        status = "nondiscarded" #Filtramos solamente los leads nuevos
+    def get_leads(self, mode=Mode.NEW):
+        status = "nondiscarded" #Este campo lo pasamos siempre
+        sort = "unread" #Los no leidos estarán primeros
         first = True
         offset = 0
         total = 0
         limit = 20
         finish = False
-        leads = []
 
         while first or (not finish and offset < total):
-            leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort=unread"
+            leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort={sort}"
             self.logger.debug(f"GET {leads_url}")
             PARAMS["url"] = leads_url
             res = self.request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
             if res == None:
                 break
+            offset += limit
 
             data = res.json()
 
@@ -134,15 +138,18 @@ class Inmuebles24(Portal):
                 total = data["paging"]["total"]
                 self.logger.debug(f"Total: {total}")
                 first = False
-
-            for lead in data["result"]:
-                if lead["statuses"][0] == "READ": #Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
-                    self.logger.debug("Se encontro un lead con status READ, deteniendo")
-                    finish = True
-                    break
-                leads.append(lead) 
-
-        return leads
+            
+            if mode == Mode.NEW: #Obtenemos todos los leads sin leer de este pagina
+                leads = []
+                for lead in data["result"]:
+                    if lead["statuses"][0] == "READ": #Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
+                        self.logger.debug("Se encontro un lead con status READ, deteniendo")
+                        finish = True
+                        break
+                    leads.append(lead) 
+                yield leads 
+            else: #Obtenemos todos los leads
+                yield data["result"]
     
     def get_lead_info(self, raw_lead):
         raw_lead_id = raw_lead["id"]
