@@ -15,7 +15,7 @@ if __name__ == "__main__":
     logger = Logger("Update persons")
     sheet = Sheet(logger, "mapping.json")
 
-    json_filter = {"customAttributes": {"asesor_name": None}}
+    json_filter = {"customAttributes": {"asesor_phone": None}}
     filtro = urllib.parse.quote(json.dumps(json_filter))
     persons = infobip.get_all_with_filter(logger, filtro)
     logger.debug(f"Personas sin asesor: {len(persons)}")
