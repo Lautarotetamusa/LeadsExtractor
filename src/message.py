@@ -2,10 +2,7 @@ from src.lead import Lead
 import spintax
 
 def format_msg(lead: Lead, spin_msg: str) -> str:
-    spin = spintax.spin(spin_msg)
-    format = spin.replace("[","{").replace("]","}")
-
-    return format.format(**{
+    return spin_msg.format(**{
         "nombre": lead.nombre,
         "ubicacion": lead.propiedad["ubicacion"],
         "titulo": lead.propiedad["titulo"],
