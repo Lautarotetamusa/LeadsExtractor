@@ -117,10 +117,7 @@ class Portal():
                 is_new, lead = assign_asesor(lead)
                 lead.validate()
                 if is_new: #Lead nuevo
-                    bienvenida_2 = self.bienvenida_2.format(
-                        asesor_name=lead.asesor['name'], 
-                        asesor_phone=lead.asesor['phone']
-                    )
+                    bienvenida_2 = format_msg(lead, self.bienvenida_2)
 
                     wpp.send_image(lead.telefono)
                     wpp.send_message(lead.telefono, self.bienvenida_1)

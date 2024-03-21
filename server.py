@@ -6,12 +6,10 @@ from flask_cors import CORS
 import threading
 import json
 
+from src.server_actions import common_lead_action, new_lead_action
 from src.asesor import assign_asesor, next_asesor
-from src.message import format_msg
 from src.whatsapp import Whatsapp
-import src.infobip as infobip
 from src.logger import Logger
-from src.sheets import Sheet
 from src.lead import Lead
 from src.numbers import parse_number 
 
@@ -19,14 +17,7 @@ app = Flask(__name__)
 CORS(app)
 
 logger = Logger("Server")
-sheet = Sheet(logger, "mapping.json")
 whatsapp = Whatsapp()
-headers = sheet.get("A2:Z2")[0]
-
-with open('messages/bienvenida_1.txt') as f:
-    bienvenida_1 = f.read()
-with open('messages/bienvenida_2.txt') as f:
-    bienvenida_2 = f.read()
 
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
@@ -90,7 +81,7 @@ def recive_ivr_call():
     fecha = strftime("%Y-%m-%d", gmtime())
     lead.set_args({
         "nombre": phone,
-        "fuente": fuente,
+        "fuente": "IVRcall",
         "fecha_lead": fecha,
         "fecha": fecha
     })
@@ -104,18 +95,11 @@ def recive_ivr_call():
     is_new, lead = assign_asesor(lead)
     lead.validate()
     if is_new: #Lead nuevo
-        whatsapp.send_image(lead.telefono)
-        whatsapp.send_message(lead.telefono, bienvenida_1)
-        whatsapp.send_message(lead.telefono, format_msg(lead, bienvenida_2))
-        whatsapp.send_video(lead.telefono)
-
-        infobip.create_person(logger, lead)
+        new_lead_action(lead)
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
 
-    whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
-    row_lead = sheet.map_lead(lead.__dict__, headers)
-    sheet.write([row_lead])
+    common_lead_action(lead)
     return lead.asesor
 
 @app.route('/webhooks', methods=['POST'])
@@ -153,12 +137,7 @@ def recive_wpp_msg():
     is_new, lead = assign_asesor(lead)
     lead.validate()
     if is_new: #Lead nuevo
-        whatsapp.send_image(lead.telefono)
-        whatsapp.send_message(lead.telefono, bienvenida_1)
-        whatsapp.send_message(lead.telefono, format_msg(lead, bienvenida_2))
-        whatsapp.send_video(lead.telefono)
-
-        infobip.create_person(logger, lead)
+        new_lead_action(lead)
         save = True
     else: #Lead existente
         assert lead.fecha_lead != "" and lead.fecha_lead != None, f"El lead {lead.telefono} no tiene fecha de lead"
@@ -177,9 +156,7 @@ def recive_wpp_msg():
             save = True
 
     if save:
-        whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
-        row_lead = sheet.map_lead(lead.__dict__, headers)
-        sheet.write([row_lead])
+        common_lead_action(lead)
     return lead.asesor
 
 @app.route('/.well-known/pki-validation/<path:path>')
