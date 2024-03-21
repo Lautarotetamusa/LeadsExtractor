@@ -6,6 +6,11 @@ RUN set -x \
     && apk add --no-cache supercronic shadow
 RUN apk add chromium chromium-chromedriver xvfb
 
+#Poner el timezone correcto
+ENV TZ="America/Mexico_City"
+RUN date
+RUN cp /usr/share/zoneinfo/$TZ etc/localtime
+
 WORKDIR app
 
 COPY requirements.txt src/
