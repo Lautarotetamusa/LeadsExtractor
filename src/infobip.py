@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+from typing import Iterator
 import requests
 from dotenv import load_dotenv
 import os
@@ -17,52 +18,26 @@ HEADERS = {
     'Authorization': API_KEY
 }
 
-def get_all_with_filter(logger: Logger, filter: str) -> list[dict]:
-    logger.debug("Buscando personas")
-
-    page = 1
-    persons = []
-
-    while True:
-        url = f"{API_URL}?filter={filter}&page={page}" 
-        logger.debug("GET "+url)
-        res = requests.get(f"{API_URL}?filter={filter}&page={page}", headers=HEADERS)
-        if not res.ok:
-            logger.error("Error en la request: " + str(res.status_code))
-            logger.error(res.json())
-        else: 
-            data = res.json()
-            if len(data.get('persons', [])) == 0:
-                logger.debug("Se encontro un pagina vacia, terminando")
-                break
-            persons += data.get('persons', [])
-        page += 1
-
-    return persons
-
-def get_all_person(logger: Logger) -> list[dict]:
-    logger.debug("Buscando personas")
-
-    page = 1
-    persons = []
-
-    while True:
-        logger.debug(f"GET {API_URL}?page={page}")
-        res = requests.get(API_URL, params={"page": page}, headers=HEADERS)
-        if not res.ok:
-            logger.error("Error en la request: " + str(res.status_code))
-            logger.error(res.json())
-        else: 
-            data = res.json()
-            if len(data.get('persons', [])) == 0:
-                logger.debug("Se encontro un pagina vacia, terminando")
-                break
-            persons += data.get('persons', [])
-        page += 1
-
-    return persons
-
 #@filter -> url encoder filter
+def get_persons(logger: Logger, filter: str | None) -> Iterator[list[dict]]:
+    logger.debug("Buscando personas")
+
+    page = 1
+    while True:
+        url = f"{API_URL}?filter={filter}&page={page}" if filter != None else f"{API_URL}?page={page}" 
+        logger.debug("GET "+url)
+        res = requests.get(url, headers=HEADERS)
+        if not res.ok:
+            logger.error("Error en la request: " + str(res.status_code))
+            logger.error(res.json())
+        else: 
+            data = res.json()
+            if len(data.get('persons', [])) == 0:
+                logger.debug("Se encontro un pagina vacia, terminando")
+                break
+            yield data.get('persons', [])
+        page += 1
+
 def search_person(logger: Logger, phone: str) -> None | Lead:
     res = requests.get(f"{API_URL}?type=PHONE&identifier={phone}", headers=HEADERS)
     try:
@@ -78,8 +53,12 @@ def search_person(logger: Logger, phone: str) -> None | Lead:
     
     if person.get("errorCode", None) != None:
         return None
+    
+    return infobip2lead(person)
 
+def infobip2lead(person: dict) -> Lead:
     lead = Lead()
+    attrs = person.get('customAttributes', {})
     attrs = person.get('customAttributes', {})
     lead.set_asesor({
         'name': attrs.get('asesor_name', None),
@@ -196,49 +175,3 @@ def create_person(logger: Logger, lead: Lead):
 
     logger.success("Lead cargada correctamente")
     return True
-
-#Si valid_number es True, no se parseara el numero para no generar problemas
-def create_persons(logger: Logger, leads: list[Lead]):
-    persons = []
-    for lead in leads:
-        person = {
-            "firstName": lead.nombre,
-            "lastName": "",
-            "type": "LEAD", #Para que los leads entren en el flow
-            "customAttributes": {
-                "prop_link": lead.propiedad['link'],
-                "prop_precio": str(lead.propiedad['precio']),
-                "prop_ubicacion": lead.propiedad['ubicacion'],
-                "prop_titulo": lead.propiedad['titulo'],
-                "contacted": False,
-                "fuente": lead.fuente,
-                "asesor_name": lead.asesor['name'],
-                "asesor_phone": lead.asesor['phone'],
-                "fecha_lead": lead.fecha_lead
-            },
-            "contactInformation": {},
-            "tags": "Seguimientos"
-        }
-        if lead.telefono != '':
-            person["contactInformation"]['phone']= [{
-                "number": lead.telefono
-            }]
-        if lead.email != '':
-            person["contactInformation"]['email'] = [{
-                "address": lead.email
-            }]
-        persons.append(person)
-    payload = {'people': persons}
-
-    try:
-        res = requests.post(API_URL+'/batch', json=payload, headers=HEADERS)
-        if not res.ok:
-            logger.error("Error en la request: " + str(res.status_code))
-            logger.error(res.json())
-            logger.error(payload)
-            return
-    except Exception as e:
-        logger.error("Error cargando lead"+str(e))
-        return False
-
-    return res.json()['results']
