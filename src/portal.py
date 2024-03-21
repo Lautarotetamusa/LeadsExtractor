@@ -117,7 +117,10 @@ class Portal():
                 is_new, lead = assign_asesor(lead)
                 lead.validate()
                 if is_new: #Lead nuevo
-                    bienvenida_2 = format_msg(lead, self.bienvenida_2)
+                    bienvenida_2 = self.bienvenida_2.format(
+                        asesor_name=lead.asesor['name'], 
+                        asesor_phone=lead.asesor['phone']
+                    )
 
                     wpp.send_image(lead.telefono)
                     wpp.send_message(lead.telefono, self.bienvenida_1)
@@ -180,7 +183,7 @@ class Portal():
             self.logger.debug(results)
             if type(results) is bool:
                 self.logger.debug("Ocurrio un error vamos a crear las personas")
-                infobip.create_persons(self.logger, leads)
+                #TODO: Crear todas las personas
             else:
                 new_phones = []
                 for result in results:

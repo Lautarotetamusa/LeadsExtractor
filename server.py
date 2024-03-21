@@ -7,8 +7,9 @@ import threading
 import json
 
 from src.asesor import assign_asesor, next_asesor
-import src.infobip as infobip
+from src.message import format_msg
 from src.whatsapp import Whatsapp
+import src.infobip as infobip
 from src.logger import Logger
 from src.sheets import Sheet
 from src.lead import Lead
@@ -105,10 +106,7 @@ def recive_ivr_call():
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)
         whatsapp.send_message(lead.telefono, bienvenida_1)
-        whatsapp.send_message(lead.telefono, bienvenida_2.format(
-            asesor_name=lead.asesor['name'], 
-            asesor_phone=lead.asesor['phone'])
-        )
+        whatsapp.send_message(lead.telefono, format_msg(lead, bienvenida_2))
         whatsapp.send_video(lead.telefono)
 
         infobip.create_person(logger, lead)
@@ -157,10 +155,7 @@ def recive_wpp_msg():
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)
         whatsapp.send_message(lead.telefono, bienvenida_1)
-        whatsapp.send_message(lead.telefono, bienvenida_2.format(
-            asesor_name=lead.asesor['name'], 
-            asesor_phone=lead.asesor['phone'])
-        )
+        whatsapp.send_message(lead.telefono, format_msg(lead, bienvenida_2))
         whatsapp.send_video(lead.telefono)
 
         infobip.create_person(logger, lead)
