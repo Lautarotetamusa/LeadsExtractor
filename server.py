@@ -1,3 +1,5 @@
+from datetime import date, datetime
+from dateutil.relativedelta import relativedelta
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from time import gmtime, strftime
 from flask_cors import CORS
@@ -148,6 +150,7 @@ def recive_wpp_msg():
     lead.telefono = parse_number(logger, '+'+lead.telefono) or lead.telefono
     lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
 
+    save = False
     is_new, lead = assign_asesor(lead)
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)
@@ -159,15 +162,27 @@ def recive_wpp_msg():
         whatsapp.send_video(lead.telefono)
 
         infobip.create_person(logger, lead)
+        save = True
     else: #Lead existente
-        if msg_type == "request_welcome":
-            logger.debug("Nuevo request_welcome en lead ya asignado, lo salteamos")
+        assert lead.fecha_lead != "" and lead.fecha_lead != None, f"El lead {lead.telefono} no tiene fecha de lead"
+
+        months=3
+        treshold = datetime.now().date() - relativedelta(month=months)
+        fecha_lead = datetime.strptime(lead.fecha_lead, "%Y-%m-%d").date()
+        if fecha_lead <= treshold: #Loss leads mas viejos que 3 meses
+            if msg_type == "request_welcome":
+                logger.debug("Nuevo request_welcome en lead ya asignado hace mas de 3 meses, lo salteamos")
+            else:
+                whatsapp.send_response(lead.telefono, lead.asesor)
+                save = True
         else:
             whatsapp.send_response(lead.telefono, lead.asesor)
-    
-    whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
-    row_lead = sheet.map_lead(lead.__dict__, headers)
-    sheet.write([row_lead])
+            save = True
+
+    if save:
+        whatsapp.send_msg_asesor(lead.asesor['phone'], lead)
+        row_lead = sheet.map_lead(lead.__dict__, headers)
+        sheet.write([row_lead])
     return lead.asesor
 
 @app.route('/.well-known/pki-validation/<path:path>')

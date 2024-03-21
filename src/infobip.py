@@ -80,13 +80,15 @@ def search_person(logger: Logger, phone: str) -> None | Lead:
         return None
 
     lead = Lead()
+    attrs = person.get('customAttributes', {})
     lead.set_asesor({
-        'name': person.get('customAttributes', {}).get('asesor_name', None),
-        'phone': person.get('customAttributes', {}).get('asesor_phone', None)
+        'name': attrs.get('asesor_name', None),
+        'phone': attrs.get('asesor_phone', None)
     })
     lead.set_args({
         'nombre': person.get('firstName', '') + ' ' + person.get('lastName', ''),
         'telefono': person.get('contactInformation', {}).get('phone', [{}])[0].get('number', None),
+        'fecha_lead': attrs.get('fecha_lead', None),
         'estado': 'Duplicado'
     })
     return lead
