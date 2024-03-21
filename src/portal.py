@@ -115,6 +115,7 @@ class Portal():
                     continue
 
                 is_new, lead = assign_asesor(lead)
+                lead.validate()
                 if is_new: #Lead nuevo
                     bienvenida_2 = format_msg(lead, self.bienvenida_2)
 

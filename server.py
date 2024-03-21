@@ -86,7 +86,7 @@ def recive_ivr_call():
     logger.debug("msidsn: "+str(phone))
 
     lead = Lead()
-    fecha = strftime("%d/%m/%Y", gmtime())
+    fecha = strftime("%Y-%m-%d", gmtime())
     lead.set_args({
         "nombre": phone,
         "fuente": fuente,
@@ -101,6 +101,7 @@ def recive_ivr_call():
     lead.telefono = telefono or lead.telefono
 
     is_new, lead = assign_asesor(lead)
+    lead.validate()
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)
         whatsapp.send_message(lead.telefono, bienvenida_1)
@@ -139,7 +140,7 @@ def recive_wpp_msg():
     msg_type = value.get('messages', [{}])[0].get('type', None)
 
     lead = Lead()
-    fecha = strftime("%d/%m/%Y", gmtime())
+    fecha = strftime("%Y-%m-%d", gmtime())
     lead.set_args({
         "telefono": value['contacts'][0]['wa_id'],
         "nombre": value['contacts'][0]['profile']['name'],
@@ -152,6 +153,7 @@ def recive_wpp_msg():
 
     save = False
     is_new, lead = assign_asesor(lead)
+    lead.validate()
     if is_new: #Lead nuevo
         whatsapp.send_image(lead.telefono)
         whatsapp.send_message(lead.telefono, bienvenida_1)
