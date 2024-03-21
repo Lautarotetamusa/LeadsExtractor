@@ -1,5 +1,6 @@
 import json
 import time
+import os
 from time import gmtime, strftime
 from datetime import datetime
 from typing import Iterator
@@ -14,7 +15,9 @@ from src.numbers import parse_number
 from src.portal import Mode, Portal
 from src.lead import Lead
 
-DATE_FORMAT = "%Y-%m-%d"
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
+
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
 CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
 

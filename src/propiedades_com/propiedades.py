@@ -1,6 +1,7 @@
 from time import gmtime, strftime
 from datetime import datetime
 import json
+import os
 from enum import IntEnum
 from typing import Generator
 from selenium import webdriver
@@ -19,7 +20,8 @@ from src.lead import Lead
 with open("src/propiedades_com/properties.json") as f:
     PROPS = json.load(f)
 
-DATE_FORMAT = "%Y-%m-%d"
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 
 #Lista de estados posibles de un lead
@@ -90,7 +92,7 @@ class Propiedades(Portal):
         lead = Lead()
         lead.set_args({
             "fuente": self.name,
-            "fecha_lead": datetime.strptime(raw_lead["updated_at"], '%Y-%m-%d').strftime(DATE_FORMAT),
+            "fecha_lead": datetime.strptime(raw_lead["updated_at"], DATE_FORMAT).strftime(DATE_FORMAT),
             "id": raw_lead["id"],
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre": raw_lead.get("name", ""),

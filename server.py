@@ -1,10 +1,11 @@
-from datetime import date, datetime
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from time import gmtime, strftime
 from flask_cors import CORS
 import threading
 import json
+import os
 
 from src.server_actions import common_lead_action, new_lead_action
 from src.asesor import assign_asesor, next_asesor
@@ -18,6 +19,9 @@ CORS(app)
 
 logger = Logger("Server")
 whatsapp = Whatsapp()
+
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
@@ -78,7 +82,7 @@ def recive_ivr_call():
     logger.debug("msidsn: "+str(phone))
 
     lead = Lead()
-    fecha = strftime("%Y-%m-%d", gmtime())
+    fecha = strftime(DATE_FORMAT, gmtime())
     lead.set_args({
         "nombre": phone,
         "fuente": "IVRcall",
@@ -122,7 +126,7 @@ def recive_wpp_msg():
     msg_type = value.get('messages', [{}])[0].get('type', None)
 
     lead = Lead()
-    fecha = strftime("%Y-%m-%d", gmtime())
+    fecha = strftime(DATE_FORMAT, gmtime())
     lead.set_args({
         "telefono": value['contacts'][0]['wa_id'],
         "nombre": value['contacts'][0]['profile']['name'],

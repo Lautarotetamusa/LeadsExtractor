@@ -13,7 +13,10 @@ from src.message import generate_post_message
 PROPS_URL = "https://propiedades.com/properties/filtrar"
 URL_SEND  = "https://propiedades.com/messages/send"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
-DATE_FORMAT = "%d/%m/%Y"
+
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
+
 SENDER = {
     "email": os.getenv("SENDER_EMAIL"),
     "name":  os.getenv("SENDER_NAME"),

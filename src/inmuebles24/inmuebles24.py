@@ -8,7 +8,8 @@ from src.portal import Mode, Portal
 from src.lead import Lead
 from src.numbers import parse_number 
 
-DATE_FORMAT = "%Y-%m-%d"
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 PARAMS = {

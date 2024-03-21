@@ -1,6 +1,7 @@
 from time import gmtime, strftime
 from datetime import datetime
 import json
+import os
 from typing import Iterator
 import uuid
 
@@ -11,7 +12,8 @@ from src.portal import Mode, Portal
 from src.lead import Lead
 
 API_URL = "https://api.proppit.com"
-DATE_FORMAT = "%Y-%m-%d"
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 
 def main():
     lamudi = Lamudi()
@@ -124,7 +126,7 @@ class Lamudi(Portal):
         lead.set_args({
             "id": raw_lead["id"],
             "fuente": self.name,
-            "fecha": strftime('%d/%m/%Y', gmtime()),
+            "fecha": strftime(DATE_FORMAT, gmtime()),
             "fecha_lead": datetime.strptime(raw_lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
             "nombre": raw_lead["name"],
             "link": f"https://proppit.com/leads/{raw_lead['id']}",
