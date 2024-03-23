@@ -99,7 +99,7 @@ def recive_ivr_call():
     is_new, lead = assign_asesor(lead)
     lead.validate()
     if is_new: #Lead nuevo
-        new_lead_action(lead)
+        new_lead_action(logger, lead)
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
 
@@ -141,7 +141,7 @@ def recive_wpp_msg():
     is_new, lead = assign_asesor(lead)
     lead.validate()
     if is_new: #Lead nuevo
-        new_lead_action(lead)
+        new_lead_action(logger, lead)
         save = True
     else: #Lead existente
         assert lead.fecha_lead != "" and lead.fecha_lead != None, f"El lead {lead.telefono} no tiene fecha de lead"
@@ -149,8 +149,8 @@ def recive_wpp_msg():
         months=3
         treshold = datetime.now().date() - relativedelta(month=months)
         fecha_lead = datetime.strptime(lead.fecha_lead, "%Y-%m-%d").date()
-        if fecha_lead <= treshold: #Loss leads mas viejos que 3 meses
-            if msg_type == "request_welcome":
+        if fecha_lead <= treshold: #Los leads mas viejos que 3 meses
+            if msg_type == "request_welcome": #El lead abrio la conversacion
                 logger.debug("Nuevo request_welcome en lead ya asignado hace mas de 3 meses, lo salteamos")
             else:
                 whatsapp.send_response(lead.telefono, lead.asesor)
