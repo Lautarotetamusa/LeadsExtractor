@@ -88,6 +88,54 @@ def update_person(logger: Logger, id: int, payload: dict):
     logger.success(f"Persona {id} actualizada correctamente")
     return True
 
+def update_persons(logger: Logger, leads: list[Lead]):
+    phones = []
+    persons = []
+    for lead in leads:
+        assert lead.fecha_lead != None and lead.fecha_lead != "", f"El lead {lead.telefono} no tiene fecha_lead"
+        #Si intentamos actualizar una persona dos veces en el mismo payload dice que no existe el numero aunque si exista
+        #De este modo eliminamos duplicados y solucionamos el problema
+        if lead.telefono in phones: #ERROR muy raro de infobip
+            continue
+
+        person = {
+            "query": {
+                "identifier": lead.telefono.replace('+', ''), #Sacamos el +
+                "type": "PHONE"
+            },
+            "update": {
+                "customAttributes": {
+                    "prop_precio": str(lead.propiedad['precio']),
+                    "prop_ubicacion": lead.propiedad['ubicacion'],
+                    "prop_titulo": lead.propiedad['titulo'],
+                    "contacted": False,
+                    "fuente": lead.fuente,
+                    "asesor_name": lead.asesor['name'],
+                    "asesor_phone": lead.asesor['phone'],
+                    "fecha_lead": lead.fecha_lead
+                }
+            }
+        }        
+        persons.append(person)
+        phones.append(lead.telefono)
+    payload = {'people': persons}
+
+    try:
+        res = requests.patch(API_URL+'/batch', json=payload, headers=HEADERS)
+        if not res.ok:
+            logger.error("Error en la request: " + str(res.status_code))
+            logger.error(res.json())
+            return False
+    except Exception as e:
+        logger.error("Error cargando lead"+str(e))
+        return False
+
+    #Cuando sale todo bien devuelve null
+    if res.json() == None:
+        return []
+    
+    return res.json()['results']
+
 def add_fecha_lead(logger: Logger, leads: list[Lead]) -> bool | list[dict]:
     persons = []
     phones = []
