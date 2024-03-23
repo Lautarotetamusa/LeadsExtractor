@@ -50,8 +50,8 @@ class Lead():
         assert self.telefono != None and self.telefono != '', "El lead no tiene telefono"
         assert self.fuente != None and self.fuente != '', f"El lead {self.telefono} no tiene fuente"
         assert self.fecha_lead != None and self.fecha_lead != '', f"El lead {self.telefono} no tiene fecha_lead"
-        assert self.asesor['name'] != None and self.asesor['name'] != '', f"El lead {self.telefono} no tiene lead asignado"
-        assert self.asesor['phone'] != None and self.asesor['phone'] != '', f"El lead {self.telefono} no tiene lead asignado"
+        assert self.asesor['name'] != None and self.asesor['name'] != '', f"El lead {self.telefono} no tiene asesor asignado"
+        assert self.asesor['phone'] != None and self.asesor['phone'] != '', f"El lead {self.telefono} no tiene asesor asignado"
 
     #No funciona recursivamente, si por ejemplo asesor solo tiene nombre devolverá el asesor con nombre y el telefono vacio.
     def get_no_empty_values(self) -> dict[str, str]:
