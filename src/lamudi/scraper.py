@@ -124,7 +124,7 @@ def main(url: str, spin_msg: str):
         total += len(ads)
         for ad in ads:
             msg = generate_post_message(ad, spin_msg)
-            ad["message"] = msg
+            ad["message"] = msg.replace('\n', '')
             logger.debug(msg)
             send_message(ad["id"], msg)
             ad["phone"] = view_phone(ad["url"])

@@ -192,7 +192,7 @@ def main(url: str, spin_msg: str):
         row_ads = []
         for ad in posts:
             msg = generate_post_message(ad, spin_msg)
-            ad["message"] = msg
+            ad["message"] = msg.replace('\n', '')
             #Guardamos los leads como filas para el sheets
             row_ad = sheet.map_lead(ad, sheets_headers)
             row_ads.append(row_ad)

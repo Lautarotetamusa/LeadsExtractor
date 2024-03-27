@@ -182,7 +182,7 @@ def get_postings(filters: dict, spin_msg: str):
         total += len(posts)
         for post in posts:
             msg = generate_post_message(post, spin_msg)
-            post["message"] = msg
+            post["message"] = msg.replace('\n', '')
             #La funciona get_publisher envia el mensaje si se lo pasamos
             publisher = get_publisher(post, msg)
 

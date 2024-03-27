@@ -1,3 +1,4 @@
+import json
 import os
 from time import gmtime, strftime
 
@@ -8,7 +9,7 @@ from src.message import generate_post_message
 
 SITE = "https://www.casasyterrenos.com"
 URL_SEND = f"{SITE}/api/amp/register"
-URL_INFO = "https://www.casasyterrenos.com/_next/data/9A9l_hFzRC-L7dViWP5UL/propiedad/{property_id}.json?id={property_id}"
+URL_INFO = "https://www.casasyterrenos.com/_next/data/7b7AOhXs2MXfNPVCJedJS/es{canonical}.json"
 URL_PROPS = f"{SITE}/api/search/"
 URL_SESSION = f"{SITE}/api/amp/auth"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
@@ -39,6 +40,7 @@ def extract_posts(data: list[dict]):
         posts.append({
             "fuente": "CASASYTERRENOS",
             "id": post.get("id", ""),
+            "canonical": post.get("canonical", ""),
             "title": post.get("name", ""),
             "extraction_date": strftime(DATE_FORMAT, gmtime()),
             "message_date": strftime(DATE_FORMAT, gmtime()),
@@ -66,22 +68,37 @@ def extract_posts(data: list[dict]):
         })
     return posts
 
-def get_publisher_info(property_id):
-    logger.debug(f"Obteniendo informacion de la propiedad {property_id}")
-    url = URL_INFO.format(property_id=property_id)
+def get_publisher_info(canonical):
+    logger.debug(f"Obteniendo informacion de la propiedad {canonical}")
+    url = URL_INFO.format(canonical=canonical)
     
     res = request.make(url, "GET")
-    data = res.json().get("pageProps", {}).get("property", {}).get("seller")
-    if not data:
+    if res == None:
         return None
-    publisher = {
-        "name": data.get("first_name", "") + data.get("last_name", ""),
-        "id": data.get("client", ""),
-        "whatsapp": data.get("whatsapp", ""),
-        "phone": data.get("phone_number", ""),
-        "email": data.get("email", ""),
-        "cellPhone": data.get("cel", "") 
-    }
+
+    data = res.json().get("pageProps", {}).get("property", {}).get("seller")
+    if data:
+        publisher = {
+            "name": data.get("first_name", "") + data.get("last_name", ""),
+            "id": data.get("client", ""),
+            "whatsapp": data.get("whatsapp", ""),
+            "phone": data.get("phone_number", ""),
+            "email": data.get("email", ""),
+            "cellPhone": data.get("cel", "") 
+        }
+    else:
+        data = res.json().get("pageProps", {}).get("development", None)
+        if not data:
+            return None
+        publisher = {
+            "name": data.get("agencyName", ""),
+            "id": data.get("id", ""),
+            "whatsapp": data.get("contactData", {}).get("whatsApp", ""),
+            "phone": data.get("contactData", {}).get("tel", ""),
+            "email": data.get("contactData", {}).get("email", ""),
+            "cellPhone": data.get("cel", "") 
+        }
+
     print(publisher)
     return publisher
 
@@ -161,14 +178,14 @@ def main(filters: dict, spin_msg: str):
 
         row_ads = []
         for ad in posts:
-            publisher = get_publisher_info(ad["id"])
+            publisher = get_publisher_info(ad["canonical"])
             if publisher == None:
                 logger.error(f"Ocurrio un error encontrando la informacion de la propiedad {ad['id']}")
             else:
                 ad["publisher"] = publisher
             msg = generate_post_message(ad, spin_msg)
             send_message(ad["id"], ad["publisher"]["id"], session_id, msg)
-            ad["message"] = msg
+            ad["message"] = msg.replace('\n', '')
             #Guardamos los leads como filas para el sheets
             row_ad = sheet.map_lead(ad, sheets_headers)
             row_ads.append(row_ad)
