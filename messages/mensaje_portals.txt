@@ -1,8 +1,0 @@
-Hola que tal {nombre} ¿cómo estás?, muy buenas tardes ¡Bienvenido a Rebora!
-    Somos una empresa especializada en la venta de residencias 100% personalizadas con un
-    diseño único, moderno y con enorme calidad en cada material.
-    La propiedad {titulo} ubicada en {ubicacion} si está disponible, te comparto el whatsapp de {asesor_name} tu asesor asignado, con mucho gusto te comparte la información  –-> {asesor_phone}
-    Beneficios de una Casa Rebora:
-    - SEGURIDAD, CONFORT Y PLACER en cada espacio de TÚ casa
-    - Casas 100% inteligentes y 100% personalizadas
-    - Plusvalía del 20 - 25% desde el primer año.

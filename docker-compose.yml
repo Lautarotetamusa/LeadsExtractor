@@ -1,10 +1,39 @@
 version: "3.7"
 services:
+  db:
+    image: mariadb:10.9.4
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - MARIADB_ROOT_PASSWORD=$DB_PASS
+      - MYSQL_PASSWORD=$DB_PASS
+    ports:
+      - $DB_PORT:$DB_PORT
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
+      - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
+    command: mysqld --sql-mode="" #Si no se pone esta opcion al al intentar cargar los property_id que son un UUID los toma con un numero
+
   app:
-    build: .
-    container_name: leads_extractor
+    depends_on:
+      - api
+    build: ./app/
     env_file:
       - .env
     ports:
       - "80:80"
+    network_mode: "host"
+
+  api:
+    depends_on:
+      db:
+        condition: service_started
+    build: 
+      context: ./
+      dockerfile: ./api/Dockerfile
+    env_file: ./.env
+    environment:
+      - HOST=localhost
+    ports:
+      - $API_PORT:$API_PORT
     network_mode: "host"

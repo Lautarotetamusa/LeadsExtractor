@@ -5,6 +5,7 @@ session/
 token*.json
 credentials.json
 credentials_prod.json
+propiedades_com
 
 #Headers y cookies
 params.json
@@ -18,3 +19,8 @@ sended.json
 asesor_i.txt
 
 certs/*
+certs/
+mysql/
+
+#go API
+api/main
