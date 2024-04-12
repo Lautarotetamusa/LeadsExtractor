@@ -1,0 +1,19 @@
+{
+    "Fuente": "fuente",
+    "Fecha mensaje": "message_date",
+    "Fecha extraccion": "extraction_date",
+    "Titulo": "title",
+    "Url": "url",
+    "Id": "id",
+    "Precio": "price",
+    "Ubicacion": "location.full",
+    "Habitaciones": "bedrooms",
+    "Baños": "bathrooms",
+    "Metros cuadrados": "building_size",
+    "Nombre contacto": "publisher.name",
+    "Id contacto": "publisher.id",
+    "Telefono contacto": "publisher.phone",
+    "Celular contacto": "publisher.cellPhone",
+    "Whatsapp contacto": "publisher.whatsapp",
+    "Mensaje": "message"
+}

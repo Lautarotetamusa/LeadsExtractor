@@ -1,0 +1,1 @@
+Tu lead asignado: {nombre}, con telefono {telefono} se ha vuelto a comunicar. Por favor comunicate lo antes posible
