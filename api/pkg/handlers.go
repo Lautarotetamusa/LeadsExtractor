@@ -14,14 +14,10 @@ import (
 )
 
 func (s *Server) HandleCors(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Access-Control-Allow-Origin", "*") // Permitir solicitudes desde cualquier origen
-    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE") // Permitir los métodos GET, POST, PUT y DELETE
-    w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") // Permitir los encabezados Content-Type y Authorization
-
-    if r.Method == "OPTIONS" {
-        w.WriteHeader(http.StatusNoContent)
-        return 
-    }
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request) error{

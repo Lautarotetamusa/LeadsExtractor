@@ -44,7 +44,7 @@ func (s *Server) Run(){
 
     router := mux.NewRouter()
 
-    router.Use(enableCORS)
+    //router.Use(enableCORS)
 
     router.HandleFunc("/asesor", handleErrors(asesorHandler.GetAll)).Methods("GET")
     router.HandleFunc("/asesor/{phone}", handleErrors(asesorHandler.GetOne)).Methods("GET")
@@ -76,10 +76,10 @@ func (s *Server) Run(){
 
 func enableCORS(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        //w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept")
-        next.ServeHTTP(w, r)
+        w.Header().Set("Access-Control-Allow-Origin", "*")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        w.Header().Set("Access-Control-Allow-Credentials", "true")
     })
 }
 func handleErrors(fn HandlerErrorFn) (HandlerFn) {
