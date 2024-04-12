@@ -182,7 +182,7 @@ func insertOrGetProperty(db *sqlx.DB, c models.Communication) (*models.Property,
     if err == sql.ErrNoRows {
         fmt.Println("No se encontro Property")
 
-        query := "INSERT INTO Property (portal_id, title, url, price, ubication, portal) VALUES (:portal_id, :title, :url, :price, :ubication, :tipo, :portal)"
+        query := "INSERT INTO Property (portal_id, title, url, price, ubication, tipo, portal) VALUES (:portal_id, :title, :url, :price, :ubication, :tipo, :portal)"
         property = models.Property{
             PortalId: c.Propiedad.ID,
             Title: c.Propiedad.Titulo,
