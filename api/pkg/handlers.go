@@ -9,16 +9,10 @@ import (
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"net/http"
+	"slices"
 
 	"github.com/jmoiron/sqlx"
 )
-
-func (s *Server) HandleCors(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Access-Control-Allow-Origin", "*")
-    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-    w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-    w.Header().Set("Access-Control-Allow-Credentials", "true")
-}
 
 func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request) error{
     query := `
@@ -155,14 +149,17 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
 
 func getSource(db *sqlx.DB, c models.Communication) (*models.Source, error){
     source := models.Source{}
+    validSources := []string{"whatsapp", "ivr", "inmuebles24", "lamudi", "casasyterrenos", "propiedades"}
+    if !slices.Contains(validSources, c.Fuente){
+        return nil, fmt.Errorf("La fuente %s es incorrecta, debe ser (whatsapp, ivr, inmuebles24, lamudi, casasyterrenos, propiedades)", c.Fuente)
+    }
+
     if c.Fuente == "whatsapp" || c.Fuente == "ivr"{
         err := db.Get(&source, "SELECT * FROM Source WHERE type LIKE ?", c.Fuente) 
         if err != nil{
             return nil, fmt.Errorf("Source: %s no existe", c.Fuente)
         }
         return &source, nil
-    }else if c.Fuente != "property"{
-        return nil, fmt.Errorf("La fuente %s es incorrecta, debe ser (whatsapp, ivr, property)", c.Fuente)
     }
 
     property, err := insertOrGetProperty(db, c)

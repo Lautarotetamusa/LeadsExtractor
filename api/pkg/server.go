@@ -44,7 +44,7 @@ func (s *Server) Run(){
 
     router := mux.NewRouter()
 
-    //router.Use(enableCORS)
+    router.Use(CORS)
 
     router.HandleFunc("/asesor", handleErrors(asesorHandler.GetAll)).Methods("GET")
     router.HandleFunc("/asesor/{phone}", handleErrors(asesorHandler.GetOne)).Methods("GET")
@@ -56,30 +56,30 @@ func (s *Server) Run(){
     router.HandleFunc("/lead", handleErrors(leadHandler.Insert)).Methods("POST")
     router.HandleFunc("/lead/{phone}", handleErrors(leadHandler.Update)).Methods("PUT")
 
-    //router.HandleFunc("/communication", s.HandleCors).Methods("OPTIONS")
     router.HandleFunc("/communication", handleErrors(s.HandleNewCommunication)).Methods("POST")
-    router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET")
-    router.HandleFunc("/communication", s.HandleCors).Methods("OPTIONS")
+    router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET", "OPTIONS")
 
-    server := http.Server{
-        Addr: s.listenAddr,
-        Handler: router,
-    };
-
-    fmt.Println("Server started at %s", server.Addr)
-    err := server.ListenAndServe()
+    fmt.Println("Server started at %s",s.listenAddr)
+    err := http.ListenAndServe(s.listenAddr, router)
     if err != nil {
         log.Fatal("No se pudo iniciar el server\n", err)
     }
-    fmt.Println("Server started at %s", server.Addr)
+    fmt.Println("Server started at %s", s.listenAddr)
 }
 
-func enableCORS(next http.Handler) http.Handler {
+func CORS(next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE")
-        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-        w.Header().Set("Access-Control-Allow-Credentials", "true")
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "*")
+
+        if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+		return
     })
 }
 func handleErrors(fn HandlerErrorFn) (HandlerFn) {
