@@ -14,7 +14,7 @@ services:
       - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
     command: mysqld --sql-mode="" #Si no se pone esta opcion al al intentar cargar los property_id que son un UUID los toma con un numero+    
     healthcheck:
-      test: ["CMD", 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-p$$DB_PASS' ]
+      test: ["CMD", 'mysqladmin', 'ping', '-h', 'localhost', '-u', '$$DB_USER', '-p$$DB_PASS' ]
       timeout: 20s
       retries: 10
 
