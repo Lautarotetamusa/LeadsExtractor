@@ -1,6 +1,6 @@
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from flask import Flask, request, jsonify, render_template 
+from flask import Flask, request, jsonify
 from time import gmtime, strftime
 from flask_cors import CORS
 import threading
@@ -28,10 +28,6 @@ from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
 from src.propiedades_com.scraper import main as propiedades_scraper
 from src.casasyterrenos.scraper import main as casasyterrenos_scraper
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/webhooks', methods=['GET'])
 def webhooks_validate():

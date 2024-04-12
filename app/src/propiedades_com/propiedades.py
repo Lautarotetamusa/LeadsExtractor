@@ -43,7 +43,7 @@ def first_run():
 class Propiedades(Portal):
     def __init__(self):
         super().__init__(
-            name = "Propiedades",
+            name="propiedades",
             contact_id_field="id",
             send_msg_field="",
             username_env="PROPIEDADES_USERNAME",

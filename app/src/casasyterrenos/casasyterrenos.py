@@ -31,7 +31,7 @@ def first_run():
 class CasasYTerrenos(Portal):
     def __init__(self):
         super().__init__(
-            name = "Casas y terrenos",
+            name="casasyterrenos",
             contact_id_field = "id",
             send_msg_field = "",
             username_env = "CASASYTERRENOS_USERNAME",
