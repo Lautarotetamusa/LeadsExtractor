@@ -5,7 +5,6 @@ session/
 token*.json
 credentials.json
 credentials_prod.json
-propiedades_com
 
 #Headers y cookies
 params.json
