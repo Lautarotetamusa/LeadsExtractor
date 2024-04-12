@@ -32,8 +32,6 @@ services:
       context: ./
       dockerfile: ./api/Dockerfile
     env_file: ./.env
-    environment:
-      - HOST=localhost
     ports:
       - $API_PORT:$API_PORT
     network_mode: "host"
