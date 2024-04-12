@@ -35,7 +35,6 @@ def index():
 
 @app.route('/webhooks', methods=['GET'])
 def webhooks_validate():
-    print(request.args)
     #hub_mode = request.args.get('hub.mode')
     hub_challenge = request.args.get('hub.challenge')
     #hub_verify_token = request.args.get('hub.verify_token')
@@ -87,7 +86,6 @@ def recive_ivr_call():
 def recive_wpp_msg():
     data = request.get_json()
     value = data['entry'][0]['changes'][0]['value']
-    #print(json.dumps(data, indent=4))
 
     try:
         if not 'contacts' in value:

@@ -27,7 +27,7 @@ services:
   api:
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
     build: 
       context: ./
       dockerfile: ./api/Dockerfile

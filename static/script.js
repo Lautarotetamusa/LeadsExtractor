@@ -1,4 +1,4 @@
-const HOST = "http://localhost";
+const HOST = "http://localhost/app";
 const PORT = 80;
 
 window.onload = function(){
