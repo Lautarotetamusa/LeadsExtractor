@@ -15,20 +15,7 @@ import (
 )
 
 func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request) error{
-    query := `
-    SELECT 
-        C.created_at as "Fecha extraccion", C.lead_date as "Fecha lead", A.name as "Asesor asignado", S.type, P.portal, L.name, C.url, L.phone, L.email,
-        P.*,
-        C.zones, C.mt2_terrain, C.mt2_builded, C.baths, C.rooms
-    FROM Communication C
-    INNER JOIN Leads L 
-        ON C.lead_phone = L.phone
-    INNER JOIN Source S
-        ON C.source_id = S.id
-    INNER JOIN Asesor A
-        ON L.asesor = A.phone
-    LEFT JOIN Property P
-        ON S.property_id = P.id;`;
+    query := "CALL communicationList()";
 
     rows, err := s.db.Queryx(query)
     if err != nil{
@@ -42,7 +29,6 @@ func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request)
 
     // Result is your slice string.
     rawResult := make([][]byte, colCount)
-    row := make([]string, colCount)
     dest := make([]interface{}, colCount) // A temporary interface{} slice
     var result [][]string
 
@@ -58,6 +44,9 @@ func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request)
             return err
         }
 
+        //Lo hago aca dentro de nuevo porque el append apendea un puntero
+        //Es decir si haces a = append(a, b) y despues  cambias b, a va a tener el nuevo valor de b
+        row := make([]string, colCount)
         for i, raw := range rawResult {
             row[i] = string(raw)
         }
