@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"leadsextractor/models"
 	"leadsextractor/store"
@@ -13,6 +14,30 @@ import (
 
 type AsesorHandler struct{
     Store store.AsesorStorer
+}
+
+func (h *AsesorHandler) UpdateStatuses(w http.ResponseWriter, r *http.Request) error{
+    var asesores []models.Asesor
+
+    defer r.Body.Close()
+    reqBody, err := ioutil.ReadAll(r.Body)
+    if err != nil {
+        return err
+    }
+
+    err = json.Unmarshal(reqBody, &asesores)
+    if err != nil{
+        return err
+    }
+
+    for i := range asesores{
+        err = h.Store.Update(&asesores[i], asesores[i].Phone)
+        if err != nil{
+            return err
+        }
+    }
+    successResponse(w, r, "Asesores actualizados correctamente", nil)
+    return nil
 }
 
 func (h *AsesorHandler) GetAll(w http.ResponseWriter, r *http.Request) error{
@@ -87,7 +112,7 @@ func (h *AsesorHandler) Update(w http.ResponseWriter, r *http.Request) error{
         return err
     }
 
-    _, err = h.Store.Update(&asesor, phone)
+    err = h.Store.Update(&asesor, phone)
     if err != nil{
         return err
     }

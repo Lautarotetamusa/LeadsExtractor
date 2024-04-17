@@ -3,6 +3,7 @@ package pkg
 import (
 	"fmt"
 	"leadsextractor/infobip"
+	"leadsextractor/pipedrive"
 	"leadsextractor/store"
 	"log"
 	"net/http"
@@ -16,16 +17,18 @@ type Server struct{
     db          *sqlx.DB
     roundRobin  *RoundRobin
     infobipApi  *infobip.InfobipApi
+    pipedrive   *pipedrive.Pipedrive
 }
 type HandlerErrorFn func (w http.ResponseWriter, r *http.Request) (error)
 type HandlerFn func (w http.ResponseWriter, r *http.Request) 
 
-func NewServer(listenAddr string, db *sqlx.DB, roundRobin *RoundRobin, infobipApi *infobip.InfobipApi) *Server{
+func NewServer(listenAddr string, db *sqlx.DB, roundRobin *RoundRobin, infobipApi *infobip.InfobipApi, pipedrive *pipedrive.Pipedrive) *Server{
     return &Server{
         listenAddr: listenAddr,
         db: db,
         roundRobin: roundRobin,
         infobipApi: infobipApi,
+        pipedrive:  pipedrive,
     }
 }
 
@@ -51,6 +54,8 @@ func (s *Server) Run(){
     router.HandleFunc("/asesor", handleErrors(asesorHandler.Insert)).Methods("POST")
     router.HandleFunc("/asesor/{phone}", handleErrors(asesorHandler.Update)).Methods("PUT")
 
+    router.HandleFunc("/asesores/", handleErrors(asesorHandler.UpdateStatuses)).Methods("POST", "OPTIONS")
+
     router.HandleFunc("/lead", handleErrors(leadHandler.GetAll)).Methods("GET")
     router.HandleFunc("/lead/{phone}", handleErrors(leadHandler.GetOne)).Methods("GET")
     router.HandleFunc("/lead", handleErrors(leadHandler.Insert)).Methods("POST")
@@ -58,6 +63,8 @@ func (s *Server) Run(){
 
     router.HandleFunc("/communication", handleErrors(s.HandleNewCommunication)).Methods("POST")
     router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET", "OPTIONS")
+
+    router.HandleFunc("/pipedrive", handleErrors(s.HandlePipedriveOAuth)).Methods("GET")
 
     fmt.Println("Server started at %s",s.listenAddr)
     err := http.ListenAndServe(s.listenAddr, router)
@@ -79,7 +86,6 @@ func CORS(next http.Handler) http.Handler {
 		}
 
 		next.ServeHTTP(w, r)
-		return
     })
 }
 func handleErrors(fn HandlerErrorFn) (HandlerFn) {

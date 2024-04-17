@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
+	"time"
 
 	"leadsextractor/infobip"
+	"leadsextractor/pipedrive"
 	"leadsextractor/pkg"
 	"leadsextractor/store"
 
@@ -14,6 +17,8 @@ import (
 )
 
 func main() {
+    rand.Seed(time.Now().UnixNano())
+
     err := godotenv.Load("../.env")
     if err != nil {
         log.Printf("Error loading .env file")
@@ -25,6 +30,13 @@ func main() {
 
     rr := pkg.NewRoundRobin(db)
     infobipApi := infobip.NewInfobipApi()
-    server := pkg.NewServer(host, db, rr, infobipApi)
+    
+    pipedriveApi := pipedrive.NewPipedrive(
+        os.Getenv("PIPEDRIVE_CLIENT_ID"),
+        os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
+        os.Getenv("PIPEDRIVE_REDIRECT_URI"),
+    )
+
+    server := pkg.NewServer(host, db, rr, infobipApi, pipedriveApi)
     server.Run()
 }

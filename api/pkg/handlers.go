@@ -8,11 +8,20 @@ import (
 	"leadsextractor/infobip"
 	"leadsextractor/models"
 	"leadsextractor/store"
+	"log"
 	"net/http"
 	"slices"
 
 	"github.com/jmoiron/sqlx"
 )
+
+func (s *Server) HandlePipedriveOAuth(w http.ResponseWriter, r *http.Request) error{
+    code := r.URL.Query().Get("code")
+    log.Println("Code:", code)
+    s.pipedrive.ExchangeCodeToToken(code)
+    w.Write([]byte(s.pipedrive.State))
+    return nil 
+}
 
 func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request) error{
     query := "CALL communicationList()";
@@ -72,7 +81,6 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
     if err != nil{
         return err
     }
-    fmt.Printf("communication: %+v\n", c)
 
     source, err := getSource(s.db, c)
     if err != nil{
@@ -102,26 +110,10 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
         return err
     }
 
-    /*
-    if isNewLead {
-        formatMsg(lead, bienvenida2)
-    
-        s.infobipApi.SendWppMedia(lead.Phone, imageId)
-        s.infobipApi.SendWppText(lead.Phone, bienvenida1)
-        s.infobipApi.SendWppText(lead.Phone, bienvenida2)
-        s.infobipApi.SendWppMedia(lead.Phone, videoId)
-    }else{
-        s.infobipApi.SendWppTemplate(lead.Phone, "2do_mensaje_bienvenida")
-    }
-
-    s.infobipApi.SendWppTemplate(lead.Asesor.Phone, "msg_asesor")
-    */
-
-    fmt.Printf("lead: %#v\n", lead)
+    go s.pipedrive.SaveCommunication(&c)
 
     infobipLead := infobip.Communication2Infobip(&c) 
     s.infobipApi.SaveLead(infobipLead)
-    s.infobipApi.SendWppTextMessage(lead.Phone, "hola amigo")
 
     //Return
     w.Header().Set("Content-Type", "application/json")
@@ -133,8 +125,6 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
     json.NewEncoder(w).Encode(res)
     return nil
 }
-
-
 
 func getSource(db *sqlx.DB, c models.Communication) (*models.Source, error){
     source := models.Source{}

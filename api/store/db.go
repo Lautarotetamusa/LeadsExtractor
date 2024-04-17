@@ -16,7 +16,7 @@ func ConnectDB() *sqlx.DB{
     dbName := os.Getenv("DB_NAME")
 
     connectionStr := fmt.Sprintf("%s:%s@(%s:%s)/%s", dbUser, dbPass, host, dbPort, dbName)
-    fmt.Printf("str: %s\n", connectionStr)
+    fmt.Printf("db connection: %s\n", connectionStr)
 
     db, err := sqlx.Connect("mysql", connectionStr)
     if err != nil {

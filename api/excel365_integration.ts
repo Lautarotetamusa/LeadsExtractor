@@ -1,4 +1,4 @@
-async function main(workbook: ExcelScript.Workbook) {
+async function loadDatabase(workbook: ExcelScript.Workbook) {
   const apiUrl = "https://55f2-2800-40-32-559-93af-6757-76a2-275b.ngrok-free.app/communication";
     try{
         const options = {
@@ -35,6 +35,51 @@ async function main(workbook: ExcelScript.Workbook) {
         sheet.getRange(`A1:${endRange}1`).setValues(headers);
         sheet.getRange(range).setValues(rows);
     }catch (err) {
+        console.log("ERROR: no se pudo hacer la peticion a la api", err)
+        return
+    }
+}
+
+async function updateAsesores(workbook: ExcelScript.Workbook) {
+    const sheet = workbook.getActiveWorksheet();
+
+    const values = sheet.getRange("A2:C99").getValues();
+
+    let asesores: object[] = [];
+    for (const row of values) {
+        if (row[0] == "") {
+            break;
+        }
+
+        asesores.push({
+            "name": row[0],
+            "phone": row[1].toString(),
+            "active": row[2] == "Activo"
+        });
+    }
+    console.log(asesores);
+
+  const apiUrl = "https://reboraautomatizaciones.com/api/asesores/";
+    try {
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '8080'
+            },
+            body: JSON.stringify(asesores)
+        };
+        const res = await fetch(apiUrl, options);
+        console.log(res.status);
+
+        if (!(res.ok)) {
+            const text = await res.text();
+            console.log("ERROR: no se pudo hacer la peticion a la api", res.status, text)
+            return
+        }
+
+        console.log("SUCCESS: peticion realizada con exito")
+    } catch (err) {
         console.log("ERROR: no se pudo hacer la peticion a la api", err)
         return
     }

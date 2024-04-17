@@ -11,7 +11,7 @@ type AsesorStorer interface {
     GetAll() (*[]models.Asesor, error)
     GetOne(string) (*models.Asesor, error)
     Insert(*models.Asesor) (*models.Asesor, error)
-    Update(*models.Asesor, string) (*models.Asesor, error)
+    Update(*models.Asesor, string) error
 }
 
 type AsesorMysqlStorage struct{
@@ -43,11 +43,10 @@ func (s *AsesorMysqlStorage) Insert(asesor *models.Asesor) (*models.Asesor, erro
     return asesor, nil 
 }
 
-func (s *AsesorMysqlStorage) Update(asesor *models.Asesor, phone string) (*models.Asesor, error){
+func (s *AsesorMysqlStorage) Update(asesor *models.Asesor, phone string) error{
     query := "UPDATE Asesor SET name=:name, active=:active WHERE phone=:phone"
     if _, err := s.Db.NamedExec(query, asesor); err != nil {
-        fmt.Printf("%v", err)
-        return nil, err
+        return err
     }
-    return asesor, nil 
+    return nil 
 }
