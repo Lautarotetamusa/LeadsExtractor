@@ -34,6 +34,7 @@ func main() {
     pipedriveApi := pipedrive.NewPipedrive(
         os.Getenv("PIPEDRIVE_CLIENT_ID"),
         os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
+        os.Getenv("PIPEDRIVE_API_TOKEN"),
         os.Getenv("PIPEDRIVE_REDIRECT_URI"),
     )
 

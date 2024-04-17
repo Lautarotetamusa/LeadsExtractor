@@ -66,7 +66,7 @@ type Person struct{
     } `json:"email"`
 }
 
-func NewPipedrive(clientId string, clientSecret string, redirectUri string) *Pipedrive{
+func NewPipedrive(clientId string, clientSecret string, apiToken string, redirectUri string) *Pipedrive{
     client := fmt.Sprintf("%s:%s", clientId, clientSecret) 
     p := Pipedrive{
         Auth: Auth{
@@ -78,6 +78,7 @@ func NewPipedrive(clientId string, clientSecret string, redirectUri string) *Pip
             Timeout: 15 * time.Second,
         },
         RedirectUri: redirectUri,
+        ApiToken: apiToken,
         Token: nil,
     } 
     p.loadToken()
@@ -88,10 +89,11 @@ func NewPipedrive(clientId string, clientSecret string, redirectUri string) *Pip
     return &p
 }
 
-func (p *Pipedrive) SaveCommunication(c *models.Communication) error{
+func (p *Pipedrive) SaveCommunication(c *models.Communication){
     asesor, err := p.getUserByName(c.Asesor.Name)
     if err != nil{
-        return err
+        log.Printf("Error obteniendo el asesor %s", err)
+        return
     }
     fmt.Printf("Asesor: %v\n", asesor)
 
@@ -101,7 +103,8 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) error{
         log.Println("Creando persona en PipeDrive")
         person, err = p.createPerson(c, asesor.Id)
         if err != nil{
-            return err
+            log.Printf("Error creando persona %s", err)
+            return
         }
     }
     fmt.Printf("Person: %v\n", person)
@@ -109,12 +112,12 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) error{
     log.Println("Cargando deal en PipeDrive")
     deal, err := p.createDeal(c, asesor.Id, person.Id)
     if err != nil{
-        return err
+        log.Printf("Error creando deal %s", err)
+        return
     }
     fmt.Printf("Deal: %v\n", deal)
 
     log.Printf("Deal cargando correctamente en PipeDrive")
-    return nil
 }
 
 func (p *Pipedrive) saveToken(){
@@ -189,8 +192,13 @@ func (p *Pipedrive) refreshToken() *Token{
 }
 
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (map[string]interface{}, error){
+    title := c.Propiedad.Titulo
+    if title == "" {
+        title = "Trato con " + c.Nombre
+    }
+
     payload := map[string]interface{}{
-        "title": c.Propiedad.Titulo,
+        "title": title,
         "user_id": userId,
         "person_id": personId,
         "value": c.Propiedad.Precio,
@@ -243,7 +251,6 @@ func (p *Pipedrive) getPersonByNumber(number string) (*Person, error){
         } `json:"items"`
     }
     err := p.makeRequest("GET", url, nil, &data)
-    fmt.Printf("data: %v\n", data)
 
     if err != nil{
         return nil, err
