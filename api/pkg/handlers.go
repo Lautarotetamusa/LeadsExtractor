@@ -93,11 +93,12 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
     }
     c.Asesor = lead.Asesor
     
-    query := `INSERT INTO Communication(lead_phone, source_id, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
-    VALUES (:lead_phone, :source_id, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
+    query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
+    VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
     _, err = s.db.NamedExec(query, map[string]interface{}{
         "lead_phone": lead.Phone,
         "source_id": source.Id,
+        "new_lead": isNewLead, 
         "lead_date": c.FechaLead, 
         "url": c.Link,
         "zones": c.Busquedas.Zonas,
