@@ -79,14 +79,14 @@ class CasasYTerrenos(Portal):
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
             "asesor_name": "",
-            "id":  raw_lead["id"],
+            "id":  str(raw_lead["id"]),
             "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre":  raw_lead["name"],
             "link": "",
             "email":  raw_lead["email"],
         })
         lead.set_propiedad({
-            "id":  raw_lead["property_id"],
+            "id":  str(raw_lead["property_id"]),
             "titulo":  raw_lead["property_title"],
             "link": f"https://www.casasyterrenos.com/propiedad/{raw_lead['property_id']}",
             "tipo":  raw_lead["property_type"],
