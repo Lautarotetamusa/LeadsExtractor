@@ -85,7 +85,8 @@ DELIMITER //
 CREATE PROCEDURE communicationList ()
     BEGIN
         SELECT 
-            C.created_at as "Fecha extraccion", C.lead_date as "Fecha lead", A.name as "Asesor asignado", S.type, P.portal, L.name, C.url, L.phone, L.email,
+            DATE_FORMAT(C.created_at, "%d/%m/%Y") as "Fecha extraccion", 
+            C.lead_date as "Fecha lead", A.name as "Asesor asignado", S.type, P.portal, L.name, C.url, L.phone, L.email,
             P.*,
             C.zones, C.mt2_terrain, C.mt2_builded, C.baths, C.rooms
         FROM Communication C
