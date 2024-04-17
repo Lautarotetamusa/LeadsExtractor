@@ -27,6 +27,8 @@ services:
     ports:
       - "80:80"
     network_mode: "host"
+    volumes:
+      - ./app/:/app/
 
   api:
     depends_on:

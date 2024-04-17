@@ -7,11 +7,11 @@ from src.lead import Lead
 
 NUMBER_ID = os.getenv("WHATSAPP_NUMBER_ID")
 ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
+IMAGE_ID = os.getenv("WHATSAPP_IMAGE_ID")
+VIDEO_ID = os.getenv("WHATSAPP_VIDEO_ID")
 
 URL = f"https://graph.facebook.com/v17.0/{NUMBER_ID}/messages"
 image_link = "https://buffer.com/library/content/images/size/w1200/2023/10/free-images.jpg"
-image_id = "1183968386347752" #bienvenida.jpeg, 240 KB
-video_id = "3551608448489563" #Bienivenida 12MB
 
 class Whatsapp():
     def __init__(self):
@@ -78,7 +78,7 @@ class Whatsapp():
                 "parameters": [{
                     "type": "image",
                     "image": {
-                        "id": image_id
+                        "id": IMAGE_ID
                     }
                 }]
             },{
@@ -137,7 +137,7 @@ class Whatsapp():
             "to": to,
             "type": "image",
             "image": {
-                "id" : image_id
+                "id" : IMAGE_ID
             }
         }
         self.send_request(payload)
@@ -151,7 +151,7 @@ class Whatsapp():
             "to": to,
             "type": "video",
             "video": {
-                "id": video_id
+                "id": VIDEO_ID
             }
         }
         self.send_request(payload)
