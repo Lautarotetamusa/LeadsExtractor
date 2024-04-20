@@ -37,9 +37,9 @@ def extract_busqueda_info(data: dict | None) -> dict:
 		"zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data.get("searched_locations", {}) else "",
 		"tipo": lead_info.get("search_type", {}).get("type", ""),
 		"presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
-		"cantidad_anuncios": lead_info.get("views", ""),
-		"contactos": lead_info.get("contacts", ""),
-		"inicio_busqueda": lead_info.get("started_search_days", "")
+		"cantidad_anuncios": lead_info.get("views", None),
+		"contactos": lead_info.get("contacts", None),
+		"inicio_busqueda": lead_info.get("started_search_days", None)
 	}
 
 	range_props = {
