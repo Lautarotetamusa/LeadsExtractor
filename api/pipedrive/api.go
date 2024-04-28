@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+    "io"
 	"strconv"
 	"strings"
 	"time"
@@ -65,6 +66,31 @@ type Person struct{
         Primary bool    `json:"primary"`
     } `json:"email"`
 }
+
+type FieldOption struct{
+    Id      uint32 `json:"id"`
+    Label   string `json:"label"`
+}
+
+var customFields = map[string]string{
+    "fuente": "0a551c8c09663ce803d924f036af12c3cc6b8b73",
+    "fecha lead": "a7b3035eaea7ae5cb3aeab97f8f91748aa8e427b",
+    "link": "180b604d295a05730ea6f453a384a3dc78bb108c",
+    "zona": "41a4e5fc09fbc6243074f02d9dc284b8f9b1a505",
+    "ubicacion": "8274fd2ca686df722bb1e78c5479acaba1067058",
+    "precio": "80b2cb3150d88f04e61e442b76d942e636596274",
+};
+
+var fuenteOptions = map[string]uint32{
+    "vivanuncios": 21,
+    "rebora": 22,
+    "inmuebles24": 23,
+    "lamudi": 24,
+    "casasyterrenos": 25,
+    "propiedades": 26,
+    "whatsapp": 74,
+    "ivr": 75,
+};
 
 func NewPipedrive(clientId string, clientSecret string, apiToken string, redirectUri string) *Pipedrive{
     client := fmt.Sprintf("%s:%s", clientId, clientSecret) 
@@ -224,7 +250,13 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
             "value": c.Telefono,
             "primary": true,
         },
+        customFields["fuente"]: fuenteOptions[c.Fuente],
+        customFields["fecha lead"]: c.FechaLead,
+        customFields["link"]: c.Propiedad.Link,
+        customFields["ubicacion"]: c.Propiedad.Ubicacion,
+        customFields["precio"]: c.Propiedad.Precio,
     }
+    fmt.Printf("payload: %v", payload)
 
     if (c.Email != ""){
         payload["email"] = map[string]interface{}{
@@ -275,19 +307,34 @@ func (p *Pipedrive) getUserByName(name string) (*User, error){
     return &users[0], nil
 }
 
+func (p *Pipedrive) getField(id string) (*FieldOption, error){
+    var field *FieldOption
+
+    url := fmt.Sprintf("personFields/%s", id)
+    err := p.makeRequest("GET", url, nil, field)
+
+    if err != nil{
+        return nil, fmt.Errorf("El field: %s, no existe\n", id)
+    }
+
+    return field, nil
+}
+
 func (p *Pipedrive) makeRequest(method string, path string, payload interface{}, data any) (error){
     p.refreshToken()
-
-    postBody, err := json.MarshalIndent(payload, "", "\t")
-    if err != nil{
-        return fmt.Errorf("No se pudo parsear el payload %s", err)
-    }
-    dataPayload := bytes.NewBuffer(postBody)
-
-    //url, err := url.JoinPath(baseUrl, pat)
     url := baseUrl + path
-    req, err := http.NewRequest(method, url, dataPayload)
     log.Println(url)
+    
+    var dataPayload io.Reader = nil
+    if payload != nil {
+        postBody, err := json.MarshalIndent(payload, "", "\t")
+        if err != nil{
+            return fmt.Errorf("No se pudo parsear el payload %s", err)
+        }
+        dataPayload = bytes.NewBuffer(postBody)
+    }
+
+    req, err := http.NewRequest(method, url, dataPayload)
     if err != nil {
         return err
     }
