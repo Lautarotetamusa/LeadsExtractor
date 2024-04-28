@@ -24,3 +24,6 @@ mysql/
 #go API
 api/main
 api/*.json
+
+#Debug
+debug/grafana/*

@@ -27,8 +27,9 @@ services:
     ports:
       - "80:80"
     network_mode: "host"
-    #volumes:
-      #- ./app/:/app/
+    volumes:
+      - ./app/tests:/app/tests
+      - ./app/src:/app/src
 
   api:
     depends_on:
@@ -43,3 +44,52 @@ services:
     ports:
       - $API_PORT:$API_PORT
     network_mode: "host"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./debug/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-admin-api"
+    depends_on:
+      - app
+      - db
+      - api
+    links:
+      - cadvisor:cadvisor
+      - node-exporter:node-exporter
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    expose:
+      - 9100
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    container_name: monitoring_cadvisor
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    expose:
+      - 8080
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=Lautaro123.
+    volumes:
+      - ./debug/grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
+    links:
+      - prometheus:prometheus
