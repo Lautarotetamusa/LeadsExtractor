@@ -18,6 +18,7 @@ type Server struct{
     roundRobin  *RoundRobin
     infobipApi  *infobip.InfobipApi
     pipedrive   *pipedrive.Pipedrive
+    asesorHandler *AsesorHandler
 }
 type HandlerErrorFn func (w http.ResponseWriter, r *http.Request) (error)
 type HandlerFn func (w http.ResponseWriter, r *http.Request) 
@@ -29,32 +30,30 @@ func NewServer(listenAddr string, db *sqlx.DB, roundRobin *RoundRobin, infobipAp
         roundRobin: roundRobin,
         infobipApi: infobipApi,
         pipedrive:  pipedrive,
+        asesorHandler: &AsesorHandler{
+            Store: &store.AsesorMysqlStorage{
+                Db: db,
+            },
+        },
     }
 }
 
 func (s *Server) Run(){
-    asesorHandler := AsesorHandler{
-        Store: &store.AsesorMysqlStorage{
-            Db: s.db,
-        },
-    } 
-
     leadHandler := LeadHandler{
         Store: &store.LeadMySqlStorage{
             Db: s.db,
         },
     } 
-
     router := mux.NewRouter()
 
     router.Use(CORS)
 
-    router.HandleFunc("/asesor", handleErrors(asesorHandler.GetAll)).Methods("GET")
-    router.HandleFunc("/asesor/{phone}", handleErrors(asesorHandler.GetOne)).Methods("GET")
-    router.HandleFunc("/asesor", handleErrors(asesorHandler.Insert)).Methods("POST")
-    router.HandleFunc("/asesor/{phone}", handleErrors(asesorHandler.Update)).Methods("PUT")
+    router.HandleFunc("/asesor", handleErrors(s.asesorHandler.GetAll)).Methods("GET")
+    router.HandleFunc("/asesor/{phone}", handleErrors(s.asesorHandler.GetOne)).Methods("GET")
+    router.HandleFunc("/asesor", handleErrors(s.asesorHandler.Insert)).Methods("POST")
+    router.HandleFunc("/asesor/{phone}", handleErrors(s.asesorHandler.Update)).Methods("PUT")
 
-    router.HandleFunc("/asesores/", handleErrors(asesorHandler.UpdateStatuses)).Methods("POST", "OPTIONS")
+    router.HandleFunc("/asesores/", handleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
 
     router.HandleFunc("/lead", handleErrors(leadHandler.GetAll)).Methods("GET")
     router.HandleFunc("/lead/{phone}", handleErrors(leadHandler.GetOne)).Methods("GET")

@@ -15,7 +15,7 @@ type AsesorHandler struct{
     Store store.AsesorStorer
 }
 
-func (h *AsesorHandler) UpdateStatuses(w http.ResponseWriter, r *http.Request) error{
+func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error{
     var asesores []models.Asesor
 
     defer r.Body.Close()
@@ -30,11 +30,14 @@ func (h *AsesorHandler) UpdateStatuses(w http.ResponseWriter, r *http.Request) e
     }
 
     for i := range asesores{
-        err = h.Store.Update(&asesores[i], asesores[i].Phone)
+        err = s.asesorHandler.Store.Update(&asesores[i], asesores[i].Phone)
         if err != nil{
             return err
         }
     }
+
+    s.roundRobin.SetAsesores(s.db)
+
     successResponse(w, r, "Asesores actualizados correctamente", nil)
     return nil
 }

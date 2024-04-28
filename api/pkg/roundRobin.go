@@ -16,29 +16,22 @@ type RoundRobin struct{
 }
 
 func NewRoundRobin(db *sqlx.DB) *RoundRobin{
-    asesores := []models.Asesor{}
-
-    err := db.Select(&asesores, "SELECT * FROM Asesor WHERE active=?", true)
-    if err != nil{
-        log.Fatal("No se pudo obtener la lista de asesores\n", err)
-    }
-
-    return &RoundRobin{
+    r := RoundRobin{
         current: 0,
-        asesores: asesores,
+        asesores: []models.Asesor{},
     }
+    r.SetAsesores(db)
+    return &r
 }
 
 func (r *RoundRobin) SetAsesores(db *sqlx.DB) {
-    asesores := []models.Asesor{}
+    r.lock.RLock()
 
-    err := db.Select(&asesores, "SELECT * FROM Asesor WHERE active=?", true)
+    err := db.Select(&r.asesores, "SELECT * FROM Asesor WHERE active=?", true)
     if err != nil{
         log.Fatal("No se pudo obtener la lista de asesores\n", err)
     }
 
-    r.lock.RLock()
-    r.asesores = asesores
     r.lock.RUnlock()
 }
 
