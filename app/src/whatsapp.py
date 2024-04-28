@@ -10,6 +10,11 @@ ACCESS_TOKEN = os.getenv("WHATSAPP_ACCESS_TOKEN")
 IMAGE_ID = os.getenv("WHATSAPP_IMAGE_ID")
 VIDEO_ID = os.getenv("WHATSAPP_VIDEO_ID")
 
+assert ACCESS_TOKEN != "" and ACCESS_TOKEN != None, "ACCESS_TOKEN is not in enviroment"
+assert NUMBER_ID != "" and NUMBER_ID != None, "NUMBER_ID is not in enviroment"
+assert IMAGE_ID != "" and IMAGE_ID != None, "IMAGE_ID is not in enviroment"
+assert VIDEO_ID != "" and VIDEO_ID != None, "VIDEO_ID is not in enviroment"
+
 URL = f"https://graph.facebook.com/v17.0/{NUMBER_ID}/messages"
 image_link = "https://buffer.com/library/content/images/size/w1200/2023/10/free-images.jpg"
 
@@ -48,6 +53,7 @@ class Whatsapp():
     
     def send_template(self, to: str, name: str, components, language="es_MX"):
         assert to != None, "El numero de telefono receptor es None"
+        print(components)
 
         payload = {
             "messaging_product": "whatsapp",
@@ -112,21 +118,51 @@ class Whatsapp():
         assert to != None, "El numero de telefono es None"
         assert lead.telefono != "", "El telefono del lead esta vacio"
         assert lead.nombre != "", "El nombre del lead esta vacio"
+        assert lead.fecha_lead != "", "La fecha del lead esta vacia"
+        assert lead.fuente != "", "La fuente del lead esta vacia"
+        assert lead.link != "", "El link del lead esta vacio"
 
         self.logger.debug("Enviando mensaje al asesor "+to)
         self.send_template(
             to=to,
-            name="msg_asesor",
+            name="msg_asesor_2",
             components=[{
                 "type": "body",
-                "parameters": [{
-                    "type": "text",
-                    "text": lead.nombre
-                },{
-                    "type": "text",
-                    "text": '+'+lead.telefono
-                }]
+                "parameters": [
+                    {
+                        "type": "text",
+                        "text": lead.nombre
+                    },{
+                        "type": "text",
+                        "text": lead.fuente
+                    },{
+                        "type": "text",
+                        "text": '+'+lead.telefono
+                    },{
+                        "type": "text",
+                        "text": lead.email if lead.email != "" else " - "
+                    },{
+                        "type": "text",
+                        "text": lead.fecha_lead
+                    },{
+                        "type": "text",
+                        "text": lead.link
+                    },{
+                        "type": "text",
+                        "text": lead.propiedad["titulo"] if lead.propiedad["titulo"] != "" else " - "
+                    },{
+                        "type": "text",
+                        "text": lead.propiedad["precio"] if lead.propiedad["precio"] != "" else " - "
+                    },{
+                        "type": "text",
+                        "text": lead.propiedad["ubicacion"] if lead.propiedad["ubicacion"] != "" else " - "
+                    },{
+                        "type": "text",
+                        "text": lead.propiedad["link"] if lead.propiedad["link"] != "" else " - "
+                    }
+                ]
             }])
+
 
     def send_image(self, to: str):
         assert to != None, "El numero de telefono receptor es None"
