@@ -132,7 +132,7 @@ class Portal():
 
                     wpp.send_response(lead.telefono, lead.asesor)
                 
-                wpp.send_msg_asesor(lead.asesor['phone'], lead)
+                wpp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
 
                 #Mensaje del portal
                 if self.send_msg_field in lead_res:

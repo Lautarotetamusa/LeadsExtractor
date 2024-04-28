@@ -114,17 +114,22 @@ class Whatsapp():
                 }]
             }])
 
-    def send_msg_asesor(self, to: str, lead: Lead):
+    def send_msg_asesor(self, to: str, lead: Lead, is_new: bool=True):
         assert to != None, "El numero de telefono es None"
         assert lead.telefono != "", "El telefono del lead esta vacio"
         assert lead.fecha_lead != "", "La fecha del lead esta vacia"
         assert lead.fuente != "", "La fuente del lead esta vacia"
         assert lead.link != "", "El link del lead esta vacio"
 
+        if is_new:
+            template = "msg_asesor_2"
+        else:
+            template = "msg_asesor_duplicado"
+
         self.logger.debug("Enviando mensaje al asesor "+to)
         self.send_template(
             to=to,
-            name="msg_asesor_2",
+            name=template,
             components=[{
                 "type": "body",
                 "parameters": [
@@ -161,7 +166,6 @@ class Whatsapp():
                     }
                 ]
             }])
-
 
     def send_image(self, to: str):
         assert to != None, "El numero de telefono receptor es None"

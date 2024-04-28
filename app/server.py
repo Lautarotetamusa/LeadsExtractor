@@ -75,7 +75,7 @@ def recive_ivr_call():
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
 
-    common_lead_action(lead)
+    common_lead_action(lead, is_new)
     return lead.asesor
 
 @app.route('/webhooks', methods=['POST'])
@@ -134,7 +134,7 @@ def recive_wpp_msg():
             save = True
 
     if save:
-        common_lead_action(lead)
+        common_lead_action(lead, is_new)
     return lead.asesor
 
 ## Ejecucion de scripts
