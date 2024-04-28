@@ -85,8 +85,10 @@ services:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    env_file:
+      - ./.env
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=Lautaro123.
+      - GF_SECURITY_ADMIN_PASSWORD=$DASHBOARD_PASSWORD
     volumes:
       - ./debug/grafana:/var/lib/grafana
     depends_on:
