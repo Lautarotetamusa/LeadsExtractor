@@ -112,6 +112,7 @@ class Portal():
                     self.make_contacted(lead_res[self.contact_id_field])
                     continue
 
+                lead.print()
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead == None:
                     continue

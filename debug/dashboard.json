@@ -20,13 +20,13 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 893,
   "graphTooltip": 1,
-  "id": 3,
+  "id": 2,
   "links": [],
   "panels": [
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "fieldConfig": {
         "defaults": {
@@ -91,10 +91,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
-          "expr": "time() - node_boot_time_seconds{instance=~\"$server:.*\"}",
+          "expr": "time() - node_boot_time_seconds",
           "hide": false,
           "intervalFactor": 2,
           "legendFormat": "",
@@ -109,7 +109,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "fieldConfig": {
         "defaults": {
@@ -173,7 +173,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "count(rate(container_last_seen{name=~\".+\"}[$interval]))",
           "intervalFactor": 2,
@@ -187,7 +187,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "fieldConfig": {
         "defaults": {
@@ -257,10 +257,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
-          "expr": "min((node_filesystem_size_bytes{fstype=~\"xfs|ext4\",instance=~\"$server:.*\"} - node_filesystem_free_bytes{fstype=~\"xfs|ext4\",instance=~\"$server:.*\"} )/ node_filesystem_size_bytes{fstype=~\"xfs|ext4\",instance=~\"$server:.*\"})",
+          "expr": "min((node_filesystem_size_bytes{fstype=~\"xfs|ext4\"} - node_filesystem_free_bytes{fstype=~\"xfs|ext4\"})/ node_filesystem_size_bytes{fstype=~\"xfs|ext4\"})",
           "hide": false,
           "intervalFactor": 2,
           "range": true,
@@ -274,7 +274,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "fieldConfig": {
         "defaults": {
@@ -344,10 +344,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
-          "expr": "((node_memory_MemTotal_bytes{instance=~\"$server:.*\"} - node_memory_MemAvailable_bytes{instance=~\"$server:.*\"}) / node_memory_MemTotal_bytes{instance=~\"$server:.*\"}) * 100",
+          "expr": "((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) * 100",
           "intervalFactor": 2,
           "range": true,
           "refId": "A",
@@ -360,7 +360,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "fieldConfig": {
         "defaults": {
@@ -429,10 +429,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
-          "expr": "(node_memory_SwapTotal_bytes{instance=~'$server:.*'} - node_memory_SwapFree_bytes{instance=~'$server:.*'})",
+          "expr": "(node_memory_SwapTotal_bytes- node_memory_SwapFree_bytes)",
           "intervalFactor": 2,
           "legendFormat": "",
           "range": true,
@@ -446,7 +446,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "fieldConfig": {
         "defaults": {
@@ -516,10 +516,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
-          "expr": "node_load1{instance=~\"$server:.*\"} / count by(job, instance)(count by(job, instance, cpu)(node_cpu_seconds_total{instance=~\"$server:.*\"}))",
+          "expr": "node_load1/ count by(job, instance)(count by(job, instance, cpu)(node_cpu_seconds_total))",
           "intervalFactor": 2,
           "range": true,
           "refId": "A",
@@ -538,7 +538,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -581,20 +581,18 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
-          "editorMode": "code",
           "expr": "sum(rate(container_network_receive_bytes_total{id=\"/\"}[$interval])) by (id)",
           "intervalFactor": 2,
           "legendFormat": "RECEIVED",
-          "range": true,
           "refId": "A",
           "step": 600
         },
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "- sum(rate(container_network_transmit_bytes_total{id=\"/\"}[$interval])) by (id)",
           "hide": false,
@@ -644,7 +642,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -687,7 +685,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_cpu_system_seconds_total[1m]))",
           "hide": true,
@@ -699,7 +697,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_cpu_system_seconds_total{name=~\".+\"}[1m]))",
           "hide": true,
@@ -712,7 +710,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_cpu_system_seconds_total{id=\"/\"}[1m]))",
           "hide": true,
@@ -726,7 +724,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(process_cpu_seconds_total[$interval])) * 100",
           "hide": false,
@@ -740,7 +738,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_cpu_system_seconds_total{name=~\".+\"}[1m])) + sum(rate(container_cpu_system_seconds_total{id=\"/\"}[1m])) + sum(rate(process_cpu_seconds_total[1m]))",
           "hide": true,
@@ -823,7 +821,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "decimals": 0,
       "editable": true,
@@ -866,10 +864,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
-          "expr": "node_load1{instance=~\"$server:.*\"} / count by(job, instance)(count by(job, instance, cpu)(node_cpu_seconds_total{instance=~\"$server:.*\"}))",
+          "expr": "node_load1 / count by(job, instance)(count by(job, instance, cpu)(node_cpu_seconds_total))",
           "intervalFactor": 2,
           "range": true,
           "refId": "A",
@@ -962,7 +960,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1010,7 +1008,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_filesystem_size_bytes - node_filesystem_free_bytes",
@@ -1108,7 +1106,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1151,7 +1149,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "container_memory_rss",
@@ -1165,7 +1163,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "sum(container_memory_rss)",
@@ -1179,7 +1177,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "container_memory_usage_bytes",
@@ -1193,7 +1191,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "container_memory_rss{id=\"/\"}",
@@ -1207,19 +1205,21 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
+          "editorMode": "code",
           "expr": "sum(container_memory_rss)",
           "hide": true,
           "intervalFactor": 2,
           "legendFormat": "{{__name__}}",
+          "range": true,
           "refId": "E",
           "step": 20
         },
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_Buffers_bytes",
@@ -1233,7 +1233,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_MemFree_bytes",
@@ -1247,7 +1247,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_MemAvailable_bytes",
@@ -1261,7 +1261,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
@@ -1275,7 +1275,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_Inactive_bytes",
@@ -1289,7 +1289,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_KernelStack_bytes",
@@ -1303,7 +1303,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_Active_bytes",
@@ -1317,7 +1317,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_MemTotal_bytes - (node_memory_Active_bytes + node_memory_MemFree_bytes + node_memory_Inactive_bytes)",
@@ -1331,7 +1331,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_MemFree_bytes + node_memory_Inactive_bytes",
@@ -1345,7 +1345,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "container_memory_rss",
@@ -1359,7 +1359,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "node_memory_Inactive_bytes + node_memory_MemFree_bytes + node_memory_MemAvailable_bytes",
@@ -1423,7 +1423,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1466,7 +1466,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "-sum(rate(node_disk_read_bytes_total[$interval])) by (device)",
@@ -1481,7 +1481,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "editorMode": "code",
           "expr": "sum(rate(node_disk_written_bytes_total[$interval])) by (device)",
@@ -1531,7 +1531,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1576,7 +1576,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_network_receive_bytes_total{name=~\".+\"}[$interval])) by (name)",
           "intervalFactor": 2,
@@ -1587,7 +1587,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "- rate(container_network_transmit_bytes_total{name=~\".+\"}[$interval])",
           "hide": true,
@@ -1635,7 +1635,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1682,7 +1682,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_network_transmit_bytes_total{name=~\".+\"}[$interval])) by (name)",
           "intervalFactor": 2,
@@ -1693,7 +1693,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "rate(container_network_transmit_bytes_total{id=\"/\"}[$interval])",
           "hide": true,
@@ -1745,7 +1745,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1790,7 +1790,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(rate(container_cpu_usage_seconds_total{name=~\".+\"}[$interval])) by (name) * 100",
           "hide": false,
@@ -1841,7 +1841,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1886,7 +1886,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_memory_swap{name=~\".+\"}) by (name)",
           "hide": false,
@@ -1898,7 +1898,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "container_memory_usage_bytes{name=~\".+\"}",
           "hide": true,
@@ -1947,7 +1947,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -1992,7 +1992,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_memory_rss{name=~\".+\"}) by (name)",
           "hide": false,
@@ -2004,7 +2004,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "container_memory_usage_bytes{name=~\".+\"}",
           "hide": true,
@@ -2055,7 +2055,7 @@
       ],
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -2095,7 +2095,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_spec_memory_limit_bytes{name=~\".+\"} - container_memory_usage_bytes{name=~\".+\"}) by (name) ",
           "hide": true,
@@ -2108,7 +2108,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_spec_memory_limit_bytes{name=~\".+\"}) by (name) ",
           "hide": false,
@@ -2120,7 +2120,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "container_memory_usage_bytes{name=~\".+\"}",
           "hide": true,
@@ -2143,7 +2143,7 @@
       ],
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -2158,7 +2158,7 @@
       "scroll": true,
       "showHeader": true,
       "sort": {
-        "col": 0,
+        "col": 1,
         "desc": true
       },
       "styles": [
@@ -2183,7 +2183,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_spec_memory_limit_bytes{name=~\".+\"} - container_memory_usage_bytes{name=~\".+\"}) by (name) ",
           "hide": true,
@@ -2196,7 +2196,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_spec_memory_limit_bytes{name=~\".+\"}) by (name) ",
           "hide": true,
@@ -2208,7 +2208,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "container_memory_usage_bytes{name=~\".+\"}",
           "hide": false,
@@ -2231,7 +2231,7 @@
       ],
       "datasource": {
         "type": "prometheus",
-        "uid": "cdk2imrl66vpcc"
+        "uid": "adk4glfqo8ydca"
       },
       "editable": true,
       "error": false,
@@ -2272,7 +2272,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(100 - ((container_spec_memory_limit_bytes{name=~\".+\"} - container_memory_usage_bytes{name=~\".+\"})  * 100 / container_spec_memory_limit_bytes{name=~\".+\"}) ) by (name) ",
           "intervalFactor": 2,
@@ -2284,7 +2284,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "sum(container_spec_memory_limit_bytes{name=~\".+\"}) by (name) ",
           "hide": true,
@@ -2296,7 +2296,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "cdk2imrl66vpcc"
+            "uid": "adk4glfqo8ydca"
           },
           "expr": "container_memory_usage_bytes{name=~\".+\"}",
           "hide": true,
@@ -2325,7 +2325,7 @@
         },
         "datasource": {
           "type": "prometheus",
-          "uid": "cdk2imrl66vpcc"
+          "uid": "adk4glfqo8ydca"
         },
         "definition": "",
         "hide": 0,
@@ -2443,16 +2443,12 @@
         "type": "interval"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "node-exporter",
-          "value": "node-exporter"
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "cdk2imrl66vpcc"
+          "uid": "adk4glfqo8ydca"
         },
-        "definition": "label_values(node_boot_time_seconds,instance)",
+        "definition": "label_values(node_boot_time,$server)",
         "hide": 0,
         "includeAll": false,
         "label": "Node",
@@ -2461,7 +2457,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(node_boot_time_seconds,instance)",
+          "query": "label_values(node_boot_time,$server)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
@@ -2502,8 +2498,8 @@
     ]
   },
   "timezone": "browser",
-  "title": "Docker and system monitoring",
-  "uid": "fdk2ksp86r6kga",
-  "version": 3,
+  "title": "Docker and system monitoring god",
+  "uid": "adk4i3td0lkowc",
+  "version": 11,
   "weekStart": ""
 }

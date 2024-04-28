@@ -171,7 +171,11 @@ class Inmuebles24(Portal):
             "ubicacion": posting.get("address", ""),
             "tipo": posting.get("real_estate_type", {}).get("name"),
             "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
-        });
+        })
+        #Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
+        if lead.propiedad["id"] == None:
+            lead.fuente = "viewphone"
+
         telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
         if not telefono:
             telefono = parse_number(self.logger, raw_lead.get("phone", ""))

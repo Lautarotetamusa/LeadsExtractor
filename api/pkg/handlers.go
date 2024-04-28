@@ -129,12 +129,12 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
 
 func getSource(db *sqlx.DB, c models.Communication) (*models.Source, error){
     source := models.Source{}
-    validSources := []string{"whatsapp", "ivr", "inmuebles24", "lamudi", "casasyterrenos", "propiedades"}
+    validSources := []string{"whatsapp", "ivr", "viewphone", "inmuebles24", "lamudi", "casasyterrenos", "propiedades"}
     if !slices.Contains(validSources, c.Fuente){
         return nil, fmt.Errorf("La fuente %s es incorrecta, debe ser (whatsapp, ivr, inmuebles24, lamudi, casasyterrenos, propiedades)", c.Fuente)
     }
 
-    if c.Fuente == "whatsapp" || c.Fuente == "ivr"{
+    if c.Fuente == "whatsapp" || c.Fuente == "ivr" || c.Fuente == "viewphone"{
         err := db.Get(&source, "SELECT * FROM Source WHERE type LIKE ?", c.Fuente) 
         if err != nil{
             return nil, fmt.Errorf("Source: %s no existe", c.Fuente)
