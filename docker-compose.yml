@@ -56,9 +56,8 @@ services:
       - "--storage.tsdb.retention.time=200h"
       - "--web.enable-admin-api"
     depends_on:
-      - app
-      - db
-      - api
+      - node-exporter
+      - cadvisor
     links:
       - cadvisor:cadvisor
       - node-exporter:node-exporter
@@ -95,3 +94,4 @@ services:
       - prometheus
     links:
       - prometheus:prometheus
+    user: "$UID:$GID"
