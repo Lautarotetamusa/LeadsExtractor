@@ -117,7 +117,6 @@ class Whatsapp():
     def send_msg_asesor(self, to: str, lead: Lead):
         assert to != None, "El numero de telefono es None"
         assert lead.telefono != "", "El telefono del lead esta vacio"
-        assert lead.nombre != "", "El nombre del lead esta vacio"
         assert lead.fecha_lead != "", "La fecha del lead esta vacia"
         assert lead.fuente != "", "La fuente del lead esta vacia"
         assert lead.link != "", "El link del lead esta vacio"
@@ -131,7 +130,7 @@ class Whatsapp():
                 "parameters": [
                     {
                         "type": "text",
-                        "text": lead.nombre
+                        "text": lead.nombre if lead.nombre != "" else " - "
                     },{
                         "type": "text",
                         "text": lead.fuente
