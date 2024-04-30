@@ -19,8 +19,12 @@ URL = f"https://graph.facebook.com/v17.0/{NUMBER_ID}/messages"
 image_link = "https://buffer.com/library/content/images/size/w1200/2023/10/free-images.jpg"
 
 class Whatsapp():
-    def __init__(self):
-        self.logger = Logger("Whatsapp API")
+    def __init__(self, logger: Logger | None = None):
+        if logger:
+            self.logger = Logger(logger.fuente + " > Whatsapp API")
+        else:
+            self.logger = Logger("Whatsapp API")
+
         self.headers = {
             'Authorization': f'Bearer {ACCESS_TOKEN}',
             'Content-Type': 'application/json'
@@ -119,7 +123,6 @@ class Whatsapp():
         assert lead.telefono != "", "El telefono del lead esta vacio"
         assert lead.fecha_lead != "", "La fecha del lead esta vacia"
         assert lead.fuente != "", "La fuente del lead esta vacia"
-        assert lead.link != "", "El link del lead esta vacio"
 
         if is_new:
             template = "msg_asesor_2"
@@ -150,7 +153,7 @@ class Whatsapp():
                         "text": lead.fecha_lead
                     },{
                         "type": "text",
-                        "text": lead.link
+                        "text": lead.link if lead.link != "" else " - "
                     },{
                         "type": "text",
                         "text": lead.propiedad["titulo"] if lead.propiedad["titulo"] != "" else " - "

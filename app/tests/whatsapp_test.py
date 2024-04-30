@@ -4,7 +4,6 @@ sys.path.append('.')
 from src.whatsapp import Whatsapp
 from src.lead import Lead
 
-
 if __name__ == "__main__":
     lead = Lead()
 
