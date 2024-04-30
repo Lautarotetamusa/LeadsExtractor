@@ -11,14 +11,13 @@ from src.message import format_msg
 from src.sheets import Gmail, Sheet 
 from src.whatsapp import Whatsapp
 import src.api as api
+import src.jotform as jotform
 
 from enum import IntEnum
 
 class Mode(IntEnum):
     NEW = 1
     ALL = 2
-
-wpp = Whatsapp()
 
 class Portal():
     def __init__(self,
@@ -30,9 +29,11 @@ class Portal():
                  params_type: str, #headers | cookies
                  filename: str = __file__
         ):
+
         self.name = name
         self.logger = Logger(name)
-        self.gmail = Gmail({
+        self.wpp    = Whatsapp(self.logger)
+        self.gmail  = Gmail({
             "email": os.getenv("EMAIL_CONTACT"),
         }, self.logger)
         self.request = Request(None, None, self.logger, self.login)
@@ -121,18 +122,21 @@ class Portal():
                 if is_new: #Lead nuevo
                     bienvenida_2 = format_msg(lead, self.bienvenida_2)
 
-                    wpp.send_image(lead.telefono)
-                    wpp.send_message(lead.telefono, self.bienvenida_1)
-                    wpp.send_message(lead.telefono, bienvenida_2)
-                    wpp.send_video(lead.telefono)
+                    self.wpp.send_image(lead.telefono)
+                    self.wpp.send_message(lead.telefono, self.bienvenida_1)
+                    self.wpp.send_message(lead.telefono, bienvenida_2)
+                    self.wpp.send_video(lead.telefono)
 
                     portal_msg = self.bienvenida_1 + '\n' + bienvenida_2
                 else: #Lead existente
                     portal_msg = format_msg(lead, self.response_msg)
 
-                    wpp.send_response(lead.telefono, lead.asesor)
-                
-                wpp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
+                    self.wpp.send_response(lead.telefono, lead.asesor)
+
+                form_res = jotform.new_submission(self.logger, lead) 
+                #TODO:  armar mensaje de whatsapp con el link al formulario
+
+                self.wpp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
 
                 #Mensaje del portal
                 if self.send_msg_field in lead_res:
