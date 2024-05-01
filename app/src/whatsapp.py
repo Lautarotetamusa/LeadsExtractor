@@ -184,6 +184,22 @@ class Whatsapp():
         }
         self.send_request(payload)
 
+    def send_document(self, to: str, url: str, filename: str, caption: str):
+        assert to != None, "El numero de telefono receptor es None"
+
+        self.logger.debug("Enviando documento a "+to)
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to,
+            "type": "document",
+            "document": {
+                "link" : url,
+                "caption": caption,
+                "filename": filename
+            }
+        }
+        self.send_request(payload)
+
     def send_video(self, to: str):
         assert to != None, "El numero de telefono receptor es None"
 

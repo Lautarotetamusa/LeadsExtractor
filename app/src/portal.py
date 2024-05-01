@@ -71,12 +71,16 @@ class Portal():
             'response_msg': 'response_message.txt',
             'bienvenida_1': 'bienvenida_1.txt',
             'bienvenida_2': 'bienvenida_2.txt',
+            'cotizacion_1': 'plantilla_cotizacion_1.txt',
+            'cotizacion_1': 'plantilla_cotizacion_2.txt',
         }
         self.gmail_spin = ""
         self.gmail_subject = ""
         self.response_msg = ""
         self.bienvenida_1 = ""
         self.bienvenida_2 = ""
+        self.cotizacion_1 = ""
+        self.cotizacion_2 = ""
 
         for resource in resources:
             with open(f"messages/{resources[resource]}", 'r') as f:
@@ -113,7 +117,6 @@ class Portal():
                     self.make_contacted(lead_res[self.contact_id_field])
                     continue
 
-                lead.print()
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead == None:
                     continue
@@ -121,6 +124,22 @@ class Portal():
 
                 if is_new: #Lead nuevo
                     bienvenida_2 = format_msg(lead, self.bienvenida_2)
+
+                    if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
+                        cotizacion_msj = self.cotizacion_2
+                    else:
+                        cotizacion_msj = self.cotizacion_1
+
+                    #Cotizacion
+                    self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
+                    pdf_url = jotform.new_submission(self.logger, lead) 
+                    if pdf_url != None:
+                        self.wpp.send_document(lead.telefono, pdf_url, 
+                            filename=f"Cotizacion para {lead.nombre}",
+                            caption=cotizacion_msj
+                        )
+                    else:
+                        self.logger.error("No se pudo obtener la cotizacion en pdf")
 
                     self.wpp.send_image(lead.telefono)
                     self.wpp.send_message(lead.telefono, self.bienvenida_1)
@@ -133,8 +152,6 @@ class Portal():
 
                     self.wpp.send_response(lead.telefono, lead.asesor)
 
-                form_res = jotform.new_submission(self.logger, lead) 
-                #TODO:  armar mensaje de whatsapp con el link al formulario
 
                 self.wpp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
 
