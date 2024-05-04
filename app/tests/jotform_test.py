@@ -24,7 +24,7 @@ lead.set_args({
     "estado": "",
 })
 lead.set_asesor({
-    "name": "Asesor de prueba",
+    "name": "Asesor de prueba nro 2",
     "phone": "+54 9 999999999"
 })
 lead.set_propiedad({
@@ -61,6 +61,7 @@ def save_questions():
 
 if __name__ == "__main__":
     logger = Logger("Test")
+    """
     pdf_url = jotform.new_submission(logger, lead)
     print(pdf_url)
     wpp = Whatsapp(logger)
@@ -69,3 +70,6 @@ if __name__ == "__main__":
                           filename=f"Cotizacion para {lead.nombre}",
                           caption="hola"
                           )
+    """
+    pdf_url = jotform.new_submission(logger, lead)
+    print(pdf_url)
