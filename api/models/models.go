@@ -58,6 +58,7 @@ type Communication struct {
     Link        string `json:"link"`
     Telefono    string `json:"telefono"`
     Email       string `json:"email"`
+    Cotizacion  string `json:"cotizacion"`
     Asesor      Asesor `json:"asesor"`
     Propiedad   struct {
         ID          string `json:"id"`

@@ -72,7 +72,7 @@ class Portal():
             'bienvenida_1': 'bienvenida_1.txt',
             'bienvenida_2': 'bienvenida_2.txt',
             'cotizacion_1': 'plantilla_cotizacion_1.txt',
-            'cotizacion_1': 'plantilla_cotizacion_2.txt',
+            'cotizacion_2': 'plantilla_cotizacion_2.txt',
         }
         self.gmail_spin = ""
         self.gmail_subject = ""
@@ -134,6 +134,7 @@ class Portal():
                     self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
                     pdf_url = jotform.new_submission(self.logger, lead) 
                     if pdf_url != None:
+                        lead.cotizacion = pdf_url
                         self.wpp.send_document(lead.telefono, pdf_url, 
                             filename=f"Cotizacion para {lead.nombre}",
                             caption=cotizacion_msj
@@ -151,7 +152,6 @@ class Portal():
                     portal_msg = format_msg(lead, self.response_msg)
 
                     self.wpp.send_response(lead.telefono, lead.asesor)
-
 
                 self.wpp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
 
@@ -171,9 +171,6 @@ class Portal():
                     #self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
 
                 self.make_contacted(lead_res[self.contact_id_field])
-
-                row_lead = self.sheet.map_lead(lead.__dict__, self.headers)
-                self.sheet.write([row_lead])
 
     def first_run(self):
         from multiprocessing.pool import ThreadPool

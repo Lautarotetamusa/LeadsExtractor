@@ -13,6 +13,7 @@ from src.logger import Logger
 from src.lead import Lead
 from src.numbers import parse_number 
 import src.api as api
+import src.jotform as jotform
 
 app = Flask(__name__)
 CORS(app)
@@ -23,18 +24,22 @@ whatsapp = Whatsapp()
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 
+with open(f"messages/plantilla_cotizacion_1.txt", 'r') as f:
+    cotizacion_1 = f.read()
+
+with open(f"messages/plantilla_cotizacion_2.txt", 'r') as f:
+    cotizacion_2 = f.read()
+
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
 from src.propiedades_com.scraper import main as propiedades_scraper
 from src.casasyterrenos.scraper import main as casasyterrenos_scraper
 
+#Ruta para validar el webhook de la API de meta
 @app.route('/webhooks', methods=['GET'])
 def webhooks_validate():
-    #hub_mode = request.args.get('hub.mode')
     hub_challenge = request.args.get('hub.challenge')
-    #hub_verify_token = request.args.get('hub.verify_token')
-    #TOKEN = 'Lautaro123.'
     return hub_challenge
 
 @app.route('/asesor', methods=['GET'])
@@ -75,7 +80,21 @@ def recive_ivr_call():
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
 
-    common_lead_action(lead, is_new)
+    if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
+        cotizacion_msj = cotizacion_2
+    else:
+        cotizacion_msj = cotizacion_1
+    pdf_url = jotform.new_submission(logger, lead) 
+    if pdf_url != None:
+        lead.cotizacion = pdf_url
+        whatsapp.send_document(lead.telefono, pdf_url, 
+            filename=f"Cotizacion para {lead.nombre}",
+            caption=cotizacion_msj
+        )
+    else:
+        logger.error("No se pudo obtener la cotizacion en pdf")
+
+    whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
     return lead.asesor
 
 @app.route('/webhooks', methods=['POST'])
@@ -134,7 +153,22 @@ def recive_wpp_msg():
             save = True
 
     if save:
-        common_lead_action(lead, is_new)
+        if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
+            cotizacion_msj = cotizacion_2
+        else:
+            cotizacion_msj = cotizacion_1
+        pdf_url = jotform.new_submission(logger, lead) 
+        if pdf_url != None:
+            lead.cotizacion = pdf_url
+            whatsapp.send_document(lead.telefono, pdf_url, 
+                filename=f"Cotizacion para {lead.nombre}",
+                caption=cotizacion_msj
+            )
+        else:
+            logger.error("No se pudo obtener la cotizacion en pdf")
+
+        whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
+
     return lead.asesor
 
 ## Ejecucion de scripts

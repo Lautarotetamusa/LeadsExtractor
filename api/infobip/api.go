@@ -113,7 +113,6 @@ func (i *InfobipApi) makeRequest(method string, path string, payload interface{}
         log.Printf("No se pudo parsear el payload", err)
         return
     }
-    fmt.Println("body:", string(postBody))
     data := bytes.NewBuffer(postBody)
 
     url, err := url.JoinPath(i.apiUrl, path)
@@ -144,5 +143,5 @@ func (i *InfobipApi) makeRequest(method string, path string, payload interface{}
         return
     }
 
-    log.Printf("Request enviada correctamente", string(body))
+    log.Printf("Request enviada correctamente. response=", string(body))
 }

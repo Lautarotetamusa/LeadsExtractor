@@ -18,8 +18,3 @@ def new_lead_action(lead):
     whatsapp.send_message(lead.telefono, bienvenida_1)
     whatsapp.send_message(lead.telefono, format_msg(lead, bienvenida_2))
     whatsapp.send_video(lead.telefono)
-
-def common_lead_action(lead, is_new: bool):
-    whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
-    row_lead = sheet.map_lead(lead.__dict__, headers)
-    sheet.write([row_lead])

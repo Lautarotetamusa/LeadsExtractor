@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS Source(
     PRIMARY KEY (id),
     FOREIGN KEY (property_id) REFERENCES Property(id)
 );
-INSERT INTO Source (type) VALUES ("whatsapp"), ("property");
+INSERT INTO Source (type) VALUES ("whatsapp"), ("ivr"), ("property");
 
 DROP TABLE IF EXISTS Communication;
 CREATE TABLE IF NOT EXISTS Communication(

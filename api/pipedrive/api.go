@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"leadsextractor/models"
 	"log"
@@ -12,7 +13,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-    "io"
 	"strconv"
 	"strings"
 	"time"
@@ -48,50 +48,6 @@ type Response struct{
     Data    interface{} `json:"data"`
 }
 
-type User struct{
-    Id      uint32 `json:"id"`
-    Name    string `json:"name"`
-    Email   string `json:"email"`
-}
-
-type Person struct{
-    Id      uint32 `json:"id"`
-    Name    string `json:"name"`
-    Phone   []struct{
-        Value   string  `json:"value"`
-        Primary bool    `json:"primary"`
-    } `json:"phone"`
-    Email   []struct{
-        Value   string  `json:"value"`
-        Primary bool    `json:"primary"`
-    } `json:"email"`
-}
-
-type FieldOption struct{
-    Id      uint32 `json:"id"`
-    Label   string `json:"label"`
-}
-
-var customFields = map[string]string{
-    "fuente": "0a551c8c09663ce803d924f036af12c3cc6b8b73",
-    "fecha lead": "a7b3035eaea7ae5cb3aeab97f8f91748aa8e427b",
-    "link": "180b604d295a05730ea6f453a384a3dc78bb108c",
-    "zona": "41a4e5fc09fbc6243074f02d9dc284b8f9b1a505",
-    "ubicacion": "8274fd2ca686df722bb1e78c5479acaba1067058",
-    "precio": "80b2cb3150d88f04e61e442b76d942e636596274",
-};
-
-var fuenteOptions = map[string]uint32{
-    "vivanuncios": 21,
-    "rebora": 22,
-    "inmuebles24": 23,
-    "lamudi": 24,
-    "casasyterrenos": 25,
-    "propiedades": 26,
-    "whatsapp": 74,
-    "ivr": 75,
-};
-
 func NewPipedrive(clientId string, clientSecret string, apiToken string, redirectUri string) *Pipedrive{
     client := fmt.Sprintf("%s:%s", clientId, clientSecret) 
     p := Pipedrive{
@@ -116,7 +72,7 @@ func NewPipedrive(clientId string, clientSecret string, apiToken string, redirec
 }
 
 func (p *Pipedrive) SaveCommunication(c *models.Communication){
-    asesor, err := p.getUserByName(c.Asesor.Name)
+    asesor, err := p.getUserByEmail(c.Asesor.Email)
     if err != nil{
         log.Printf("Error obteniendo el asesor %s", err)
         return
@@ -135,21 +91,33 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
     }
     fmt.Printf("Person: %v\n", person)
 
-    log.Println("Cargando deal en PipeDrive")
-    deal, err := p.createDeal(c, asesor.Id, person.Id)
+    deal, err := p.searchPersonDeal(person.Id, asesor.Id)
     if err != nil{
-        log.Printf("Error creando deal %s", err)
-        return
+        log.Println(err)
+        log.Println("Cargando deal en PipeDrive")
+        deal, err = p.createDeal(c, asesor.Id, person.Id)
+        if err != nil{
+            log.Printf("Error creando deal %s", err)
+            return
+        }
+
+        log.Printf("Deal cargando correctamente en PipeDrive")
+    }else{
+        log.Printf("El Deal ya estaba cargado")
     }
     fmt.Printf("Deal: %v\n", deal)
 
-    log.Printf("Deal cargando correctamente en PipeDrive")
+    _, err = p.addNote(c, deal.Id)
+    if err != nil {
+        log.Printf("Error cargando la nota: %s", err)
+    }else{
+        log.Printf("Nota cargada con exito")
+    }
 }
 
 func (p *Pipedrive) saveToken(){
     //Hacemos que el campo expiresIn sea el tiempo Unix en el que expirará
     p.Token.ExpiresIn = time.Now().Unix() + int64(p.Token.ExpiresIn)
-    fmt.Printf("%v\n", p.Token)
 
     file, _ := json.MarshalIndent(p.Token, "", "\t")
     fileName := fmt.Sprintf("%s.json", p.Auth.ClientId)
@@ -217,113 +185,9 @@ func (p *Pipedrive) refreshToken() *Token{
     return p.Token
 }
 
-func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (map[string]interface{}, error){
-    title := c.Propiedad.Titulo
-    if title == "" {
-        title = "Trato con " + c.Nombre
-    }
-
-    payload := map[string]interface{}{
-        "title": title,
-        "user_id": userId,
-        "person_id": personId,
-        "value": c.Propiedad.Precio,
-        "currency": "MXN",
-        "visible_to": "3", //Para todos
-    }
-
-    var deal map[string]interface{}
-    err := p.makeRequest("POST", "deals", payload, &deal)
-
-    if err != nil{
-        return nil, err
-    }
-    return deal, nil
-}
-
-func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Person, error){
-    payload := map[string]interface{}{
-        "name": c.Nombre,
-        "owner_id": ownerId,
-        "visible_to": "3", //visible para todos
-        "phone": map[string]interface{}{
-            "value": c.Telefono,
-            "primary": true,
-        },
-        customFields["fuente"]: fuenteOptions[c.Fuente],
-        customFields["fecha lead"]: c.FechaLead,
-        customFields["link"]: c.Propiedad.Link,
-        customFields["ubicacion"]: c.Propiedad.Ubicacion,
-        customFields["precio"]: c.Propiedad.Precio,
-    }
-    fmt.Printf("payload: %v", payload)
-
-    if (c.Email != ""){
-        payload["email"] = map[string]interface{}{
-            "value": c.Email,
-            "primary": true,
-        }
-    }
-
-    var person Person
-    err := p.makeRequest("POST", "persons", payload, &person)
-
-    if err != nil{
-        return nil, err
-    }
-    return &person, nil
-}
-
-func (p *Pipedrive) getPersonByNumber(number string) (*Person, error){
-    url := fmt.Sprintf("persons/search?term=%s&fields=%s", number, "phone")
-
-    var data struct{
-        Items []struct{
-            Item Person `json:"item"`
-        } `json:"items"`
-    }
-    err := p.makeRequest("GET", url, nil, &data)
-
-    if err != nil{
-        return nil, err
-    }
-    if len(data.Items) == 0{
-        return nil, fmt.Errorf("La persona con telefono %s no existe", number)
-    }
-
-    return &data.Items[0].Item, nil
-}
-
-func (p *Pipedrive) getUserByName(name string) (*User, error){
-    var users []User
-    url := fmt.Sprintf("users/find?term=%s&search_by_email=0", name)
-
-    err := p.makeRequest("GET", url, nil, &users)
-
-    if err != nil || len(users) == 0{
-        return nil, fmt.Errorf("El usuario con nombre: %s, no existe\n", name)
-    }
-
-    return &users[0], nil
-}
-
-func (p *Pipedrive) getField(id string) (*FieldOption, error){
-    var field *FieldOption
-
-    url := fmt.Sprintf("personFields/%s", id)
-    err := p.makeRequest("GET", url, nil, field)
-
-    if err != nil{
-        return nil, fmt.Errorf("El field: %s, no existe\n", id)
-    }
-
-    return field, nil
-}
-
 func (p *Pipedrive) makeRequest(method string, path string, payload interface{}, data any) (error){
     p.refreshToken()
     url := baseUrl + path
-    log.Println(url)
     
     var dataPayload io.Reader = nil
     if payload != nil {
@@ -410,8 +274,6 @@ func (p *Pipedrive) tokenApiCall(payload map[string]string) *Token{
         log.Printf("La respuesta no matchea el token esperado %v %s", debug, err)
         return nil
     }
-    fmt.Printf("Token: %v\n", token)
-    log.Println("Token obtenido con exito")
     return &token
 }
 

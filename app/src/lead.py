@@ -12,6 +12,7 @@ class Lead():
         self.email = ""
         self.message = ""
         self.estado = ""
+        self.cotizacion = ""
         self.asesor = {
             "name": "",
             "phone": ""
@@ -52,6 +53,7 @@ class Lead():
         assert self.fecha_lead != None and self.fecha_lead != '', f"El lead {self.telefono} no tiene fecha_lead"
         assert self.asesor['name'] != None and self.asesor['name'] != '', f"El lead {self.telefono} no tiene asesor asignado"
         assert self.asesor['phone'] != None and self.asesor['phone'] != '', f"El lead {self.telefono} no tiene asesor asignado"
+        assert self.cotizacion != None and self.cotizacion != '', f"El lead {self.telefono} no tiene cotizacion"
 
     #No funciona recursivamente, si por ejemplo asesor solo tiene nombre devolverá el asesor con nombre y el telefono vacio.
     def get_no_empty_values(self) -> dict[str, str]:

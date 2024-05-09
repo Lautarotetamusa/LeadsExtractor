@@ -36,7 +36,7 @@ func (s *LeadMySqlStorage) GetAll() (*[]models.Lead, error){
 
 func (s *LeadMySqlStorage) GetOne(phone string) (*models.Lead, error){
     query := `SELECT 
-        a.phone as "Asesor.phone", a.name as "Asesor.name",
+        a.phone as "Asesor.phone", a.name as "Asesor.name", a.email as "Asesor.email",
         l.phone, l.name, l.email
         FROM Leads l
         INNER JOIN Asesor a
