@@ -86,14 +86,16 @@ def recive_ivr_call():
     pdf_url = jotform.new_submission(logger, lead) 
     if pdf_url != None:
         lead.cotizacion = pdf_url
-        whatsapp.send_document(lead.telefono, pdf_url, 
-            filename=f"Cotizacion para {lead.nombre}",
-            caption=cotizacion_msj
-        )
     else:
         logger.error("No se pudo obtener la cotizacion en pdf")
 
     whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
+
+    whatsapp.send_document(lead.telefono, lead.cotizacion, 
+        filename=f"Cotizacion para {lead.nombre}",
+        caption=cotizacion_msj
+    )
+
     return lead.asesor
 
 @app.route('/webhooks', methods=['POST'])
@@ -132,6 +134,18 @@ def recive_wpp_msg():
     if lead == None:
         return ''
 
+    if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
+        cotizacion_msj = cotizacion_2
+    else:
+        cotizacion_msj = cotizacion_1
+    pdf_url = jotform.new_submission(logger, lead) 
+    if pdf_url != None:
+        lead.cotizacion = pdf_url
+    else:
+        logger.error("No se pudo obtener la cotizacion en pdf")
+
+    lead.validate()
+
     if is_new: #Lead nuevo
         new_lead_action(lead)
         save = True
@@ -152,21 +166,12 @@ def recive_wpp_msg():
             save = True
 
     if save:
-        if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
-            cotizacion_msj = cotizacion_2
-        else:
-            cotizacion_msj = cotizacion_1
-        pdf_url = jotform.new_submission(logger, lead) 
-        if pdf_url != None:
-            lead.cotizacion = pdf_url
-            whatsapp.send_document(lead.telefono, pdf_url, 
-                filename=f"Cotizacion para {lead.nombre}",
-                caption=cotizacion_msj
-            )
-        else:
-            logger.error("No se pudo obtener la cotizacion en pdf")
-
         whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
+
+    whatsapp.send_document(lead.telefono, lead.cotizacion, 
+        filename=f"Cotizacion para {lead.nombre}",
+        caption=cotizacion_msj
+    )
 
     return lead.asesor
 
