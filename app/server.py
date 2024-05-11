@@ -74,7 +74,6 @@ def recive_ivr_call():
     if lead == None:
         return
 
-    lead.validate()
     if is_new: #Lead nuevo
         new_lead_action(lead)
     else: #Lead existente
@@ -132,7 +131,7 @@ def recive_wpp_msg():
     is_new, lead = api.new_communication(logger, lead)
     if lead == None:
         return ''
-    lead.validate()
+
     if is_new: #Lead nuevo
         new_lead_action(lead)
         save = True
