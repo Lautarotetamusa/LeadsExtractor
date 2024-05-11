@@ -7,7 +7,7 @@ import threading
 import json
 import os
 
-from src.server_actions import common_lead_action, new_lead_action
+from src.server_actions import new_lead_action
 from src.whatsapp import Whatsapp
 from src.logger import Logger
 from src.lead import Lead
