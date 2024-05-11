@@ -47,9 +47,9 @@ def generate_url(logger: Logger, lead: Lead) -> str | None:
     url = f"https://www.jotform.com/{FORM_ID}"
     params = {
         "nombreCliente": lead.nombre,
-        "emailCliente": lead.email,
+        "emailCliente": lead.email if lead.email != "" and lead.email != None else "cotizaciones@rebora.com.mx",
         "escribaUna": lead.asesor['name'],
-        "email123": "john@example.com",
+        "email123": lead.asesor['email'],
         "numeroDe[full]": lead.asesor['phone'],
         "pagoInicial": "2,500,000",
         "pagoInicial118": "25%",

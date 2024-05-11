@@ -15,7 +15,8 @@ class Lead():
         self.cotizacion = ""
         self.asesor = {
             "name": "",
-            "phone": ""
+            "phone": "",
+            "email": "",
         }
         self.propiedad = {
             "id": "",
