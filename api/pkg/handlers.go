@@ -111,7 +111,6 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
         return err
     }
 
-    fmt.Printf("%v\n", c)
     go s.pipedrive.SaveCommunication(&c)
 
     infobipLead := infobip.Communication2Infobip(&c) 

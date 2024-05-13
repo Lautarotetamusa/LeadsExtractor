@@ -60,7 +60,6 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         customFields["precio"]: c.Propiedad.Precio,
         customFields["cotizacion"]: c.Cotizacion,
     }
-    fmt.Printf("payload: %v", payload)
 
     if (c.Email != ""){
         payload["email"] = PersonChannel{

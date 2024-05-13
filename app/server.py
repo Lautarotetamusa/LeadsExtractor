@@ -24,12 +24,6 @@ whatsapp = Whatsapp()
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 
-with open(f"messages/plantilla_cotizacion_1.txt", 'r') as f:
-    cotizacion_1 = f.read()
-
-with open(f"messages/plantilla_cotizacion_2.txt", 'r') as f:
-    cotizacion_2 = f.read()
-
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
@@ -63,6 +57,7 @@ def recive_ivr_call():
         "fecha_lead": fecha,
         "fecha": fecha
     })
+
     telefono = parse_number(logger, phone, "MX")
     if not telefono:
         #Si el numero no es mexicano va a llegar con un 52 adelante igual por ejemplo 525493415854220
@@ -70,26 +65,18 @@ def recive_ivr_call():
         telefono = parse_number(logger, "+"+phone)
     lead.telefono = telefono or lead.telefono
 
+    pdf_url = jotform.new_submission(logger, lead) 
+    if pdf_url != None:
+        lead.cotizacion = pdf_url
+    else:
+        logger.error("No se pudo obtener la cotizacion en pdf")
+
     is_new, lead = api.new_communication(logger, lead)
     if lead == None:
         return
 
     if is_new: #Lead nuevo
-        new_lead_action(lead)
-
-        if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
-            cotizacion_msj = cotizacion_2
-        else:
-            cotizacion_msj = cotizacion_1
-        pdf_url = jotform.new_submission(logger, lead) 
-        if pdf_url != None:
-            lead.cotizacion = pdf_url
-            whatsapp.send_document(lead.telefono, pdf_url, 
-                filename=f"Cotizacion para {lead.nombre}",
-                caption=cotizacion_msj
-            )
-        else:
-            logger.error("No se pudo obtener la cotizacion en pdf")
+        new_lead_action(whatsapp, lead)
     else: #Lead existente
         whatsapp.send_response(lead.telefono, lead.asesor)
 
@@ -129,27 +116,18 @@ def recive_wpp_msg():
     lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
 
     save = False
+    pdf_url = jotform.new_submission(logger, lead) 
+    if pdf_url != None:
+        lead.cotizacion = pdf_url
+    else:
+        logger.error("No se pudo obtener la cotizacion en pdf")
+
     is_new, lead = api.new_communication(logger, lead)
     if lead == None:
-        return ''
+        return
 
     if is_new: #Lead nuevo
-        new_lead_action(lead)
-
-        if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
-            cotizacion_msj = cotizacion_2
-        else:
-            cotizacion_msj = cotizacion_1
-        pdf_url = jotform.new_submission(logger, lead) 
-        if pdf_url != None:
-            lead.cotizacion = pdf_url
-            whatsapp.send_document(lead.telefono, pdf_url, 
-                filename=f"Cotizacion para {lead.nombre}",
-                caption=cotizacion_msj
-            )
-        else:
-            logger.error("No se pudo obtener la cotizacion en pdf")
-
+        new_lead_action(whatsapp, lead)
         save = True
     else: #Lead existente
         assert lead.fecha_lead != "" and lead.fecha_lead != None, f"El lead {lead.telefono} no tiene fecha de lead"

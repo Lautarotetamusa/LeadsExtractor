@@ -43,7 +43,6 @@ func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, erro
         Content: content,
         DealId: dealId,
     }
-    fmt.Printf("payload: %v", payload)
 
     var note Note
     err := p.makeRequest("POST", "notes", payload, &note)

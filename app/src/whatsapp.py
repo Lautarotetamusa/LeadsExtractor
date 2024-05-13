@@ -40,6 +40,17 @@ class Whatsapp():
         self.logger.success("Mensaje enviado con exito")
         self.logger.debug(res.text)
 
+    def new_lead_action(lead):
+        if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
+            cotizacion_msj = cotizacion_2
+        else:
+            cotizacion_msj = cotizacion_1
+
+        whatsapp.send_image(lead.telefono)
+        whatsapp.send_message(lead.telefono, bienvenida_1)
+        whatsapp.send_message(lead.telefono, format_msg(lead, bienvenida_2))
+        whatsapp.send_video(lead.telefono)
+
     def send_message(self, to: str, message: str):
         assert to != None, "El numero de telefono receptor es None"
 
