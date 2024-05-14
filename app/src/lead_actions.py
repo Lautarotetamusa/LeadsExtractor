@@ -1,4 +1,4 @@
-from message import format_msg
+from src.message import format_msg
 from src.whatsapp import Whatsapp
 from src.lead import Lead
 

@@ -3,7 +3,6 @@ import json
 import time
 import os
 from typing import Iterator
-from server_actions import new_lead_action
 
 from src.lead import Lead
 from src.make_requests import Request
@@ -11,6 +10,7 @@ from src.logger import Logger
 from src.message import format_msg
 from src.sheets import Gmail, Sheet 
 from src.whatsapp import Whatsapp
+from src.lead_actions import new_lead_action
 import src.api as api
 import src.jotform as jotform
 
@@ -70,18 +70,10 @@ class Portal():
             'gmail_spin': 'gmail.html',
             'gmail_subject': 'gmail_subject.html',
             'response_msg': 'response_message.txt',
-            'bienvenida_1': 'bienvenida_1.txt',
-            'bienvenida_2': 'bienvenida_2.txt',
-            'cotizacion_1': 'plantilla_cotizacion_1.txt',
-            'cotizacion_2': 'plantilla_cotizacion_2.txt',
         }
         self.gmail_spin = ""
         self.gmail_subject = ""
         self.response_msg = ""
-        self.bienvenida_1 = ""
-        self.bienvenida_2 = ""
-        self.cotizacion_1 = ""
-        self.cotizacion_2 = ""
 
         for resource in resources:
             with open(f"messages/{resources[resource]}", 'r') as f:
