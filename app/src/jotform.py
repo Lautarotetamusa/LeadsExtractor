@@ -18,6 +18,10 @@ API_URL = "https://api.jotform.com"
 PDF_URL = "https://www.jotform.com/pdf-submission/{submissionID}"
 
 def generate_url(logger: Logger, lead: Lead) -> str | None:
+    if lead.asesor['email'] == None or lead.asesor['email'] == "":
+        logger.error(f"El asesor {lead.asesor['name'] }no tiene email asignado")
+        return None
+
     #Valores por defecto
     if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
         lead.busquedas['covered_area'] = '350, 350'
@@ -99,7 +103,6 @@ def new_submission(logger: Logger, lead: Lead) -> None | str:
         button.click()
     except Exception as e:
         logger.error("driver error: " + str(e))
-        driver.close()
         return None
     finally:
         driver.close()

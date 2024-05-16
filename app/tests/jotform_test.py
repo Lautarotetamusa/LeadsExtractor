@@ -25,7 +25,8 @@ lead.set_args({
 })
 lead.set_asesor({
     "name": "Asesor de prueba nro 2",
-    "phone": "+54 9 999999999"
+    "phone": "+54 9 999999999",
+    "email": "test@test.com"
 })
 lead.set_propiedad({
     "id": "a78c1555-f684-4de7-bbf1-a7288461fe51",
@@ -60,16 +61,4 @@ def save_questions():
         json.dump(questions, f, indent=4)
 
 if __name__ == "__main__":
-    logger = Logger("Test")
-    """
-    pdf_url = jotform.new_submission(logger, lead)
-    print(pdf_url)
-    wpp = Whatsapp(logger)
-    if pdf_url != None:
-        wpp.send_document(lead.telefono, pdf_url, 
-                          filename=f"Cotizacion para {lead.nombre}",
-                          caption="hola"
-                          )
-    """
-    pdf_url = jotform.new_submission(logger, lead)
-    print(pdf_url)
+    test_new_submission()
