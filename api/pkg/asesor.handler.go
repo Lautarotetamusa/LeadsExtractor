@@ -11,6 +11,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type ReasignData struct {
+    Phone   string `json:"phone"`
+}
+
 type AsesorHandler struct{
     Store store.AsesorStorer
 }
@@ -41,6 +45,41 @@ func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error{
     successResponse(w, r, "Asesores actualizados correctamente", nil)
     return nil
 }
+
+/*
+func (h *AsesorHandler) Reasign(w http.ResponseWriter, r *http.Request) error{
+    phone := r.URL.Query().Get("phone")
+    if err != nil {
+        return err
+    }
+
+    leads, err := h.Store.GetLeads(phone)
+    if len(leads) == 0 || err{
+        return fmt.Errorf("No se encontraron leads para el asesor %s. \nerr: %s", phone, err)
+    }
+    
+    asesores, err := h.Store.GetAllExcept(phone)
+    if err != nil {
+        return err
+    }
+
+    each := math.Floor(len(leads) / len(asesores))
+    for i, asesor := range asesores{
+        query := `
+            UPDATE FROM Leads
+            SET asesor_phone = ?
+            WHERE phone IN (?)
+        `
+
+        query, args, err := h.Store.Db.In(query, asesor.Phone, leads[i:i+each])
+        query = h.Store.Db.Rebind(query)
+        err = h.Store.Db.Query(query, args...)
+        if err != nil{
+            return fmt.Errorf("No se pudo reasignar los leads err: %s", err)
+        }
+    }
+}
+*/
 
 func (h *AsesorHandler) GetAll(w http.ResponseWriter, r *http.Request) error{
     asesores, err := h.Store.GetAll()

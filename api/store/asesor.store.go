@@ -9,9 +9,11 @@ import (
 
 type AsesorStorer interface {
     GetAll() (*[]models.Asesor, error)
+    GetAllExcept(string) (*[]models.Asesor, error)
     GetOne(string) (*models.Asesor, error)
     Insert(*models.Asesor) (*models.Asesor, error)
     Update(*models.Asesor, string) error
+    GetLeads() (*[]models.Lead, error)
 }
 
 type AsesorMysqlStorage struct{
@@ -24,6 +26,26 @@ func (s *AsesorMysqlStorage) GetAll() (*[]models.Asesor, error){
         return nil, err
     }
     return &asesores, nil 
+}
+
+func (s *AsesorMysqlStorage) GetAllExcept(phone string) (*[]models.Asesor, error){
+    asesores := []models.Asesor{}
+    if err := s.Db.Select(&asesores, "SELECT * FROM Asesor where phone != ?", phone); err != nil{
+        return nil, err
+    }
+    return &asesores, nil 
+}
+
+func (s *AsesorMysqlStorage) GetLeads() (*[]models.Lead, error){
+    query := `
+        SELECT * FROM Leads
+        WHERE asesor_phone = ?
+    `
+    leads := []models.Lead{}
+    if err := s.Db.Select(&leads, query); err != nil{
+        return nil, err
+    }
+    return &leads, nil 
 }
 
 func (s *AsesorMysqlStorage) GetOne(phone string) (*models.Asesor, error){
