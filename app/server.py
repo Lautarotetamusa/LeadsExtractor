@@ -75,9 +75,7 @@ def recive_ivr_call():
     else:
         logger.error("No se pudo obtener la cotizacion en pdf")
 
-    _, lead = api.new_communication(logger, lead)
-    if lead == None:
-        return
+    api.new_communication(logger, lead)
 
     if is_new: #Lead nuevo
         new_lead_action(whatsapp, lead)
@@ -130,9 +128,7 @@ def recive_wpp_msg():
     else:
         logger.error("No se pudo obtener la cotizacion en pdf")
 
-    _, lead = api.new_communication(logger, lead)
-    if lead == None:
-        return
+    api.new_communication(logger, lead)
 
     if is_new: #Lead nuevo
         new_lead_action(whatsapp, lead)

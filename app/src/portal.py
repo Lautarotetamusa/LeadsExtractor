@@ -122,9 +122,7 @@ class Portal():
                 else:
                     self.logger.error("No se pudo obtener la cotizacion en pdf")
 
-                _, lead = api.new_communication(self.logger, lead)
-                if lead == None:
-                    continue
+                api.new_communication(self.logger, lead)
 
                 lead.print()
 
