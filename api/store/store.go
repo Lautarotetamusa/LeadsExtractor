@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"leadsextractor/models"
+	"log/slog"
 	"slices"
 
 	"github.com/jmoiron/sqlx"
@@ -11,11 +12,13 @@ import (
 
 type Store struct {
 	Db *sqlx.DB
+    logger *slog.Logger
 }
 
-func NewStore(db *sqlx.DB) *Store {
+func NewStore(db *sqlx.DB, logger *slog.Logger) *Store {
 	return &Store{
 		Db: db,
+        logger: logger,
 	}
 }
 
@@ -46,43 +49,51 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 	return &source, nil
 }
 
+func (s *Store) insertProperty(c *models.Communication, p *models.Property) error {
+    query := "INSERT INTO Property (portal_id, title, url, price, ubication, tipo, portal) VALUES (:portal_id, :title, :url, :price, :ubication, :tipo, :portal)"
+    property := models.Property{
+        PortalId:  c.Propiedad.ID,
+        Title:     c.Propiedad.Titulo,
+        Url:       c.Propiedad.Link,
+        Price:     c.Propiedad.Precio,
+        Ubication: c.Propiedad.Ubicacion,
+        Tipo:      c.Propiedad.Tipo,
+        Portal:    c.Fuente,
+    }
+    if _, err := s.Db.NamedExec(query, &property); err != nil {
+        return err
+    }
+
+    query = "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
+    err := s.Db.Get(&p, query, c.Propiedad.ID, c.Fuente)
+    if err != nil {
+        return err
+    }
+    return nil
+}
+
+func (s *Store) insertSource(propertyId int) error {
+    source := models.Source{
+        Tipo:       "property",
+        PropertyId: sql.NullInt16{Int16: int16(propertyId), Valid: true},
+    }
+    query := "INSERT INTO Source (type, property_id) VALUES(:type, :property_id)"
+    if _, err := s.Db.NamedExec(query, source); err != nil {
+        return err
+    }
+    return nil
+}
+
 func (s *Store) insertOrGetProperty(c *models.Communication) (*models.Property, error) {
 	property := models.Property{}
 	query := "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
 	err := s.Db.Get(&property, query, c.Propiedad.ID, c.Fuente)
 
 	if err == sql.ErrNoRows {
-		fmt.Println("No se encontro Property")
-
-		query := "INSERT INTO Property (portal_id, title, url, price, ubication, tipo, portal) VALUES (:portal_id, :title, :url, :price, :ubication, :tipo, :portal)"
-		property = models.Property{
-			PortalId:  c.Propiedad.ID,
-			Title:     c.Propiedad.Titulo,
-			Url:       c.Propiedad.Link,
-			Price:     c.Propiedad.Precio,
-			Ubication: c.Propiedad.Ubicacion,
-			Tipo:      c.Propiedad.Tipo,
-			Portal:    c.Fuente,
-		}
-		if _, err := s.Db.NamedExec(query, &property); err != nil {
-			return nil, err
-		}
-
-		query = "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
-		err := s.Db.Get(&property, query, c.Propiedad.ID, c.Fuente)
-		if err != nil {
-			return nil, err
-		}
-
-		//Cargamos el source
-		source := models.Source{
-			Tipo:       "property",
-			PropertyId: sql.NullInt16{Int16: int16(property.Id), Valid: true},
-		}
-		query = "INSERT INTO Source (type, property_id) VALUES(:type, :property_id)"
-		if _, err = s.Db.NamedExec(query, source); err != nil {
-			return nil, err
-		}
+        slog.Debug("No se encontro property")
+    
+        s.insertProperty(c, &property)
+        s.insertSource(property.Id)
 	}
 
 	return &property, nil

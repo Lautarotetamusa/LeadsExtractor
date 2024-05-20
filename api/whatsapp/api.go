@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"leadsextractor/models"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -19,6 +20,7 @@ type Whatsapp struct {
 	videoId     string
 	client      *http.Client
 	url         string
+    logger      *slog.Logger
 }
 
 type Response struct {
@@ -71,6 +73,19 @@ type Payload struct {
 	Image            *MediaPayload    `json:"image,omitempty"`
 	Video            *MediaPayload    `json:"video,omitempty"`
 	Document         *DocumentPayload `json:"document,omitempty"`
+}
+
+func NewWhatsapp(accesToken string, numberId string, l *slog.Logger) *Whatsapp {
+	w := &Whatsapp{
+		client: &http.Client{
+			Timeout: 15 * time.Second,
+		},
+		accessToken: accesToken,
+		numberId:    numberId,
+		url:         fmt.Sprintf(baseUrl, numberId),
+        logger:      l.With("module", "Whatsapp"),
+	}
+	return w
 }
 
 func newPayload(to string, tipo string) *Payload {
@@ -130,22 +145,9 @@ func NewDocumentPayload(to string, link string, caption string, filename string)
 	return p
 }
 
-func NewWhatsapp(accesToken string, numberId string) *Whatsapp {
-	w := &Whatsapp{
-		client: &http.Client{
-			Timeout: 15 * time.Second,
-		},
-		accessToken: accesToken,
-		numberId:    numberId,
-		url:         fmt.Sprintf(baseUrl, numberId),
-	}
-	fmt.Printf("url: %s\n", w.url)
-	return w
-}
-
 func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	jsonBody, _ := json.Marshal(payload)
-	fmt.Printf("%v\n", payload)
+	w.logger.Debug(fmt.Sprintf("%v\n", payload))
 	bodyReader := bytes.NewReader(jsonBody)
 
 	req, err := http.NewRequest(http.MethodPost, w.url, bodyReader)
@@ -173,10 +175,11 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	if len(data.Messages) == 0 {
 		var debug interface{}
 		_ = json.Unmarshal(bodyBytes, &debug)
-		fmt.Printf("debug: %v", debug)
+		w.logger.Debug(fmt.Sprintf("debug: %v", debug))
 		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
 	}
 
+    w.logger.Info("Mensaje enviando correctamente")
 	return &data, nil
 }
 
@@ -236,6 +239,5 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		Type:       "body",
 		Parameters: parameters,
 	}}
-	fmt.Printf("%v\n", components)
 	return w.Send(newTemplatePayload(to, templateName, components))
 }

@@ -3,7 +3,11 @@ package whatsapp
 import (
 	"fmt"
 	"leadsextractor/models"
+	"log/slog"
+	"os"
 	"testing"
+
+	"github.com/lmittmann/tint"
 )
 
 const phone = "+5493415854220"
@@ -12,6 +16,7 @@ func TestSendMessage(t *testing.T) {
 	w := NewWhatsapp(
 		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
 		"193151663891728",
+        slog.New(tint.NewHandler(os.Stderr, nil)),
 	)
 
 	res, err := w.SendMessage(phone, "Hola! mensaje de prueba")
@@ -25,6 +30,7 @@ func TestSendTemplate(t *testing.T) {
 	w := NewWhatsapp(
 		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
 		"193151663891728",
+        slog.New(tint.NewHandler(os.Stderr, nil)),
 	)
 
 	a := &models.Asesor{
@@ -44,6 +50,7 @@ func TestSendDocument(t *testing.T) {
 	w := NewWhatsapp(
 		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
 		"193151663891728",
+        slog.New(tint.NewHandler(os.Stderr, nil)),
 	)
 
 	url := "https://www.frro.utn.edu.ar/repositorio/catedras/quimica/5_anio/orientadora1/monograias/matich-redesneuronales.pdf"
@@ -58,6 +65,7 @@ func TestSendMsgAsesor(t *testing.T) {
 	w := NewWhatsapp(
 		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
 		"193151663891728",
+        slog.New(tint.NewHandler(os.Stderr, nil)),
 	)
 
 	c := &models.Communication{

@@ -4,20 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"leadsextractor/models"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
-	"os"
 )
 
-func NewInfobipApi() *InfobipApi{
+func NewInfobipApi(apiUrl string, apiKey string, sender string, l *slog.Logger) *InfobipApi{
     return &InfobipApi{
-        apiUrl: os.Getenv("INFOBIP_APIURL"),
-        apiKey: os.Getenv("INFOBIP_APIKEY"),
-        sender: "5213328092850",
+        apiUrl: apiUrl,
+        apiKey: apiKey,
+        sender: sender,
         client: &http.Client{},
+        logger: l.With("module", "infobip"),
     }
 }
 
@@ -70,7 +71,7 @@ func (i *InfobipApi) SendWppTextMessage(to string, message string){
 }
 
 func (i *InfobipApi) SaveLead(lead *InfobipLead){
-    log.Println("Cargando lead a infobip")
+    i.logger.Info("Cargando lead")
     go i.makeRequest("POST", "/people/2/persons", lead)
 }
 
@@ -110,20 +111,20 @@ func Communication2Infobip(c *models.Communication) *InfobipLead{
 func (i *InfobipApi) makeRequest(method string, path string, payload interface{}){
     postBody, err := json.MarshalIndent(payload, "", "\t")
     if err != nil{
-        log.Printf("No se pudo parsear el payload", err)
+        i.logger.Error("No se pudo parsear el payload", "err", err)
         return
     }
     data := bytes.NewBuffer(postBody)
 
     url, err := url.JoinPath(i.apiUrl, path)
     if err != nil{
-        log.Printf("La url es incorrecta", path)
+        i.logger.Error("La url es incorrecta", "path", path)
         return
     }
 
     req, err := http.NewRequest(method, url, data)
     if err != nil{
-        log.Printf("No se pudo construir la request", err)
+        i.logger.Error("No se pudo construir la request", "err", err)
         return
     }
 
@@ -132,16 +133,21 @@ func (i *InfobipApi) makeRequest(method string, path string, payload interface{}
 
     res, err := i.client.Do(req) 
     if err != nil{
-        log.Printf("Error en la request", err)
+        i.logger.Error("Error en la request", "err", err)
         return
     }
 
     defer res.Body.Close()
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := io.ReadAll(res.Body)
     if err != nil {
-        log.Printf("Error obteniendo la respuesta", err)
+        i.logger.Error("Error obteniendo la respuesta", "err", err)
         return
     }
 
-    log.Printf("Request enviada correctamente. response=", string(body))
+    if res.StatusCode != http.StatusOK {
+        i.logger.Warn("Response not ok", "status", res.StatusCode, "res", string(body))
+        return
+    }
+
+    i.logger.Info("Request enviada correctamente", "res", string(body))
 }

@@ -1,12 +1,16 @@
 package infobip
 
-import "net/http"
+import (
+	"log/slog"
+	"net/http"
+)
 
 type InfobipApi struct{
    apiUrl string
    apiKey string
    sender string
    client *http.Client
+   logger *slog.Logger
 }
 
 type SendMessage struct{
@@ -22,7 +26,7 @@ type MediaContent struct{
     MediaUrl string `json:"mediaUrl"`
 }
 type TemplateContent struct{
-    TemplateName string `json:"template_name`
+    TemplateName string `json:"template_name"`
     Language     string `json:"language"`   
 }
 type SendTemplatesPayload struct{

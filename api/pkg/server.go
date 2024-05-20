@@ -5,7 +5,7 @@ import (
 	"leadsextractor/infobip"
 	"leadsextractor/pipedrive"
 	"leadsextractor/store"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,24 +13,32 @@ import (
 )
 
 type Server struct {
-	listenAddr string
-	roundRobin *store.RoundRobin
-	infobipApi *infobip.InfobipApi
-	pipedrive  *pipedrive.Pipedrive
-	Store      *store.Store
+    listenAddr string
+    roundRobin *store.RoundRobin
+    infobipApi *infobip.InfobipApi
+    pipedrive  *pipedrive.Pipedrive
+    Store      *store.Store
+    logger      *slog.Logger
 }
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
 type HandlerFn func(w http.ResponseWriter, r *http.Request)
 
-func NewServer(listenAddr string, db *sqlx.DB, infobipApi *infobip.InfobipApi, pipedrive *pipedrive.Pipedrive) *Server {
-	s := store.NewStore(db)
+func NewServer(
+    listenAddr string, 
+    logger *slog.Logger,
+    db *sqlx.DB, 
+    infobipApi *infobip.InfobipApi, 
+    pipedrive *pipedrive.Pipedrive,
+) *Server {
+	s := store.NewStore(db, logger)
 	return &Server{
 		listenAddr: listenAddr,
 		roundRobin: store.NewRoundRobin(s),
 		infobipApi: infobipApi,
 		pipedrive:  pipedrive,
 		Store:      s,
-	}
+        logger:     logger,
+    }
 }
 
 func (s *Server) Run() {
@@ -56,12 +64,12 @@ func (s *Server) Run() {
 
 	router.HandleFunc("/pipedrive", handleErrors(s.HandlePipedriveOAuth)).Methods("GET")
 
-	fmt.Printf("Server started at %s\n", s.listenAddr)
+	s.logger.Info(fmt.Sprintf("Server started at %s", s.listenAddr))
 	err := http.ListenAndServe(s.listenAddr, router)
 	if err != nil {
-		log.Fatal("No se pudo iniciar el server\n", err)
+		s.logger.Error("No se pudo iniciar el server\n", err)
 	}
-	fmt.Printf("Server started at %s\n", s.listenAddr)
+	s.logger.Info(fmt.Sprintf("Server started at %s\n", s.listenAddr))
 }
 
 func CORS(next http.Handler) http.Handler {

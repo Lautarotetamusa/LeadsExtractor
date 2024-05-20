@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"leadsextractor/models"
 	"log"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -21,11 +21,12 @@ import (
 const baseUrl = "https://api.pipedrive.com/v1/"
 
 type Pipedrive struct{
-    Token       *Token 
-    Auth        Auth
-    ApiToken    string
-    RedirectUri string
-    Client      *http.Client
+    token       *Token 
+    auth        Auth
+    apiToken    string
+    redirectUri string
+    client      *http.Client
+    logger      *slog.Logger
     State       string
 }
 
@@ -38,9 +39,9 @@ type Token struct{
 }
 
 type Auth struct{
-    ClientId        string
-    ClientSecret    string
-    Value           string
+    clientId        string
+    clientSecret    string
+    value           string
 }
 
 type Response struct{
@@ -48,24 +49,25 @@ type Response struct{
     Data    interface{} `json:"data"`
 }
 
-func NewPipedrive(clientId string, clientSecret string, apiToken string, redirectUri string) *Pipedrive{
+func NewPipedrive(clientId string, clientSecret string, apiToken string, redirectUri string, l *slog.Logger) *Pipedrive{
     client := fmt.Sprintf("%s:%s", clientId, clientSecret) 
     p := Pipedrive{
-        Auth: Auth{
-            ClientId: clientId,
-            ClientSecret: clientSecret,
-            Value: fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(client))),
+        auth: Auth{
+            clientId: clientId,
+            clientSecret: clientSecret,
+            value: fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(client))),
         },
-        Client: &http.Client{
+        client: &http.Client{
             Timeout: 15 * time.Second,
         },
-        RedirectUri: redirectUri,
-        ApiToken: apiToken,
-        Token: nil,
+        redirectUri: redirectUri,
+        apiToken: apiToken,
+        token: nil,
+        logger: l.With("module", "pipedrive"),
     } 
     p.loadToken()
 
-    if p.Token != nil{
+    if p.token != nil{
         p.refreshToken()        
     }
     return &p
@@ -74,80 +76,80 @@ func NewPipedrive(clientId string, clientSecret string, apiToken string, redirec
 func (p *Pipedrive) SaveCommunication(c *models.Communication){
     asesor, err := p.getUserByEmail(c.Asesor.Email)
     if err != nil{
-        log.Printf("Error obteniendo el asesor %s", err)
+        p.logger.Error("Error obteniendo el asesor %s", "err", err)
         return
     }
-    fmt.Printf("Asesor: %v\n", asesor)
+    p.logger.Debug(fmt.Sprintf("Asesor: %v", asesor))
 
     person, err := p.getPersonByNumber(c.Telefono)
     if err != nil{
-        log.Println(err)
-        log.Println("Creando persona en PipeDrive")
+        p.logger.Warn("No se encontro al asesor", "err", err)
+        p.logger.Debug("Creando asesor en PipeDrive")
         person, err = p.createPerson(c, asesor.Id)
         if err != nil{
-            log.Printf("Error creando persona %s", err)
+            p.logger.Error("Error creando persona", "err", err)
             return
         }
     }
-    fmt.Printf("Person: %v\n", person)
+    p.logger.Debug(fmt.Sprintf("Person: %v", person))
 
     deal, err := p.searchPersonDeal(person.Id, asesor.Id)
     if err != nil{
-        log.Println(err)
-        log.Println("Cargando deal en PipeDrive")
+        p.logger.Warn("No se encontro al deal", "err", err)
+        p.logger.Debug("Cargando deal en PipeDrive")
         deal, err = p.createDeal(c, asesor.Id, person.Id)
         if err != nil{
-            log.Printf("Error creando deal %s", err)
+            p.logger.Error("Error creando deal", "err", err)
             return
         }
 
-        log.Printf("Deal cargando correctamente en PipeDrive")
+        p.logger.Info("Deal cargando correctamente en PipeDrive")
     }else{
-        log.Printf("El Deal ya estaba cargado")
+        p.logger.Info("El Deal ya estaba cargado")
     }
-    fmt.Printf("Deal: %v\n", deal)
+    p.logger.Debug(fmt.Sprintf("Deal: %v", deal))
 
     _, err = p.addNote(c, deal.Id)
     if err != nil {
-        log.Printf("Error cargando la nota: %s", err)
+        p.logger.Error("Error cargando la nota", "err", err)
     }else{
-        log.Printf("Nota cargada con exito")
+        p.logger.Info("Nota cargada con exito")
     }
 }
 
 func (p *Pipedrive) saveToken(){
     //Hacemos que el campo expiresIn sea el tiempo Unix en el que expirará
-    p.Token.ExpiresIn = time.Now().Unix() + int64(p.Token.ExpiresIn)
+    p.token.ExpiresIn = time.Now().Unix() + int64(p.token.ExpiresIn)
 
-    file, _ := json.MarshalIndent(p.Token, "", "\t")
-    fileName := fmt.Sprintf("%s.json", p.Auth.ClientId)
+    file, _ := json.MarshalIndent(p.token, "", "\t")
+    fileName := fmt.Sprintf("%s.json", p.auth.clientId)
 
-    err := ioutil.WriteFile(fileName, file, 0644)
+    err := os.WriteFile(fileName, file, 0644)
     if err != nil{
         log.Fatal("No se pudo guardar el token en el archivo")
     }
 }
 
 func (p *Pipedrive) loadToken() *Token{
-    fileName := fmt.Sprintf("%s.json", p.Auth.ClientId)
+    fileName := fmt.Sprintf("%s.json", p.auth.clientId)
 
     tokenFile, err := os.Open(fileName) 
-    defer tokenFile.Close()
     if err != nil{
         p.State = randomString(10) 
-        callbackUrl := fmt.Sprintf("https://oauth.pipedrive.com/oauth/authorize?client_id=%s&state=%s&redirect_uri=%s", p.Auth.ClientId, p.State, p.RedirectUri)
-        log.Println("No se pudo abrir el archivo", fileName)
+        callbackUrl := fmt.Sprintf("https://oauth.pipedrive.com/oauth/authorize?client_id=%s&state=%s&redirect_uri=%s", p.auth.clientId, p.State, p.redirectUri)
+        p.logger.Warn("No se pudo abrir el archivo", "file", fileName)
         log.Println("Autoriza la aplicacion: ", callbackUrl)
         return nil
     }
-    bytes, _ := ioutil.ReadAll(tokenFile)
+    defer tokenFile.Close()
+    bytes, _ := io.ReadAll(tokenFile)
 
     var token Token 
     err = json.Unmarshal(bytes, &token)
     if err != nil{
         log.Fatal("No se pudo leer el archivo", fileName)
     }
-    p.Token = &token
+    p.token = &token
     return &token
 }
 
@@ -155,37 +157,37 @@ func (p *Pipedrive) ExchangeCodeToToken(code string) *Token{
     payload := map[string]string{
 		"grant_type": "authorization_code",
 		"code": code,
-		"redirect_uri": p.RedirectUri,
+		"redirect_uri": p.redirectUri,
     }
     
-    p.Token = p.tokenApiCall(payload)
-    if p.Token != nil{
+    p.token = p.tokenApiCall(payload)
+    if p.token != nil{
         p.saveToken()
     }
-    return p.Token
+    return p.token
 }
 
 func (p *Pipedrive) refreshToken() *Token{
-    if time.Now().Unix() > p.Token.ExpiresIn{
-        if p.Token == nil{
+    if time.Now().Unix() > p.token.ExpiresIn{
+        if p.token == nil{
             log.Fatal("No se puede refrescar un token que no existe")
         }
 
-        log.Println("Refrescando token")
+        p.logger.Info("Refrescando token")
         payload := map[string]string{
             "grant_type": "refresh_token",
-            "refresh_token": p.Token.RefreshToken,
+            "refresh_token": p.token.RefreshToken,
         }
 
-        p.Token = p.tokenApiCall(payload)
-        if p.Token != nil{
+        p.token = p.tokenApiCall(payload)
+        if p.token != nil{
             p.saveToken()
         }
     }
-    return p.Token
+    return p.token
 }
 
-func (p *Pipedrive) makeRequest(method string, path string, payload interface{}, data any) (error){
+func (p *Pipedrive) makeRequest(method string, path string, payload interface{}, data any) error {
     p.refreshToken()
     url := baseUrl + path
     
@@ -193,7 +195,7 @@ func (p *Pipedrive) makeRequest(method string, path string, payload interface{},
     if payload != nil {
         postBody, err := json.MarshalIndent(payload, "", "\t")
         if err != nil{
-            return fmt.Errorf("No se pudo parsear el payload %s", err)
+            return fmt.Errorf("no se pudo parsear el payload %s", err)
         }
         dataPayload = bytes.NewBuffer(postBody)
     }
@@ -205,15 +207,15 @@ func (p *Pipedrive) makeRequest(method string, path string, payload interface{},
 
     req.Header.Add("Accept", "application/json")
     req.Header.Add("Content-Type", "application/json") 
-    req.Header.Add("x-api-token", p.ApiToken)
+    req.Header.Add("x-api-token", p.apiToken)
 
-    res, err := p.Client.Do(req)
+    res, err := p.client.Do(req)
     if err != nil {
         return err
     }
     defer res.Body.Close()
 
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := io.ReadAll(res.Body)
     if err != nil {
         return err
     }
@@ -231,7 +233,7 @@ func (p *Pipedrive) makeRequest(method string, path string, payload interface{},
     if !jsonRes.Success{
         var a interface{}
         _ = json.Unmarshal(body, &a)
-        return fmt.Errorf("La peticion no tuvo exito \nRes: %v\n", a)
+        return fmt.Errorf("la peticion no tuvo exito \nRes: %v", a)
     }
     return nil
 }
@@ -246,22 +248,22 @@ func (p *Pipedrive) tokenApiCall(payload map[string]string) *Token{
 
     req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(data.Encode()))
     if err != nil{
-        log.Printf("No se pudo construir la request", err)
+        p.logger.Error("No se pudo construir la request", "err", err)
         return nil
     }
 
-    req.Header.Add("Authorization", p.Auth.Value) 
+    req.Header.Add("Authorization", p.auth.value) 
     req.Header.Add("Content-Type", "application/x-www-form-urlencoded") 
     req.Header.Add("Content-Length", strconv.Itoa(len(data.Encode())))
 
-    res, err := p.Client.Do(req) 
+    res, err := p.client.Do(req) 
     if err != nil{
-        log.Printf("Error en la request", err)
+        p.logger.Error("Error en la request", "err", err)
         return nil
     }
     defer res.Body.Close()
 
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := io.ReadAll(res.Body)
     if err != nil {
         return nil
     }
@@ -271,7 +273,7 @@ func (p *Pipedrive) tokenApiCall(payload map[string]string) *Token{
     if err != nil {
         var debug interface{}
         _ = json.Unmarshal(body, &debug)
-        log.Printf("La respuesta no matchea el token esperado %v %s", debug, err)
+        p.logger.Error(fmt.Sprintf("La respuesta no matchea el token esperado %v %s", debug, err))
         return nil
     }
     return &token
