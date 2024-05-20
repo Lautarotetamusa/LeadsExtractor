@@ -6,9 +6,9 @@ from src.lead import Lead
 
 API_PORT = os.getenv("API_PORT")
 API_HOST = os.getenv("API_HOST")
-url = f"http://{API_HOST}:{API_PORT}/communication"
 
 def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
+    url = f"http://{API_HOST}:{API_PORT}/assign"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.json()))
@@ -22,6 +22,7 @@ def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     return is_new, lead
 
 def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
+    url = f"http://{API_HOST}:{API_PORT}/communication"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.json()))

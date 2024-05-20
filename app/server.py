@@ -65,13 +65,17 @@ def recive_ivr_call():
         telefono = parse_number(logger, "+"+phone)
     lead.telefono = telefono or lead.telefono
 
+    is_new, lead = api.assign_asesor(logger, lead)
+    if lead == None:
+        return ''
+
     pdf_url = jotform.new_submission(logger, lead) 
     if pdf_url != None:
         lead.cotizacion = pdf_url
     else:
         logger.error("No se pudo obtener la cotizacion en pdf")
 
-    is_new, lead = api.new_communication(logger, lead)
+    _, lead = api.new_communication(logger, lead)
     if lead == None:
         return
 
@@ -115,6 +119,10 @@ def recive_wpp_msg():
     lead.telefono = parse_number(logger, '+'+lead.telefono) or lead.telefono
     lead.link = f"https://web.whatsapp.com/send/?phone={lead.telefono}"
 
+    is_new, lead = api.assign_asesor(logger, lead)
+    if lead == None:
+        return ''
+
     save = False
     pdf_url = jotform.new_submission(logger, lead) 
     if pdf_url != None:
@@ -122,7 +130,7 @@ def recive_wpp_msg():
     else:
         logger.error("No se pudo obtener la cotizacion en pdf")
 
-    is_new, lead = api.new_communication(logger, lead)
+    _, lead = api.new_communication(logger, lead)
     if lead == None:
         return
 

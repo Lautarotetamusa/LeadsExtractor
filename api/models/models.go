@@ -2,25 +2,6 @@ package models
 
 import "database/sql"
 
-/*
-CREATE TABLE Property(
-    id INT NOT NULL AUTO_INCREMENT,
-    portal ENUM("inmuebles24", "lamudi", "casasyterrenos", "propiedades") NOT NULL,
-
-    portal_id VARCHAR(128) DEFAULT NULL,
-    title VARCHAR(256) DEFAULT NULL,
-    price VARCHAR(32) DEFAULT NULL,
-    ubication VARCHAR(256) DEFAULT NULL,
-    url VARCHAR(256) DEFAULT NULL,
-    tipo VARCHAR(32) DEFAULT NULL,
-    zones VARCHAR(256) DEFAULT NULL,
-    mt2_terrain VARCHAR(32) DEFAULT NULL,
-    mt2_builded VARCHAR(32) DEFAULT NULL,
-    baths VARCHAR(32) DEFAULT NULL,
-    rooms VARCHAR(32) DEFAULT NUll,
-
-    PRIMARY KEY (id)
-);*/
 type Property struct {
 	Id        int    `db:"id"`
 	Portal    string `db:"portal"`
@@ -32,16 +13,6 @@ type Property struct {
 	Tipo      string `db:"tipo"`
 }
 
-/*
-CREATE TABLE Source(
-    id INT NOT NULL AUTO_INCREMENT,
-    type ENUM("whatsapp", "ivr", "property") NOT NULL,
-    property_id INT DEFAULT NULL,
-
-    PRIMARY KEY (id),
-    FOREIGN KEY (property_id) REFERENCES Property(id)
-);
-*/
 type Source struct {
 	Id         int           `db:"id"`
 	Tipo       string        `db:"type"`

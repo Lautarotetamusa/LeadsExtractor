@@ -6,7 +6,7 @@ import (
 )
 
 func (s *Store) GetAllAsesores(asesores *[]models.Asesor) error {
-	if err := s.Db.Select(&asesores, "SELECT * FROM Asesor"); err != nil {
+	if err := s.Db.Select(asesores, "SELECT * FROM Asesor"); err != nil {
 		return err
 	}
 	return nil

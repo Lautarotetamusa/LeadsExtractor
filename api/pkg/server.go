@@ -51,16 +51,17 @@ func (s *Server) Run() {
 	router.HandleFunc("/lead/{phone}", handleErrors(s.Update)).Methods("PUT")
 
 	router.HandleFunc("/communication", handleErrors(s.HandleNewCommunication)).Methods("POST")
+	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
 	router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET", "OPTIONS")
 
 	router.HandleFunc("/pipedrive", handleErrors(s.HandlePipedriveOAuth)).Methods("GET")
 
-	fmt.Println("Server started at %s", s.listenAddr)
+	fmt.Printf("Server started at %s\n", s.listenAddr)
 	err := http.ListenAndServe(s.listenAddr, router)
 	if err != nil {
 		log.Fatal("No se pudo iniciar el server\n", err)
 	}
-	fmt.Println("Server started at %s", s.listenAddr)
+	fmt.Printf("Server started at %s\n", s.listenAddr)
 }
 
 func CORS(next http.Handler) http.Handler {
