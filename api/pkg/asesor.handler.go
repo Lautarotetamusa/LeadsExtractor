@@ -2,7 +2,8 @@ package pkg
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
+
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"net/http"
@@ -12,38 +13,38 @@ import (
 )
 
 type ReasignData struct {
-    Phone   string `json:"phone"`
+	Phone string `json:"phone"`
 }
 
-type AsesorHandler struct{
-    Store store.AsesorStorer
+type AsesorHandler struct {
+	Store *store.Store
 }
 
-func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error{
-    var asesores []models.Asesor
+func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
+	var asesores []models.Asesor
 
-    defer r.Body.Close()
-    reqBody, err := ioutil.ReadAll(r.Body)
-    if err != nil {
-        return err
-    }
+	defer r.Body.Close()
+	reqBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
 
-    err = json.Unmarshal(reqBody, &asesores)
-    if err != nil{
-        return err
-    }
+	err = json.Unmarshal(reqBody, &asesores)
+	if err != nil {
+		return err
+	}
 
-    for i := range asesores{
-        err = s.asesorHandler.Store.Update(&asesores[i], asesores[i].Phone)
-        if err != nil{
-            return err
-        }
-    }
+	for i := range asesores {
+		err = s.Store.UpdateAsesor(&asesores[i], asesores[i].Phone)
+		if err != nil {
+			return err
+		}
+	}
 
-    s.roundRobin.SetAsesores(s.db)
+	s.roundRobin.SetAsesores(s.Store)
 
-    successResponse(w, r, "Asesores actualizados correctamente", nil)
-    return nil
+	successResponse(w, r, "Asesores actualizados correctamente", nil)
+	return nil
 }
 
 /*
@@ -57,7 +58,7 @@ func (h *AsesorHandler) Reasign(w http.ResponseWriter, r *http.Request) error{
     if len(leads) == 0 || err{
         return fmt.Errorf("No se encontraron leads para el asesor %s. \nerr: %s", phone, err)
     }
-    
+
     asesores, err := h.Store.GetAllExcept(phone)
     if err != nil {
         return err
@@ -81,83 +82,84 @@ func (h *AsesorHandler) Reasign(w http.ResponseWriter, r *http.Request) error{
 }
 */
 
-func (h *AsesorHandler) GetAll(w http.ResponseWriter, r *http.Request) error{
-    asesores, err := h.Store.GetAll()
-    if err != nil {
-        return err
-    }
+func (s *Server) GetAllAsesores(w http.ResponseWriter, r *http.Request) error {
+	asesores := []models.Asesor{}
+	err := s.Store.GetAllAsesores(&asesores)
+	if err != nil {
+		return err
+	}
 
-    dataResponse(w, r, asesores)
-    return nil
+	dataResponse(w, r, asesores)
+	return nil
 }
 
-func (h *AsesorHandler) GetOne(w http.ResponseWriter, r *http.Request) error{
-    phone := mux.Vars(r)["phone"]
+func (s *Server) GetOneAsesor(w http.ResponseWriter, r *http.Request) error {
+	phone := mux.Vars(r)["phone"]
 
-    asesor, err := h.Store.GetOne(phone)
-    if err != nil {
-        return err
-    }
+	asesor, err := s.Store.GetOneAsesor(phone)
+	if err != nil {
+		return err
+	}
 
-    dataResponse(w, r, asesor)
-    return nil
+	dataResponse(w, r, asesor)
+	return nil
 }
 
-func (h *AsesorHandler) Insert(w http.ResponseWriter, r *http.Request) error{
-    var asesor models.Asesor
-    reqBody, err := ioutil.ReadAll(r.Body)
-    if err != nil {
-        return err
-    }
+func (s *Server) InsertAsesor(w http.ResponseWriter, r *http.Request) error {
+	var asesor models.Asesor
+	reqBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
 
-    err = json.Unmarshal(reqBody, &asesor)
-    if err != nil{
-        return err
-    }
+	err = json.Unmarshal(reqBody, &asesor)
+	if err != nil {
+		return err
+	}
 
-    validate := validator.New()
-    err = validate.Struct(asesor)
-    if err != nil{
-        return err
-    }
+	validate := validator.New()
+	err = validate.Struct(asesor)
+	if err != nil {
+		return err
+	}
 
-    _, err = h.Store.Insert(&asesor)
-    if err != nil{
-        return err
-    }
+	_, err = s.Store.InsertAsesor(&asesor)
+	if err != nil {
+		return err
+	}
 
-    successResponse(w, r, "Asesor creado correctamente", asesor)
-    return nil
+	successResponse(w, r, "Asesor creado correctamente", asesor)
+	return nil
 }
 
-func (h *AsesorHandler) Update(w http.ResponseWriter, r *http.Request) error{
-    phone := mux.Vars(r)["phone"]
+func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
+	phone := mux.Vars(r)["phone"]
 
-    var updateAsesor models.UpdateAsesor
-    reqBody, err := ioutil.ReadAll(r.Body)
-    if err != nil {
-        return err
-    }
+	var updateAsesor models.UpdateAsesor
+	reqBody, err := io.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
 
-    if err = json.Unmarshal(reqBody, &updateAsesor); err != nil{
-        return err
-    }
-    asesor := models.Asesor{
-        Phone: phone,
-        Name: updateAsesor.Name,
-        Active: updateAsesor.Active,
-    }
+	if err = json.Unmarshal(reqBody, &updateAsesor); err != nil {
+		return err
+	}
+	asesor := models.Asesor{
+		Phone:  phone,
+		Name:   updateAsesor.Name,
+		Active: updateAsesor.Active,
+	}
 
-    validate := validator.New()
-    if err = validate.Struct(asesor); err != nil{
-        return err
-    }
+	validate := validator.New()
+	if err = validate.Struct(asesor); err != nil {
+		return err
+	}
 
-    err = h.Store.Update(&asesor, phone)
-    if err != nil{
-        return err
-    }
+	err = s.Store.UpdateAsesor(&asesor, phone)
+	if err != nil {
+		return err
+	}
 
-    successResponse(w, r, "Asesor actualizado correctamente", asesor)
-    return nil
+	successResponse(w, r, "Asesor actualizado correctamente", asesor)
+	return nil
 }

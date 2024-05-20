@@ -110,6 +110,10 @@ class Portal():
                     self.make_contacted(lead_res[self.contact_id_field])
                     continue
 
+                is_new, lead = api.assign_asesor(self.logger, lead)
+                if lead == None:
+                    continue
+
                 #Cotizacion
                 self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
                 pdf_url = jotform.new_submission(self.logger, lead) 
@@ -119,8 +123,6 @@ class Portal():
                     self.logger.error("No se pudo obtener la cotizacion en pdf")
 
                 is_new, lead = api.new_communication(self.logger, lead)
-                if lead == None:
-                    continue
 
                 lead.print()
 
