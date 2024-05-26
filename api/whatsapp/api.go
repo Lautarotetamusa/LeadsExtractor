@@ -216,7 +216,7 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		c.Nombre,
 		c.Fuente,
 		c.Telefono,
-		c.Email,
+        c.Email.String,
 		c.FechaLead,
 		c.Link,
 		c.Propiedad.Titulo,

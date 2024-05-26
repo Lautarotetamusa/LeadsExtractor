@@ -1,6 +1,7 @@
 package whatsapp
 
 import (
+	"database/sql"
 	"fmt"
 	"leadsextractor/models"
 	"log/slog"
@@ -12,58 +13,9 @@ import (
 
 const phone = "+5493415854220"
 
-func TestSendMessage(t *testing.T) {
-	w := NewWhatsapp(
-		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
-		"193151663891728",
-        slog.New(tint.NewHandler(os.Stderr, nil)),
-	)
-
-	res, err := w.SendMessage(phone, "Hola! mensaje de prueba")
-	if err != nil {
-		t.Errorf("Error enviando el mensaje %s", err)
-	}
-	fmt.Printf("%v", res)
-}
-
-func TestSendTemplate(t *testing.T) {
-	w := NewWhatsapp(
-		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
-		"193151663891728",
-        slog.New(tint.NewHandler(os.Stderr, nil)),
-	)
-
-	a := &models.Asesor{
-		Name:  "test",
-		Phone: "+5493415854220",
-		Email: "lautarotetamusa@gmail.com",
-	}
-
-	res, err := w.SendResponse(phone, a)
-	if err != nil {
-		t.Errorf("Error enviando el mensaje %s", err)
-	}
-	fmt.Printf("%v", res)
-}
-
-func TestSendDocument(t *testing.T) {
-	w := NewWhatsapp(
-		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
-		"193151663891728",
-        slog.New(tint.NewHandler(os.Stderr, nil)),
-	)
-
-	url := "https://www.frro.utn.edu.ar/repositorio/catedras/quimica/5_anio/orientadora1/monograias/matich-redesneuronales.pdf"
-	res, err := w.Send(NewDocumentPayload(phone, url, "archivo de prueba", "test"))
-	if err != nil {
-		t.Errorf("Error enviando el mensaje %s", err)
-	}
-	fmt.Printf("%v", res)
-}
-
 func TestSendMsgAsesor(t *testing.T) {
 	w := NewWhatsapp(
-		"EAAbDrjrkX5IBO19E0ZAlpHa8iTcm17YoZC0aCmC9yu2xLpOqvOmcsp3KbJmU8q94meZBhYSLs283AgaZANhiZBt37YqvOuxEg4KxAYIm7ShzHn3bPDKBkq7eBB3IHYSUPVc3LaMzswwd4pXfcRUVVZARLWQ074WZBfrvkAkkBs5Jm7ZBOZAtfCbbUP4OVrkUP1UNA",
+		"EAAbDrjrkX5IBO1rbBqzz5SnpHLENnMTOY45DN7Y39gSRyrLxcfQmyBNE8ShQHMUTOtXnaZBZAWtrA6Scx6H6cdQCZAMSPsj3KVJBcExm3jFyeROA3FRwPGn08GFNkZA8ZCPIMy8BOPZCOUSv4Ou66PtVscYts0kAe5UsjVe9ufSw2Kywv8XdrZBpbumdUmflcvB",
 		"193151663891728",
         slog.New(tint.NewHandler(os.Stderr, nil)),
 	)
@@ -76,7 +28,7 @@ func TestSendMsgAsesor(t *testing.T) {
 		Nombre:    "Lautaro",
 		Link:      "https://www.inmuebles24.com/panel/interesados/198059132",
 		Telefono:  "5493415854220",
-		Email:     "cornejoy369@gmail.com",
+        Email:     sql.NullString{String: "cornejoy369@gmail.com"},
 		Propiedad: models.Propiedad{
 			ID:        "a78c1555-f684-4de7-bbf1-a7288461fe51",
 			Titulo:    "Casa en venta en El Cielo Country Club Incre\u00edble dise\u00f1o y amplitud",

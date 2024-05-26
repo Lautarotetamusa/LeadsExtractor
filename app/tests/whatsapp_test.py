@@ -38,7 +38,7 @@ if __name__ == "__main__":
     wpp = Whatsapp()
     #wpp.send_message(lead.telefono, "Mensaje de prueba")
     #wpp.send_response("5493415854220", {"name": "Diego", "phone": "4444"})
-    #wpp.send_template("5493415854220", "8_sobreprecio", [], "es_ES")
+    wpp.send_template("5493415854220", "8_sobreprecio", [], "es_ES")
     #wpp.send_msg_asesor("5493415854220", lead, False)
 
     pdf_url = "https://www.jotform.com/pdf-submission/5903736415724129773"

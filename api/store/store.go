@@ -133,7 +133,7 @@ func (s *Store) InsertOrGetLead(rr *RoundRobin, c *models.Communication) (*model
 		lead, err = s.Insert(&models.CreateLead{
 			Name:        c.Nombre,
 			Phone:       c.Telefono,
-			Email:       sql.NullString{String: c.Email},
+			Email:       sql.NullString{String: c.Email.String},
 			AsesorPhone: c.Asesor.Phone,
 		})
 

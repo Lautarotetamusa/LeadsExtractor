@@ -115,12 +115,13 @@ class Portal():
                     continue
 
                 #Cotizacion
-                self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
-                pdf_url = jotform.new_submission(self.logger, lead) 
-                if pdf_url != None:
-                    lead.cotizacion = pdf_url
-                else:
-                    self.logger.error("No se pudo obtener la cotizacion en pdf")
+                if is_new:
+                    self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
+                    pdf_url = jotform.new_submission(self.logger, lead) 
+                    if pdf_url != None:
+                        lead.cotizacion = pdf_url
+                    else:
+                        self.logger.error("No se pudo obtener la cotizacion en pdf")
 
                 api.new_communication(self.logger, lead)
 

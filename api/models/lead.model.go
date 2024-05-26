@@ -18,5 +18,5 @@ type CreateLead struct {
 
 type UpdateLead struct {
     Name   string `db:"name"   json:"name" validate:"required"`
-    Email  sql.NullString   `db:"email"  json:"email" validate"required,email"`
+    Email  sql.NullString   `db:"email"  json:"email" validate:"required,email"`
 }

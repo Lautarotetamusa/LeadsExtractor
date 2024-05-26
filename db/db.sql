@@ -104,7 +104,35 @@ CREATE PROCEDURE communicationList ()
         ORDER BY C.id DESC;
     END;
 //
-DELIMITER ;
+DELIMITER ; 
+
+DROP PROCEDURE IF EXISTS getCommunications;
+DELIMITER //
+CREATE PROCEDURE getCommunications (IN date_from DATETIME)
+    BEGIN
+        SELECT 
+            C.created_at, 
+            C.lead_date,
+            A.name as "asesor.name", A.phone as "asesor.phone", A.email as "asesor.email",
+            IF(S.type = "whatsapp" or S.type = "ivr", S.type, P.portal) as "fuente",
+            L.name, C.url, L.phone, L.email,
+            P.id as "propiedad.id", P.title as "propiedad.title", P.price as "propiedad.price", P.ubication "propiedad.ubication", P.url as "propiedad.url", P.tipo as "propiedad.tipo",
+            C.zones as "busquedas.zones", C.mt2_terrain as "busquedas.mt2_terrain", C.mt2_builded as "busquedas.mt2_builded", C.baths as "busquedas.baths", C.rooms as "busquedas.rooms"
+        FROM Communication C
+        INNER JOIN Leads L 
+            ON C.lead_phone = L.phone
+        INNER JOIN Source S
+            ON C.source_id = S.id
+        INNER JOIN Asesor A
+            ON L.asesor = A.phone
+        LEFT JOIN Property P
+            ON S.property_id = P.id
+        WHERE date_from IS NULL OR C.created_at > date_from
+        ORDER BY C.id DESC;
+    END;
+//
+DELIMITER ; 
+
 
 INSERT INTO Asesor (name, phone, active) VALUES 
     ("Brenda Díaz", "5213313420733", False),

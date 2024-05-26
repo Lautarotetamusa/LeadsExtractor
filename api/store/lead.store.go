@@ -41,7 +41,7 @@ func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 	query := "INSERT INTO Leads (name, phone, email, asesor) VALUES (:name, :phone, :email, :asesor)"
 	if _, err := s.Db.NamedExec(query, createLead); err != nil {
 		if strings.Contains(err.Error(), "Error 1452") {
-			return nil, fmt.Errorf("El asesor con telefono %s no existe", createLead.AsesorPhone)
+			return nil, fmt.Errorf("el asesor con telefono %s no existe", createLead.AsesorPhone)
 		}
 		return nil, err
 	}
