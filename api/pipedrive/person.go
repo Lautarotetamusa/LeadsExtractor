@@ -61,9 +61,9 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         customFields["cotizacion"]: c.Cotizacion,
     }
 
-    if (c.Email != ""){
+    if (c.Email.String != ""){
         payload["email"] = PersonChannel{
-            Value: c.Email,
+            Value: c.Email.String,
             Primary: true,
         }
     }
