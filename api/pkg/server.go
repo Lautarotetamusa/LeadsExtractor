@@ -62,6 +62,8 @@ func (s *Server) Run() {
 	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
 	router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET", "OPTIONS")
 
+	router.HandleFunc("/communications", handleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
+
 	router.HandleFunc("/pipedrive", handleErrors(s.HandlePipedriveOAuth)).Methods("GET")
 
 	s.logger.Info(fmt.Sprintf("Server started at %s", s.listenAddr))

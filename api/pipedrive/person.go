@@ -22,6 +22,7 @@ type FieldOption struct{
     Label   string `json:"label"`
 }
 
+//Los atributos custom de pipedrive tienen un id para identificarlos
 var customFields = map[string]string{
     "fuente": "0a551c8c09663ce803d924f036af12c3cc6b8b73",
     "fecha lead": "a7b3035eaea7ae5cb3aeab97f8f91748aa8e427b",
@@ -91,7 +92,7 @@ func (p *Pipedrive) getPersonByNumber(number string) (*Person, error){
         return nil, err
     }
     if len(data.Items) == 0{
-        return nil, fmt.Errorf("La persona con telefono %s no existe", number)
+        return nil, fmt.Errorf("la persona con telefono %s no existe", number)
     }
 
     return &data.Items[0].Item, nil
@@ -105,7 +106,7 @@ func (p *Pipedrive) getField(id string) (*FieldOption, error){
     err := p.makeRequest("GET", url, nil, field)
 
     if err != nil{
-        return nil, fmt.Errorf("El field: %s, no existe\n", id)
+        return nil, fmt.Errorf("el field: %s, no existe\n", id)
     }
 
     return field, nil

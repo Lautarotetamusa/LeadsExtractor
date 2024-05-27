@@ -2,10 +2,12 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"leadsextractor/infobip"
 	"leadsextractor/models"
 	"log"
 	"net/http"
+	"time"
 )
 
 func (s *Server) HandlePipedriveOAuth(w http.ResponseWriter, r *http.Request) error {
@@ -13,6 +15,37 @@ func (s *Server) HandlePipedriveOAuth(w http.ResponseWriter, r *http.Request) er
 	log.Println("Code:", code)
 	s.pipedrive.ExchangeCodeToToken(code)
 	w.Write([]byte(s.pipedrive.State))
+	return nil
+}
+
+func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error {
+    dateString := r.URL.Query().Get("date")
+    if dateString == "" {
+        return fmt.Errorf("el parametro date es obligatorio")
+    }
+    const format = "01-02-2006"
+
+    date, err := time.Parse(format, dateString)
+    if err != nil{
+        return err
+    }
+
+    query := "CALL getCommunications(?)"
+
+	communications := []models.CommunicationDB{}
+	if err := s.Store.Db.Select(&communications, query, date); err != nil {
+        log.Fatal(err)
+	}
+    s.logger.Info(fmt.Sprintf("Se encontraron %d comunicaciones", len(communications)))
+
+	w.Header().Set("Content-Type", "application/json")
+	res := struct {
+		Success bool        `json:"success"`
+        Length  int         `json:"length"`
+		Data    interface{} `json:"data"`
+	}{true, len(communications), &communications}
+
+	json.NewEncoder(w).Encode(res)
 	return nil
 }
 

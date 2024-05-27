@@ -1,3 +1,4 @@
+from datetime import date
 import os
 import requests
 
@@ -34,3 +35,22 @@ def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     is_new = json["is_new"]
     lead.set_args(lead_data)
     return is_new, lead
+
+def get_communications(logger: Logger, date: str) -> list[Lead]:
+    url = f"https://{API_HOST}:{API_PORT}/communications?date={date}"
+    res = requests.get(url)
+    if not res.ok:
+        logger.error("Error en la peticion: "+str(res.json()))
+        return []
+
+    print(res)
+    leads = []
+    for data in res.json()["data"]:
+        lead = Lead()
+        lead.set_args(data) 
+        lead.set_asesor(data["asesor"])
+        lead.set_propiedad(data["propiedad"])
+        lead.set_busquedas(data["busquedas"])
+        leads.append(lead)
+
+    return leads
