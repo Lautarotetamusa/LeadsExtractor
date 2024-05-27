@@ -24,7 +24,7 @@ func (p *Pipedrive) searchPersonDeal(personId uint32, userId uint32) (*Deal, err
         return nil, err
     }
     if len(deals) == 0{
-        return nil, fmt.Errorf("La asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
+        return nil, fmt.Errorf("la asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
     }
 
     for _, deal := range deals{
@@ -33,11 +33,11 @@ func (p *Pipedrive) searchPersonDeal(personId uint32, userId uint32) (*Deal, err
         }
     }
 
-    return nil, fmt.Errorf("La asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
+    return nil, fmt.Errorf("la asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
 }
 
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (*Deal, error){
-    title := c.Propiedad.Titulo
+    title := c.Propiedad.Titulo.String
     if title == "" {
         title = "Trato con " + c.Nombre
     }

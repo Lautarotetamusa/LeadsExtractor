@@ -54,7 +54,7 @@ func (ni *NullInt16) Scan(value interface{}) error {
 }
 
 type Property struct {
-    Id        NullInt16  `db:"id" json:"-"`
+    Id        sql.NullInt16  `db:"id" json:"-"`
     Portal    NullString `db:"portal" json:"-"`
     PortalId  NullString `db:"portal_id" json:"id"`
     Title     NullString `db:"title" json:"title"`
@@ -71,12 +71,12 @@ type Source struct {
 }
 
 type Propiedad struct {
-    ID        string `json:"portal_id" db:"id"`
-    Titulo    string `json:"titulo" db:"title"`
-    Link      string `json:"link" db:"url"`
-    Precio    string `json:"precio" db:"price"`
-    Ubicacion string `json:"ubicacion" db:"ubication"`
-    Tipo      string `json:"tipo" db:"tipo"`
+    ID        NullString `json:"portal_id" db:"id"`
+    Titulo    NullString `json:"titulo" db:"title"`
+    Link      NullString `json:"link" db:"url"`
+    Precio    NullString `json:"precio" db:"price"`
+    Ubicacion NullString `json:"ubicacion" db:"ubication"`
+    Tipo      NullString `json:"tipo" db:"tipo"`
 }
 
 type Busquedas struct {
@@ -118,7 +118,7 @@ type CommunicationDB struct {
     Email      NullString `json:"email" db:"email"`
 	Cotizacion string    `json:"cotizacion"`
 	Asesor     Asesor    `json:"asesor"`
-	Propiedad  Property  `json:"propiedad"`
+	Propiedad  Propiedad  `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
     IsNew       bool     `json:"is_new" db:"new_lead"`
 }

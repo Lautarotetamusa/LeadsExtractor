@@ -52,12 +52,12 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 func (s *Store) insertProperty(c *models.Communication, p *models.Property) error {
     query := "INSERT INTO Property (portal_id, title, url, price, ubication, tipo, portal) VALUES (:portal_id, :title, :url, :price, :ubication, :tipo, :portal)"
     property := models.Property{
-        PortalId:  models.NullString{String: c.Propiedad.ID},
-        Title:     models.NullString{String: c.Propiedad.Titulo},
-        Url:       models.NullString{String: c.Propiedad.Link},
-        Price:     models.NullString{String: c.Propiedad.Precio},
-        Ubication: models.NullString{String: c.Propiedad.Ubicacion},
-        Tipo:      models.NullString{String: c.Propiedad.Tipo},
+        PortalId:  c.Propiedad.ID,
+        Title:     c.Propiedad.Titulo,
+        Url:       c.Propiedad.Link,
+        Price:     c.Propiedad.Precio,
+        Ubication: c.Propiedad.Ubicacion,
+        Tipo:      c.Propiedad.Tipo,
         Portal:    models.NullString{String: c.Fuente},
     }
     if _, err := s.Db.NamedExec(query, &property); err != nil {
