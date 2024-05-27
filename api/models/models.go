@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"reflect"
 )
 
@@ -38,17 +39,26 @@ func (ni *NullInt16) MarshalJSON() ([]byte, error) {
 }
 
 func (ni *NullInt16) Scan(value interface{}) error {
-	var i sql.NullInt16
-	if err := i.Scan(value); err != nil {
-		return err
-	}
+    if value == nil {
+        ni.Int16, ni.Valid = 0, false
+        return nil
+    }
 
-	if reflect.TypeOf(value) == nil {
-		*ni = NullInt16{i.Int16, false}
-	} else {
-		*ni = NullInt16{i.Int16, true}
-	}
-	return nil
+    switch v := value.(type) {
+    case int64:
+        ni.Int16 = int16(v)
+        ni.Valid = true
+    case []uint8:
+        var i int
+        if err := json.Unmarshal(v, &i); err != nil {
+            return err
+        }
+        ni.Int16 = int16(i)
+        ni.Valid = true
+    default:
+        return fmt.Errorf("cannot scan type %T into NullInt16: %v", value, value)
+    }
+    return nil
 }
 
 type Property struct {
