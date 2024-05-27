@@ -63,8 +63,6 @@ class Portal():
 
     def setup(self):
         self.logger.debug(f"Inicializando {self.name}")
-        self.sheet = Sheet(self.logger, "mapping.json")
-        self.headers = self.sheet.get("A2:Z2")[0]
 
         resources = {
             'gmail_spin': 'gmail.html',

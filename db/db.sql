@@ -114,9 +114,14 @@ CREATE PROCEDURE getCommunications (IN date_from DATETIME)
             C.created_at, 
             C.lead_date,
             A.name as "asesor.name", A.phone as "asesor.phone", A.email as "asesor.email",
-            IF(S.type = "whatsapp" or S.type = "ivr", S.type, P.portal) as "fuente",
+            IF(S.type = "property", P.portal, S.type) as "fuente",
             L.name, C.url, L.phone, L.email,
-            P.id as "propiedad.id", P.title as "propiedad.title", P.price as "propiedad.price", P.ubication "propiedad.ubication", P.url as "propiedad.url", P.tipo as "propiedad.tipo",
+                IFNULL(P.portal_id, "") as "propiedad.id", 
+                IFNULL(P.title, "") as "propiedad.title", 
+                IFNULL(P.price, "") as "propiedad.price", 
+                IFNULL(P.ubication, "") as "propiedad.ubication", 
+                IFNULL(P.url, "") as "propiedad.url", 
+                IFNULL(P.tipo, "") as "propiedad.tipo",
             C.zones as "busquedas.zones", C.mt2_terrain as "busquedas.mt2_terrain", C.mt2_builded as "busquedas.mt2_builded", C.baths as "busquedas.baths", C.rooms as "busquedas.rooms"
         FROM Communication C
         INNER JOIN Leads L 

@@ -49,7 +49,7 @@ type Communication struct {
     Nombre     string    `json:"nombre" db:"name"`
     Link       string    `json:"link" db:"url"`
     Telefono   string    `json:"telefono" db:"phone"`
-    Email      sql.NullString    `json:"email" db:"email"`
+    Email      string    `json:"email" db:"email"`
 	Cotizacion string    `json:"cotizacion"`
 	Asesor     Asesor    `json:"asesor"`
 	Propiedad  Propiedad `json:"propiedad"`
