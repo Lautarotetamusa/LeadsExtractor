@@ -3,7 +3,6 @@ package models
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"reflect"
 )
 
@@ -38,32 +37,25 @@ func (ni *NullInt16) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ni.Int16)
 }
 
+// Scan implements the Scanner interface for NullInt64
 func (ni *NullInt16) Scan(value interface{}) error {
-    if value == nil {
-        ni.Int16, ni.Valid = 0, false
-        return nil
-    }
+	var i sql.NullInt16
+	if err := i.Scan(value); err != nil {
+		return err
+	}
 
-    switch v := value.(type) {
-    case int64:
-        ni.Int16 = int16(v)
-        ni.Valid = true
-    case []uint8:
-        var i int
-        if err := json.Unmarshal(v, &i); err != nil {
-            return err
-        }
-        ni.Int16 = int16(i)
-        ni.Valid = true
-    default:
-        return fmt.Errorf("cannot scan type %T into NullInt16: %v", value, value)
-    }
-    return nil
+	// if nil then make Valid false
+	if reflect.TypeOf(value) == nil {
+		*ni = NullInt16{i.Int16, false}
+	} else {
+		*ni = NullInt16{i.Int16, true}
+	}
+	return nil
 }
 
 type Property struct {
-    Id        NullInt16  `db:"id"`
-    Portal    NullString `db:"portal"`
+    Id        NullInt16  `db:"id" json:"-"`
+    Portal    NullString `db:"portal" json:"-"`
     PortalId  NullString `db:"portal_id" json:"id"`
     Title     NullString `db:"title" json:"title"`
     Price     NullString `db:"price" json:"price"`
@@ -79,7 +71,7 @@ type Source struct {
 }
 
 type Propiedad struct {
-    ID        string `json:"id" db:"id"`
+    ID        string `json:"portal_id" db:"id"`
     Titulo    string `json:"titulo" db:"title"`
     Link      string `json:"link" db:"url"`
     Precio    string `json:"precio" db:"price"`
