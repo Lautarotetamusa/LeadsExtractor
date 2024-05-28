@@ -52,6 +52,11 @@ CREATE TABLE IF NOT EXISTS Source(
     id INT NOT NULL AUTO_INCREMENT,
     type ENUM("whatsapp", "ivr", "property") NOT NULL, 
     property_id INT DEFAULT NULL,
+
+    CHECK ( 
+        (type = 'property' AND property_id IS NOT NULL) OR
+        (type IN ('whatsapp', 'ivr', 'viewphone') AND property_id IS NULL)
+    );
     
     PRIMARY KEY (id),
     FOREIGN KEY (property_id) REFERENCES Property(id)

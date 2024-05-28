@@ -26,19 +26,25 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 	if err != nil {
 		return nil, err
 	}
+    fmt.Printf("%v\n", property)
 
 	err = s.Db.Get(&source, "SELECT * FROM Source WHERE property_id=?", property.ID)
 	if err != nil {
-		return nil, err
+        return nil, fmt.Errorf("error obteniendo el source con property_id: %d", property.ID)
 	}
 	return &source, nil
 }
 
 func (s *Store) insertSource(propertyId int) error {
+    id := sql.NullInt16{Int16: int16(propertyId), Valid: true}
+    if !id.Valid {
+        return fmt.Errorf("el property_id %d no es valido", propertyId)
+    }
     source := models.Source{
         Tipo:       "property",
-        PropertyId: sql.NullInt16{Int16: int16(propertyId)},
+        PropertyId: id,
     }
+    fmt.Printf("%v\n", source)
     query := "INSERT INTO Source (type, property_id) VALUES(:type, :property_id)"
     if _, err := s.Db.NamedExec(query, source); err != nil {
         return fmt.Errorf("error insertando source: %s", err.Error())

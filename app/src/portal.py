@@ -11,11 +11,11 @@ import src.jotform as jotform
 
 from enum import IntEnum
 
-with open('../messages/bienvenida_1.txt') as f:
+with open('../../messages/bienvenida_1.txt') as f:
     bienvenida_1 = f.read()
-with open('../messages/bienvenida_2.txt') as f:
+with open('../../messages/bienvenida_2.txt') as f:
     bienvenida_2 = f.read()
-with open('../messages/response_msg.txt') as f:
+with open('../../messages/response_message.txt') as f:
     response_msg = f.read()
 
 class Mode(IntEnum):

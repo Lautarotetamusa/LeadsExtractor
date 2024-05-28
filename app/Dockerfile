@@ -13,14 +13,14 @@ RUN cp /usr/share/zoneinfo/$TZ etc/localtime
 
 WORKDIR app
 
-COPY requirements.txt src/
+COPY ./app/requirements.txt src/
 RUN pip install -r src/requirements.txt
 
-COPY . . 
+COPY ./app/ . 
 COPY ../messages ../messages
 
 EXPOSE 80
 
-COPY entrypoint.sh .
+COPY ./app/entrypoint.sh .
 RUN chmod +x /app/entrypoint.sh
 CMD ["/app/entrypoint.sh"]
