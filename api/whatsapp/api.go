@@ -16,8 +16,6 @@ const baseUrl = "https://graph.facebook.com/v17.0/%s/messages"
 type Whatsapp struct {
 	accessToken string
 	numberId    string
-	imageId     string
-	videoId     string
 	client      *http.Client
 	url         string
     logger      *slog.Logger
@@ -199,12 +197,12 @@ func (w *Whatsapp) SendResponse(to string, asesor *models.Asesor) (*Response, er
 	return w.Send(newTemplatePayload(to, "2do_mensaje_bienvenida", components[:]))
 }
 
-func (w *Whatsapp) SendImage(to string) {
-	w.Send(newMediaPayload(to, w.imageId, "image"))
+func (w *Whatsapp) SendImage(to string, imageId string) {
+	w.Send(newMediaPayload(to, imageId, "image"))
 }
 
-func (w *Whatsapp) SendVideo(to string) {
-	w.Send(newMediaPayload(to, w.videoId, "video"))
+func (w *Whatsapp) SendVideo(to string, videoId string) {
+	w.Send(newMediaPayload(to, videoId, "video"))
 }
 
 func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool) (*Response, error) {
@@ -219,10 +217,10 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
         c.Email.String,
 		c.FechaLead,
 		c.Link,
-		c.Propiedad.Titulo,
-		c.Propiedad.Precio,
-		c.Propiedad.Ubicacion,
-		c.Propiedad.Link,
+		c.Propiedad.Titulo.String,
+		c.Propiedad.Precio.String,
+		c.Propiedad.Ubicacion.String,
+		c.Propiedad.Link.String,
 	}
 
 	parameters := make([]map[string]string, len(params))

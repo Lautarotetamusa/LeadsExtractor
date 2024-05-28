@@ -14,24 +14,29 @@ if __name__ == "__main__":
     logger = Logger("resend leads")
     wpp = Whatsapp(logger)
 
-    date = "05-06-2024"
+    date = "05-23-2024"
     leads = api.get_communications(logger, date)
     print(len(leads))
 
-    for lead in leads:
-        is_new = lead.__dict__["is_new"]
-        lead.print()
+    phones = {}
+    count = 0
 
-        if is_new:
+    for lead in leads:
+        if lead.telefono in phones: #Duplicado
+            count += 1
             logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
             pdf_url = jotform.new_submission(logger, lead) 
             if pdf_url != None:
                 lead.cotizacion = pdf_url
             else:
                 logger.error("No se pudo obtener la cotizacion en pdf")
-
+            
             portal_msg = new_lead_action(wpp, lead)
-
+            
             wpp.send_response(lead.telefono, lead.asesor)
+
+        phones[lead.telefono] = True
         #else: #Lead existente
         #    portal_msg = format_msg(lead, response_msg)
+
+    print(count)

@@ -3,7 +3,6 @@ package pkg
 import (
 	"encoding/json"
 	"fmt"
-	"leadsextractor/infobip"
 	"leadsextractor/models"
 	"log"
 	"net/http"
@@ -17,6 +16,7 @@ func (s *Server) HandlePipedriveOAuth(w http.ResponseWriter, r *http.Request) er
 	w.Write([]byte(s.pipedrive.State))
 	return nil
 }
+
 
 func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error {
     dateString := r.URL.Query().Get("date")
@@ -32,7 +32,7 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
 
     query := "CALL getCommunications(?)"
 
-	communications := []models.CommunicationDB{}
+	communications := []models.Communication{}
 	if err := s.Store.Db.Select(&communications, query, date); err != nil {
         log.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	lead, isNewLead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
+	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
 	if err != nil {
 		return err
 	}
@@ -119,13 +119,13 @@ func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
 		Success bool        `json:"success"`
 		Data    interface{} `json:"data"`
 		IsNew   bool        `json:"is_new"`
-	}{true, c, isNewLead}
+	}{true, c, c.IsNew}
 
 	json.NewEncoder(w).Encode(res)
 	return nil
 }
 
-func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) error {
+func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error {
 	c := &models.Communication{}
 	defer r.Body.Close()
 	err := json.NewDecoder(r.Body).Decode(c)
@@ -137,26 +137,24 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return err
 	}
+    fmt.Printf("%v\n", source)
 
-	lead, isNewLead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
+	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
 	if err != nil {
 		return err
 	}
 	c.Asesor = lead.Asesor
 
-    s.Store.InsertCommunication(c, lead, source, isNewLead)
-
-	go s.pipedrive.SaveCommunication(c)
-
-	infobipLead := infobip.Communication2Infobip(c)
-	s.infobipApi.SaveLead(infobipLead)
+    go runActions(c)
+        
+    s.Store.InsertCommunication(c, lead, source)
 
 	w.Header().Set("Content-Type", "application/json")
 	res := struct {
 		Success bool        `json:"success"`
 		Data    interface{} `json:"data"`
 		IsNew   bool        `json:"is_new"`
-	}{true, c, isNewLead}
+	}{true, c, c.IsNew}
 
 	json.NewEncoder(w).Encode(res)
 	return nil

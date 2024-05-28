@@ -1,5 +1,3 @@
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from flask import Flask, request, jsonify
 from time import gmtime, strftime
 from flask_cors import CORS
@@ -7,8 +5,6 @@ import threading
 import json
 import os
 
-from src.lead_actions import new_lead_action
-from src.whatsapp import Whatsapp
 from src.logger import Logger
 from src.lead import Lead
 from src.numbers import parse_number 
@@ -19,7 +15,6 @@ app = Flask(__name__)
 CORS(app)
 
 logger = Logger("Server")
-whatsapp = Whatsapp()
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
@@ -77,13 +72,6 @@ def recive_ivr_call():
 
     api.new_communication(logger, lead)
 
-    if is_new: #Lead nuevo
-        new_lead_action(whatsapp, lead)
-    else: #Lead existente
-        whatsapp.send_response(lead.telefono, lead.asesor)
-
-    whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
-
     return lead.asesor
 
 @app.route('/webhooks', methods=['POST'])
@@ -121,7 +109,6 @@ def recive_wpp_msg():
     if lead == None:
         return ''
 
-    save = False
     pdf_url = jotform.new_submission(logger, lead) 
     if pdf_url != None:
         lead.cotizacion = pdf_url
@@ -129,28 +116,6 @@ def recive_wpp_msg():
         logger.error("No se pudo obtener la cotizacion en pdf")
 
     api.new_communication(logger, lead)
-
-    if is_new: #Lead nuevo
-        new_lead_action(whatsapp, lead)
-        save = True
-    else: #Lead existente
-        assert lead.fecha_lead != "" and lead.fecha_lead != None, f"El lead {lead.telefono} no tiene fecha de lead"
-
-        months=3
-        treshold = datetime.now().date() - relativedelta(month=months)
-        fecha_lead = datetime.strptime(lead.fecha_lead, "%Y-%m-%d").date()
-        if fecha_lead <= treshold: #Los leads mas viejos que 3 meses
-            if msg_type == "request_welcome": #El lead abrio la conversacion
-                logger.debug("Nuevo request_welcome en lead ya asignado hace mas de 3 meses, lo salteamos")
-            else:
-                whatsapp.send_response(lead.telefono, lead.asesor)
-                save = True
-        else:
-            whatsapp.send_response(lead.telefono, lead.asesor)
-            save = True
-
-    if save:
-        whatsapp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
 
     return lead.asesor
 

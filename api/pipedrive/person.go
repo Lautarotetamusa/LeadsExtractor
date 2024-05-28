@@ -62,9 +62,9 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         customFields["cotizacion"]: c.Cotizacion,
     }
 
-    if (c.Email != ""){
+    if c.Email.Valid {
         payload["email"] = PersonChannel{
-            Value: c.Email,
+            Value: c.Email.String,
             Primary: true,
         }
     }
@@ -106,7 +106,7 @@ func (p *Pipedrive) getField(id string) (*FieldOption, error){
     err := p.makeRequest("GET", url, nil, field)
 
     if err != nil{
-        return nil, fmt.Errorf("el field: %s, no existe\n", id)
+        return nil, fmt.Errorf("el field: %s, no existe", id)
     }
 
     return field, nil

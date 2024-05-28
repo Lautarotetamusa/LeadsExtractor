@@ -1,6 +1,4 @@
-from email.mime.application import MIMEApplication
 import json
-import time
 import os
 from typing import Iterator
 
@@ -8,13 +6,17 @@ from src.lead import Lead
 from src.make_requests import Request
 from src.logger import Logger
 from src.message import format_msg
-from src.sheets import Gmail, Sheet 
-from src.whatsapp import Whatsapp
-from src.lead_actions import new_lead_action
 import src.api as api
 import src.jotform as jotform
 
 from enum import IntEnum
+
+with open('../messages/bienvenida_1.txt') as f:
+    bienvenida_1 = f.read()
+with open('../messages/bienvenida_2.txt') as f:
+    bienvenida_2 = f.read()
+with open('../messages/response_msg.txt') as f:
+    response_msg = f.read()
 
 class Mode(IntEnum):
     NEW = 1
@@ -33,15 +35,11 @@ class Portal():
 
         self.name = name
         self.logger = Logger(name)
-        self.wpp    = Whatsapp(self.logger)
-        self.gmail  = Gmail({
-            "email": os.getenv("EMAIL_CONTACT"),
-        }, self.logger)
         self.request = Request(None, None, self.logger, self.login)
 
         self.contact_id_field = contact_id_field
         self.send_msg_field = send_msg_field
-        self.setup()
+        self.logger.debug(f"Inicializando {self.name}")
 
         self.params_file   = os.path.dirname(os.path.realpath(filename)) + "/params.json"
         self.username = os.getenv(username_env)
@@ -60,30 +58,6 @@ class Portal():
             else:
                 self.logger.error("Incorrect params_type, must be 'cookies' or 'headers'")
                 exit(1)
-
-    def setup(self):
-        self.logger.debug(f"Inicializando {self.name}")
-
-        resources = {
-            'gmail_spin': 'gmail.html',
-            'gmail_subject': 'gmail_subject.html',
-            'response_msg': 'response_message.txt',
-        }
-        self.gmail_spin = ""
-        self.gmail_subject = ""
-        self.response_msg = ""
-
-        for resource in resources:
-            with open(f"messages/{resources[resource]}", 'r') as f:
-                self.__dict__[resource] = f.read()
-            assert resource in self.__dict__ and self.__dict__[resource] != "", f"{resource} no se cargo correctamente"
-
-        # Adjuntar archivo PDF
-        with open('messages/attachment.pdf', 'rb') as pdf_file:
-            self.attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
-            self.attachment.add_header('Content-Disposition', 'attachment', 
-                  filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'
-            )
     
     def send_message_condition(self, lead: dict) -> bool:
         return True
@@ -122,59 +96,16 @@ class Portal():
                         self.logger.error("No se pudo obtener la cotizacion en pdf")
 
                 api.new_communication(self.logger, lead)
-
                 lead.print()
 
                 if is_new: #Lead nuevo
-                    portal_msg = new_lead_action(self.wpp, lead)
+                    portal_msg = bienvenida_1 + ' ' + format_msg(lead, bienvenida_2)
                 else: #Lead existente
-                    portal_msg = format_msg(lead, self.response_msg)
-
-                    self.wpp.send_response(lead.telefono, lead.asesor)
-
-                self.wpp.send_msg_asesor(lead.asesor['phone'], lead, is_new)
+                    portal_msg = format_msg(lead, response_msg)
 
                 #Mensaje del portal
                 if self.send_msg_field in lead_res:
                     self.send_message(lead_res[self.send_msg_field], portal_msg)
                 lead.message = portal_msg.replace('\n', '')
 
-                if lead.email != None and lead.email != '':
-                    if lead.propiedad["ubicacion"] == "":
-                        lead.propiedad["ubicacion"] = "que consultaste"
-                    else:
-                        lead.propiedad["ubicacion"] = "ubicada en " + lead.propiedad["ubicacion"]
-
-                    #gmail_msg = format_msg(lead, self.gmail_spin)
-                    #subject = format_msg(lead, self.gmail_subject)
-                    #self.gmail.send_message(gmail_msg, subject, lead.email, self.attachment)
-
                 self.make_contacted(lead_res[self.contact_id_field])
-
-    def first_run(self):
-        from multiprocessing.pool import ThreadPool
-        pool = ThreadPool(processes=20)
-
-        for page in self.get_leads(Mode.ALL):
-            row_leads = []
-            leads: list[Lead] = []
-            results = []
-            for lead_res in page:
-                r = pool.apply_async(self.get_lead_info, args=(lead_res, ))
-                time.sleep(0.5)
-                results.append(r)
-        
-            for r in results:
-                lead = r.get()
-                lead.print()
-                if lead.telefono == None or lead.telefono == "":
-                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
-                    continue
-
-                row_leads.append(self.sheet.map_lead(lead.__dict__, self.headers))
-                leads.append(lead)  
-                self.logger.debug("cargando a la api")
-                is_new, lead = api.new_communication(self.logger, lead)
-                self.logger.debug("IS NEW: "+str(is_new))
-
-            return

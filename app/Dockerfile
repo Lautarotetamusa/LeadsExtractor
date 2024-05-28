@@ -17,6 +17,7 @@ COPY requirements.txt src/
 RUN pip install -r src/requirements.txt
 
 COPY . . 
+COPY ../messages ../messages
 
 EXPOSE 80
 

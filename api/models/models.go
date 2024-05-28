@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"reflect"
 )
@@ -29,6 +30,19 @@ func (ns *NullString) Scan(value interface{}) error {
 	return nil
 }
 
+func (ns NullString) Value() (driver.Value, error) {
+    if !ns.Valid {
+        return nil, nil
+    }
+    return ns.String, nil
+}
+
+func (ns *NullString) UnmarshalJSON(b []byte) error {
+	err := json.Unmarshal(b, &ns.String)
+	ns.Valid = (err == nil)
+	return err
+}
+
 type NullInt16 sql.NullInt16
 func (ni *NullInt16) MarshalJSON() ([]byte, error) {
 	if !ni.Valid {
@@ -53,17 +67,6 @@ func (ni *NullInt16) Scan(value interface{}) error {
 	return nil
 }
 
-type Property struct {
-    Id        sql.NullInt16  `db:"id" json:"-"`
-    Portal    NullString `db:"portal" json:"-"`
-    PortalId  NullString `db:"portal_id" json:"id"`
-    Title     NullString `db:"title" json:"title"`
-    Price     NullString `db:"price" json:"price"`
-    Ubication NullString `db:"ubication" json:"ubication"`
-    Url       NullString `db:"url" json:"url"`
-    Tipo      NullString `db:"tipo" json:"tipo"`
-}
-
 type Source struct {
 	Id         int           `db:"id"`
 	Tipo       string        `db:"type"`
@@ -71,7 +74,9 @@ type Source struct {
 }
 
 type Propiedad struct {
-    ID        NullString `json:"portal_id" db:"id"`
+    ID        int        `db:"id" json:"-"`
+    Portal    string     `db:"portal" json:"-"`
+    PortalId  NullString `db:"portal_id" json:"id"`
     Titulo    NullString `json:"titulo" db:"title"`
     Link      NullString `json:"link" db:"url"`
     Precio    NullString `json:"precio" db:"price"`
@@ -100,25 +105,10 @@ type Communication struct {
     Nombre     string    `json:"nombre" db:"name"`
     Link       string    `json:"link" db:"url"`
     Telefono   string    `json:"telefono" db:"phone"`
-    Email      string    `json:"email" db:"email"`
+    Email      NullString `json:"email" db:"email"`
 	Cotizacion string    `json:"cotizacion"`
 	Asesor     Asesor    `json:"asesor"`
 	Propiedad  Propiedad `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
-}
-
-type CommunicationDB struct {
-    Fuente     string    `json:"fuente" db:"fuente"`
-    FechaLead  string    `json:"fecha_lead" db:"lead_date"`
-    ID         string    `json:"id" db:"id"`
-    Fecha      string    `json:"fecha" db:"created_at"`
-    Nombre     string    `json:"nombre" db:"name"`
-    Link       string    `json:"link" db:"url"`
-    Telefono   string    `json:"telefono" db:"phone"`
-    Email      NullString `json:"email" db:"email"`
-	Cotizacion string    `json:"cotizacion"`
-	Asesor     Asesor    `json:"asesor"`
-	Propiedad  Propiedad  `json:"propiedad"`
-	Busquedas  Busquedas `json:"busquedas"`
-    IsNew       bool     `json:"is_new" db:"new_lead"`
+    IsNew      bool      `json:"is_new" db:"new_lead"`
 }

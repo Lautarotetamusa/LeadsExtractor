@@ -5,6 +5,7 @@ import (
 	"leadsextractor/infobip"
 	"leadsextractor/pipedrive"
 	"leadsextractor/store"
+	"leadsextractor/whatsapp"
 	"log/slog"
 	"net/http"
 
@@ -13,11 +14,12 @@ import (
 )
 
 type Server struct {
-    listenAddr string
-    roundRobin *store.RoundRobin
-    infobipApi *infobip.InfobipApi
-    pipedrive  *pipedrive.Pipedrive
-    Store      *store.Store
+    listenAddr  string
+    roundRobin  *store.RoundRobin
+    infobipApi  *infobip.InfobipApi
+    pipedrive   *pipedrive.Pipedrive
+    whatsapp    *whatsapp.Whatsapp
+    Store       *store.Store
     logger      *slog.Logger
 }
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
@@ -29,6 +31,7 @@ func NewServer(
     db *sqlx.DB, 
     infobipApi *infobip.InfobipApi, 
     pipedrive *pipedrive.Pipedrive,
+    whatsapp *whatsapp.Whatsapp,
 ) *Server {
 	s := store.NewStore(db, logger)
 	return &Server{
@@ -38,6 +41,7 @@ func NewServer(
 		pipedrive:  pipedrive,
 		Store:      s,
         logger:     logger,
+        whatsapp:   whatsapp,
     }
 }
 
@@ -45,6 +49,8 @@ func (s *Server) Run() {
 	router := mux.NewRouter()
 
 	router.Use(CORS)
+
+    s.setupActions()
 
 	router.HandleFunc("/asesor", handleErrors(s.GetAllAsesores)).Methods("GET")
 	router.HandleFunc("/asesor/{phone}", handleErrors(s.GetOneAsesor)).Methods("GET")
@@ -58,11 +64,13 @@ func (s *Server) Run() {
 	router.HandleFunc("/lead", handleErrors(s.Insert)).Methods("POST")
 	router.HandleFunc("/lead/{phone}", handleErrors(s.Update)).Methods("PUT")
 
-	router.HandleFunc("/communication", handleErrors(s.HandleNewCommunication)).Methods("POST")
+	router.HandleFunc("/communication", handleErrors(s.NewCommunication)).Methods("POST")
 	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
 	router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET", "OPTIONS")
 
 	router.HandleFunc("/communications", handleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
+
+	router.HandleFunc("/actions", handleErrors(ConfigureAction)).Methods("POST", "OPTIONS")
 
 	router.HandleFunc("/pipedrive", handleErrors(s.HandlePipedriveOAuth)).Methods("GET")
 

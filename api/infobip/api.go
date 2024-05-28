@@ -77,12 +77,12 @@ func (i *InfobipApi) SaveLead(lead *InfobipLead){
 
 func Communication2Infobip(c *models.Communication) *InfobipLead{
     var contactInformation ContactInformation 
-    if c.Email != ""{
+    if c.Email.Valid {
         contactInformation.Email = &EmailContact{
-            Address: c.Email,
+            Address: c.Email.String,
         }
     }
-    if c.Telefono != ""{
+    if c.Telefono != "" {
         contactInformation.Phone = &PhoneContact{
             Number: c.Telefono,
         }

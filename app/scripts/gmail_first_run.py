@@ -58,7 +58,7 @@ if __name__ == "__main__":
     #Agregamos un top limit para poder controlar cuantos faltan en el día, por ejemplo si ya corrimos 300 pondriamos 900
 
     # Adjuntar archivo PDF
-    with open('messages/attachment.pdf', 'rb') as pdf_file:
+    with open('../messages/attachment.pdf', 'rb') as pdf_file:
         attachment = MIMEApplication(pdf_file.read(), _subtype="pdf")
         attachment.add_header('Content-Disposition', 'attachment', 
               filename='Bienvenido a Rebora! Seguridad, Confort y Placer - Casas de gran diseño y alta calidad.pdf'

@@ -6,6 +6,8 @@ COPY ./api .
 COPY ./.env ../.env
 RUN go mod download && go mod verify
 
+COPY ../messages/ ../messages
+
 EXPOSE 3001
 RUN go build main.go
 CMD ["./main"]

@@ -11,6 +11,7 @@ import (
 	"leadsextractor/pipedrive"
 	"leadsextractor/pkg"
 	"leadsextractor/store"
+	"leadsextractor/whatsapp"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -51,6 +52,12 @@ func main() {
         logger,
 	)
 
-	server := pkg.NewServer(host, logger, db, infobipApi, pipedriveApi)
+	whatsapp := whatsapp.NewWhatsapp(
+        os.Getenv("WHATSAPP_ACCESS_TOKEN"),
+        os.Getenv("WHATSAPP_NUMBER_ID"),
+        logger,
+	)
+
+	server := pkg.NewServer(host, logger, db, infobipApi, pipedriveApi, whatsapp)
 	server.Run()
 }
