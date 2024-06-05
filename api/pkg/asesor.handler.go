@@ -41,7 +41,13 @@ func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	s.roundRobin.SetAsesores(s.Store)
+    err = s.Store.GetAllActiveAsesores(&asesores)
+
+    if err != nil{
+        return err
+    }
+
+	s.roundRobin.SetAsesores(asesores)
 
 	successResponse(w, r, "Asesores actualizados correctamente", nil)
 	return nil

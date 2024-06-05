@@ -12,6 +12,13 @@ func (s *Store) GetAllAsesores(asesores *[]models.Asesor) error {
 	return nil
 }
 
+func (s *Store) GetAllActiveAsesores(asesores *[]models.Asesor) error {
+	if err := s.Db.Select(asesores, "SELECT * FROM Asesor where active=1"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Store) GetAllAsesoresExcept(phone string) (*[]models.Asesor, error) {
 	asesores := []models.Asesor{}
 	if err := s.Db.Select(&asesores, "SELECT * FROM Asesor where phone != ?", phone); err != nil {
@@ -22,11 +29,11 @@ func (s *Store) GetAllAsesoresExcept(phone string) (*[]models.Asesor, error) {
 
 func (s *Store) GetLeadsFromAsesor(phone string) (*[]models.Lead, error) {
 	query := `
-        SELECT * FROM Leads
-        WHERE asesor_phone = ?
+        SELECT name, phone, email FROM Leads
+        WHERE asesor=?
     `
 	leads := []models.Lead{}
-	if err := s.Db.Select(&leads, query); err != nil {
+	if err := s.Db.Select(&leads, query, phone); err != nil {
 		return nil, err
 	}
 	return &leads, nil

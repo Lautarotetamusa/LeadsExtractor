@@ -11,12 +11,11 @@ import (
 	"leadsextractor/store"
 	"leadsextractor/whatsapp"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
 )
 
-func main() {
+func m() {
     w := os.Stderr
 
     logger := slog.New(

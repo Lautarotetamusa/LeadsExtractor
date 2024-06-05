@@ -145,7 +145,7 @@ func NewDocumentPayload(to string, link string, caption string, filename string)
 
 func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	jsonBody, _ := json.Marshal(payload)
-	w.logger.Debug(fmt.Sprintf("%v\n", payload))
+	w.logger.Debug(fmt.Sprintf("%v", payload))
 	bodyReader := bytes.NewReader(jsonBody)
 
 	req, err := http.NewRequest(http.MethodPost, w.url, bodyReader)

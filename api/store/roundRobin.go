@@ -13,22 +13,22 @@ type RoundRobin struct {
 	asesores []models.Asesor
 }
 
-func NewRoundRobin(s *Store) *RoundRobin {
+func NewRoundRobin(asesores []models.Asesor) *RoundRobin {
+    if (len(asesores) == 0){
+        log.Fatal("No se puede crear un round robin sin asesores")
+    }
+
 	r := RoundRobin{
 		current:  0,
-		asesores: []models.Asesor{},
+		asesores: asesores,
 	}
-	r.SetAsesores(s)
+
 	return &r
 }
 
-func (r *RoundRobin) SetAsesores(s *Store) {
+func (r *RoundRobin) SetAsesores(asesores []models.Asesor) {
 	r.lock.RLock()
-	err := s.GetAllAsesores(&r.asesores)
-
-	if err != nil {
-		log.Fatal("No se pudo obtener la lista de asesores\n", err)
-	}
+    r.asesores = asesores
 
 	r.lock.RUnlock()
 }

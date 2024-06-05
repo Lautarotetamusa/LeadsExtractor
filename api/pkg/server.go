@@ -3,9 +3,11 @@ package pkg
 import (
 	"fmt"
 	"leadsextractor/infobip"
+	"leadsextractor/models"
 	"leadsextractor/pipedrive"
 	"leadsextractor/store"
 	"leadsextractor/whatsapp"
+	"log"
 	"log/slog"
 	"net/http"
 
@@ -34,9 +36,17 @@ func NewServer(
     whatsapp *whatsapp.Whatsapp,
 ) *Server {
 	s := store.NewStore(db, logger)
+    var asesores []models.Asesor
+    err := s.GetAllActiveAsesores(&asesores)
+
+    if err != nil{  
+        log.Fatal("No se pudo obtener la lista de asesores")
+    }
+    rr := store.NewRoundRobin(asesores)
+
 	return &Server{
 		listenAddr: listenAddr,
-		roundRobin: store.NewRoundRobin(s),
+		roundRobin: rr,
 		infobipApi: infobipApi,
 		pipedrive:  pipedrive,
 		Store:      s,
