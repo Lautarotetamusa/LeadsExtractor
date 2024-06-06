@@ -74,14 +74,14 @@ func NewPipedrive(clientId string, clientSecret string, apiToken string, redirec
 }
 
 func (p *Pipedrive) SaveCommunication(c *models.Communication){
-    asesor, err := p.getUserByEmail(c.Asesor.Email)
+    asesor, err := p.GetUserByEmail(c.Asesor.Email)
     if err != nil{
         p.logger.Error("Error obteniendo el asesor %s", "err", err)
         return
     }
     p.logger.Debug(fmt.Sprintf("Asesor: %v", asesor))
 
-    person, err := p.getPersonByNumber(c.Telefono)
+    person, err := p.GetPersonByNumber(c.Telefono)
     if err != nil{
         p.logger.Warn("No se encontro al asesor", "err", err)
         p.logger.Debug("Creando asesor en PipeDrive")
@@ -93,7 +93,7 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
     }
     p.logger.Debug(fmt.Sprintf("Person: %v", person))
 
-    deal, err := p.searchPersonDeal(person.Id, asesor.Id)
+    deal, err := p.SearchPersonDeal(person.Id, asesor.Id)
     if err != nil{
         p.logger.Warn("No se encontro al deal", "err", err)
         p.logger.Debug("Cargando deal en PipeDrive")

@@ -5,6 +5,7 @@ import (
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"leadsextractor/whatsapp"
+	"leadsextractor/pipedrive"
 	"log"
 	"log/slog"
 	"os"
@@ -44,6 +45,14 @@ func reasignAsesor(phone string) error {
 	}
 	db := store.ConnectDB()
 
+	pipe := pipedrive.NewPipedrive(
+		os.Getenv("PIPEDRIVE_CLIENT_ID"),
+		os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
+		os.Getenv("PIPEDRIVE_API_TOKEN"),
+		os.Getenv("PIPEDRIVE_REDIRECT_URI"),
+        logger,
+	)
+
 	wpp := whatsapp.NewWhatsapp(
         os.Getenv("WHATSAPP_ACCESS_TOKEN"),
         os.Getenv("WHATSAPP_NUMBER_ID"),
@@ -77,10 +86,37 @@ func reasignAsesor(phone string) error {
         return fmt.Errorf("no fue posible obtener los leads del asesor")
     }
     logger.Info(fmt.Sprintf("Se reasignarán un total de %d leads", len(*leads)))
+        
+    var pipedriveAsesores map[string]*pipedrive.User = make(map[string]*pipedrive.User)
+    pipedriveAsesor, err := pipe.GetUserByEmail(asesorReasignado.Email)
+    if err != nil {
+        return err
+    }
+    for _, asesor := range asesores{
+        newAsesor, err := pipe.GetUserByEmail(asesor.Email)
+        if err != nil {
+            return err
+        }
+        pipedriveAsesores[asesor.Phone] = newAsesor
+    }
 
     for _, lead := range *leads{
         asesor := rr.Next()
-        s.UpdateLeadAsesor(lead.Phone, &asesor)
+
+        logger.Debug("Reasignando lead en pipedrive")
+        person, err := pipe.GetPersonByNumber(lead.Phone)
+        if err != nil {
+            logger.Error(fmt.Sprintf("%v", err))
+            continue
+        }
+        fmt.Println(person.Id, pipedriveAsesor.Id)
+
+        deal, err := pipe.SearchPersonDeal(person.Id, pipedriveAsesor.Id)
+        if err != nil {
+            logger.Error(fmt.Sprintf("%v", err))
+            return err
+        }
+        pipe.ReasignDeal(deal.Id, pipedriveAsesores[asesor.Phone].Id)
 
         msg := fmt.Sprintf(`
         Tienes un nuevo lead reasignado del asesor %s
@@ -88,7 +124,11 @@ func reasignAsesor(phone string) error {
         Telefono: %s
         `, asesorReasignado.Name, lead.Name, lead.Phone)
 
+        logger.Debug("Enviando mensaje al asesor")
         wpp.SendMessage(asesor.Phone, msg)
+
+        logger.Debug("Actualizando en base de datos")
+        s.UpdateLeadAsesor(lead.Phone, &asesor)
     }
 
     return nil

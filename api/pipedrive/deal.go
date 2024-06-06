@@ -14,7 +14,7 @@ type Deal struct{
     //VisibleTo   string  `json:"visible_to"` 
 }
 
-func (p *Pipedrive) searchPersonDeal(personId uint32, userId uint32) (*Deal, error){
+func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, error){
     url := fmt.Sprintf("persons/%d/deals", personId)
 
     var deals []Deal
@@ -53,6 +53,20 @@ func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId 
 
     var deal Deal
     err := p.makeRequest("POST", "deals", payload, &deal)
+
+    if err != nil{
+        return nil, err
+    }
+    return &deal, nil
+}
+
+func (p *Pipedrive) ReasignDeal(dealId uint32, newUserId uint32) (*Deal, error){
+    payload := map[string]interface{}{
+        "user_id": newUserId,
+    }
+
+    var deal Deal
+    err := p.makeRequest("PUT", fmt.Sprintf("deals/%d/", dealId), payload, &deal)
 
     if err != nil{
         return nil, err

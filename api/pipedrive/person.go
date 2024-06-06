@@ -78,7 +78,7 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
     return &person, nil
 }
 
-func (p *Pipedrive) getPersonByNumber(number string) (*Person, error){
+func (p *Pipedrive) GetPersonByNumber(number string) (*Person, error){
     url := fmt.Sprintf("persons/search?term=%s&fields=%s", number, "phone")
 
     var data struct{
@@ -97,7 +97,6 @@ func (p *Pipedrive) getPersonByNumber(number string) (*Person, error){
 
     return &data.Items[0].Item, nil
 }
-
 
 func (p *Pipedrive) getField(id string) (*FieldOption, error){
     var field *FieldOption
