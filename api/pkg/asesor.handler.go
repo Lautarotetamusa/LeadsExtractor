@@ -53,6 +53,31 @@ func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
+	c := &models.Communication{}
+	defer r.Body.Close()
+	err := json.NewDecoder(r.Body).Decode(c)
+	if err != nil {
+		return err
+	}
+
+	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
+	if err != nil {
+		return err
+	}
+	c.Asesor = lead.Asesor
+
+	w.Header().Set("Content-Type", "application/json")
+	res := struct {
+		Success bool        `json:"success"`
+		Data    interface{} `json:"data"`
+		IsNew   bool        `json:"is_new"`
+	}{true, c, c.IsNew}
+
+	json.NewEncoder(w).Encode(res)
+	return nil
+}
+
 /*
 func (h *AsesorHandler) Reasign(w http.ResponseWriter, r *http.Request) error{
     phone := r.URL.Query().Get("phone")

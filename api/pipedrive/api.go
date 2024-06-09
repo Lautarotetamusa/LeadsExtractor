@@ -73,6 +73,14 @@ func NewPipedrive(clientId string, clientSecret string, apiToken string, redirec
     return &p
 }
 
+func (p *Pipedrive) HandleOAuth(w http.ResponseWriter, r *http.Request) error {
+	code := r.URL.Query().Get("code")
+	log.Println("Code:", code)
+	p.ExchangeCodeToToken(code)
+	w.Write([]byte(p.State))
+	return nil
+}
+
 func (p *Pipedrive) SaveCommunication(c *models.Communication){
     asesor, err := p.GetUserByEmail(c.Asesor.Email)
     if err != nil{

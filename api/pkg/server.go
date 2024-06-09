@@ -75,14 +75,14 @@ func (s *Server) Run() {
 	router.HandleFunc("/lead/{phone}", handleErrors(s.Update)).Methods("PUT")
 
 	router.HandleFunc("/communication", handleErrors(s.NewCommunication)).Methods("POST")
-	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
-	router.HandleFunc("/communication", handleErrors(s.HandleListCommunication)).Methods("GET", "OPTIONS")
-
 	router.HandleFunc("/communications", handleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/actions", handleErrors(ConfigureAction)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
 
-	router.HandleFunc("/pipedrive", handleErrors(s.HandlePipedriveOAuth)).Methods("GET")
+	router.HandleFunc("/actions", handleErrors(ConfigureAction)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/broadcast", handleErrors(s.NewBroadcast)).Methods("POST")
+
+	router.HandleFunc("/pipedrive", handleErrors(s.pipedrive.HandleOAuth)).Methods("GET")
 
 	s.logger.Info(fmt.Sprintf("Server started at %s", s.listenAddr))
 	err := http.ListenAndServe(s.listenAddr, router)

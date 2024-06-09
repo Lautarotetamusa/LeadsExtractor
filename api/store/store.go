@@ -23,8 +23,19 @@ func NewStore(db *sqlx.DB, logger *slog.Logger) *Store {
 func (s *Store) InsertCommunication(c *models.Communication, lead *models.Lead, source *models.Source) error {
 	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
     VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
-
-    if _, err := s.Db.NamedExec(query, c); err != nil {
+    _, err := s.Db.NamedExec(query, map[string]interface{}{
+		"lead_phone":  lead.Phone,
+		"source_id":   source.Id,
+		"new_lead":    c.IsNew,
+		"lead_date":   c.FechaLead,
+		"url":         c.Link,
+		"zones":       c.Busquedas.Zonas,
+		"mt2_terrain": c.Busquedas.TotalArea,
+		"mt2_builded": c.Busquedas.CoveredArea,
+		"baths":       c.Busquedas.Banios,
+		"rooms":       c.Busquedas.Recamaras,
+	})
+	if err != nil {
 		return err
 	}
     return nil

@@ -7,16 +7,9 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
-
-func (s *Server) HandlePipedriveOAuth(w http.ResponseWriter, r *http.Request) error {
-	code := r.URL.Query().Get("code")
-	log.Println("Code:", code)
-	s.pipedrive.ExchangeCodeToToken(code)
-	w.Write([]byte(s.pipedrive.State))
-	return nil
-}
-
 
 func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error {
     dateString := r.URL.Query().Get("date")
@@ -49,77 +42,30 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-func (s *Server) HandleListCommunication(w http.ResponseWriter, r *http.Request) error {
-	query := "CALL communicationList()"
+func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
+    type payload struct{
+        Uuid uuid.NullUUID `json:"uuid"`
+    }
+    var body payload
 
-	rows, err := s.Store.Db.Queryx(query)
-	if err != nil {
-		return err
-	}
-	cols, err := rows.Columns()
-	if err != nil {
-		return err
-	}
-	colCount := len(cols)
-
-	// Result is your slice string.
-	rawResult := make([][]byte, colCount)
-	dest := make([]interface{}, colCount) // A temporary interface{} slice
-	var result [][]string
-
-	for i := range rawResult {
-		dest[i] = &rawResult[i] // Put pointers to each string in the interface slice
-	}
-
-	rowCount := 0
-	for rows.Next() {
-		rowCount += 1
-		err = rows.Scan(dest...)
-		if err != nil {
-			return err
-		}
-
-		//Lo hago aca dentro de nuevo porque el append apendea un puntero
-		//Es decir si haces a = append(a, b) y despues  cambias b, a va a tener el nuevo valor de b
-		row := make([]string, colCount)
-		for i, raw := range rawResult {
-			row[i] = string(raw)
-		}
-		result = append(result, row)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	res := struct {
-		Success   bool        `json:"success"`
-		Headers   []string    `json:"headers"`
-		RowsCount int         `json:"row_count"`
-		ColsCount int         `json:"col_count"`
-		Rows      interface{} `json:"rows"`
-	}{true, cols, rowCount, colCount, result}
-	json.NewEncoder(w).Encode(res)
-	return nil
-}
-
-func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
-	c := &models.Communication{}
 	defer r.Body.Close()
-	err := json.NewDecoder(r.Body).Decode(c)
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		return err
 	}
-
-	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
-	if err != nil {
-		return err
+    
+    query := "CALL getCommunications(DATE_SUB(NOW(), interval 20 day))"
+	communications := []models.Communication{}
+	if err := s.Store.Db.Select(&communications, query); err != nil {
+        log.Fatal(err)
 	}
-	c.Asesor = lead.Asesor
 
+    broadcast(communications, body.Uuid.UUID)
 	w.Header().Set("Content-Type", "application/json")
 	res := struct {
-		Success bool        `json:"success"`
-		Data    interface{} `json:"data"`
-		IsNew   bool        `json:"is_new"`
-	}{true, c, c.IsNew}
+		Success bool    `json:"success"`
+		Count   int     `json:"count"`
+	}{true, len(communications)}
 
 	json.NewEncoder(w).Encode(res)
 	return nil
@@ -145,9 +91,12 @@ func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error 
 	}
 	c.Asesor = lead.Asesor
 
-    go runActions(c)
+    //go runFlow(c)
         
-    s.Store.InsertCommunication(c, lead, source)
+    err = s.Store.InsertCommunication(c, lead, source)
+    if err != nil {
+        return err
+    }
 
 	w.Header().Set("Content-Type", "application/json")
 	res := struct {
