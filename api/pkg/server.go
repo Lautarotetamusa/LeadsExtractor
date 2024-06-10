@@ -66,6 +66,7 @@ func (s *Server) Run() {
 	router.HandleFunc("/asesor/{phone}", handleErrors(s.GetOneAsesor)).Methods("GET")
 	router.HandleFunc("/asesor", handleErrors(s.InsertAsesor)).Methods("POST")
 	router.HandleFunc("/asesor/{phone}", handleErrors(s.UpdateAsesor)).Methods("PUT")
+	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
 
 	router.HandleFunc("/asesores/", handleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
 
@@ -77,10 +78,12 @@ func (s *Server) Run() {
 	router.HandleFunc("/communication", handleErrors(s.NewCommunication)).Methods("POST")
 	router.HandleFunc("/communications", handleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
 
-	router.HandleFunc("/actions", handleErrors(ConfigureAction)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/actions", handleErrors(NewAction)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/actions", handleErrors(s.GetFlows)).Methods("GET")
+
 	router.HandleFunc("/broadcast", handleErrors(s.NewBroadcast)).Methods("POST")
+	router.HandleFunc("/mainFlow", handleErrors(s.SetFlowAsMain)).Methods("POST")
 
 	router.HandleFunc("/pipedrive", handleErrors(s.pipedrive.HandleOAuth)).Methods("GET")
 

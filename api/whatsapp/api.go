@@ -48,13 +48,18 @@ type DocumentPayload struct {
 
 type TemplatePayload struct {
 	Name       string        `json:"name"`
-	Language   *Language     `json:"language"`
-	Components *[]Components `json:"components"`
+	Language   Language     `json:"language"`
+	Components []Components `json:"components"`
+}
+
+type Parameter struct {
+    Type    string  `json:"type"`
+    Text    string  `json:"text,omitempty"`
 }
 
 type Components struct {
-	Type       string              `json:"type"`
-	Parameters []map[string]string `json:"parameters"`
+	Type       string       `json:"type"`
+	Parameters []Parameter  `json:"parameters"`
 }
 
 type Language struct {
@@ -108,8 +113,8 @@ func newTemplatePayload(to string, name string, components []Components) *Payloa
 	p := newPayload(to, "template")
 	p.Template = &TemplatePayload{
 		Name:       name,
-		Components: &components,
-		Language: &Language{
+		Components: components,
+		Language: Language{
 			Code: "es_MX",
 		},
 	}
@@ -181,6 +186,12 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	return &data, nil
 }
 
+func (w *Whatsapp) SendTemplate(to string, t TemplatePayload) (*Response, error) {
+	p := newPayload(to, "template")
+	p.Template = &t
+	return w.Send(p)
+}
+
 func (w *Whatsapp) SendMessage(to string, message string) (*Response, error) {
 	return w.Send(newTextPayload(to, message))
 }
@@ -188,9 +199,9 @@ func (w *Whatsapp) SendMessage(to string, message string) (*Response, error) {
 func (w *Whatsapp) SendResponse(to string, asesor *models.Asesor) (*Response, error) {
 	components := []Components{{
 		Type: "body",
-		Parameters: []map[string]string{{
-			"type": "text",
-			"text": asesor.Name,
+		Parameters: []Parameter{{
+            Type: "text",
+            Text: asesor.Name,
 		}},
 	}}
 
@@ -223,14 +234,14 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		c.Propiedad.Link.String,
 	}
 
-	parameters := make([]map[string]string, len(params))
+	parameters := make([]Parameter, len(params))
 	for i, param := range params {
 		if param == "" {
 			param = " - "
 		}
-		parameters[i] = map[string]string{
-			"type": "text",
-			"text": param,
+		parameters[i] = Parameter{
+            Type: "text",
+            Text: param,
 		}
 	}
 	components := []Components{{
@@ -238,4 +249,16 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		Parameters: parameters,
 	}}
 	return w.Send(newTemplatePayload(to, templateName, components))
+}
+
+//Validamos que no haya campos vacios porque la api de whatsapp no lo permite
+//Si hay un campo vacio ponemos un " - "
+func ParseTemplatePayload(t *TemplatePayload) {
+    for i, _ := range t.Components {
+        for j, _ := range t.Components[i].Parameters {
+            if t.Components[i].Parameters[j].Text == "" {
+                t.Components[i].Parameters[j].Text = " - "
+            }
+        }
+    }
 }

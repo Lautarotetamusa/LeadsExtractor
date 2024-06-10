@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error {
@@ -42,40 +40,11 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
-    type payload struct{
-        Uuid uuid.NullUUID `json:"uuid"`
-    }
-    var body payload
-
-	defer r.Body.Close()
-	err := json.NewDecoder(r.Body).Decode(&body)
-	if err != nil {
-		return err
-	}
-    
-    query := "CALL getCommunications(DATE_SUB(NOW(), interval 20 day))"
-	communications := []models.Communication{}
-	if err := s.Store.Db.Select(&communications, query); err != nil {
-        log.Fatal(err)
-	}
-
-    broadcast(communications, body.Uuid.UUID)
-	w.Header().Set("Content-Type", "application/json")
-	res := struct {
-		Success bool    `json:"success"`
-		Count   int     `json:"count"`
-	}{true, len(communications)}
-
-	json.NewEncoder(w).Encode(res)
-	return nil
-}
 
 func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error {
 	c := &models.Communication{}
 	defer r.Body.Close()
-	err := json.NewDecoder(r.Body).Decode(c)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
 		return err
 	}
 
@@ -91,10 +60,9 @@ func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error 
 	}
 	c.Asesor = lead.Asesor
 
-    //go runFlow(c)
+    go runMainFlow(c)
         
-    err = s.Store.InsertCommunication(c, lead, source)
-    if err != nil {
+    if err = s.Store.InsertCommunication(c, lead, source); err != nil {
         return err
     }
 

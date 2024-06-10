@@ -8,7 +8,6 @@ import (
 	"leadsextractor/models"
 	"leadsextractor/whatsapp"
 	"log/slog"
-	"net/http"
 	"os"
 	"reflect"
 	"text/template"
@@ -18,6 +17,8 @@ import (
 	"github.com/google/uuid"
 )
 
+type Interval time.Duration
+
 type ActionFunc func(c *models.Communication, params interface{}) error
 
 type ActionDefinition struct {
@@ -26,12 +27,15 @@ type ActionDefinition struct {
 }
 
 type SendWppTextParam struct {
-    Text    string  `json:"text"`
+    Text string  `json:"text"`
+}
+type SendWppTemplateParam struct {
+    Template whatsapp.TemplatePayload `json:"template"`
 }
 
 type Action struct {
-    ActionName  string      `json:"action"`
-    Intervalo   Interval    `json:"interval"`
+    Name        string      `json:"action"`
+    Interval    Interval    `json:"interval"`
     Params      interface{} `json:"params"`
 }
 
@@ -44,35 +48,39 @@ type Rule struct {
     Actions     []Action `json:"actions"`  
 }
 
-var flows map[uuid.UUID][]Rule
+type Config struct {
+    Flows   map[uuid.UUID][]Rule    `json:"flows"` // 
+    Main    uuid.UUID               `json:"main"`  //Es el uuid del flow que se ejecuta cuando llega una comuncacion
+}
 
-var actionsDefinitions map[string]ActionDefinition
+var config Config
 
-type Interval time.Duration
+//Son las acciones permitidas
+var actions map[string]ActionDefinition
 
 func (a *Action) UnmarshalJSON(data []byte) error {
     var temp struct {
-        ActionName string          `json:"action"`
-        Intervalo  Interval        `json:"interval"`
-        Params     json.RawMessage `json:"params"`
+        Name        string          `json:"action"`
+        Interval    Interval        `json:"interval"`
+        Params      json.RawMessage `json:"params"`
     }
 
     if err := json.Unmarshal(data, &temp); err != nil {
         return err
     }
 
-    a.ActionName = temp.ActionName
-    a.Intervalo = temp.Intervalo
+    a.Name = temp.Name
+    a.Interval = temp.Interval
 
-    actionDef, exists := actionsDefinitions[a.ActionName]
+    actionDef, exists := actions[a.Name]
     if !exists {
-        return fmt.Errorf("la accion %s no existe", a.ActionName)
+        return fmt.Errorf("la accion %s no existe", a.Name)
     }
 
     //Deserealizamos al tipo de esta accion definido en ParamsType
     params := reflect.New(actionDef.ParamType).Interface()
     if err := json.Unmarshal(temp.Params, params); err != nil {
-        return fmt.Errorf("parámetros inválidos para la acción %s: %v", a.ActionName, err)
+        return fmt.Errorf("parámetros inválidos para la acción %s: %v", a.Name, err)
     }
     a.Params = params
 
@@ -97,22 +105,22 @@ func (i Interval) MarshalJSON() ([]byte, error) {
     return json.Marshal(time.Duration(i).String())
 }
 
-func loadActionConfig(filename string) error {
+func loadConfig(filename string) error {
     file, err := os.Open(filename)
     if err != nil {
         return err
     }
     defer file.Close()
 
-    if err := json.NewDecoder(file).Decode(&flows); err != nil {
+    if err := json.NewDecoder(file).Decode(&config); err != nil {
         return err
     }
 
     return nil
 }
 
-func saveConfigToFile(filename string) error {
-    data, err := json.MarshalIndent(flows, "", "\t")
+func saveConfig(filename string) error {
+    data, err := json.MarshalIndent(config, "", "\t")
     if err != nil {
         return err
     }
@@ -125,27 +133,8 @@ func saveConfigToFile(filename string) error {
     return nil
 }
 
-func ConfigureAction(w http.ResponseWriter, r *http.Request) error {
-    var rules []Rule
-    if err := json.NewDecoder(r.Body).Decode(&rules); err != nil {
-        return err
-    }
-
-    uuid, err := uuid.NewRandom()
-    if err != nil {
-        return fmt.Errorf("no se pudo generar una uuid: %s", err)
-    }
-    flows[uuid] = rules
-    saveConfigToFile("actions.json")
-
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(flows)
-    return nil
-}
-
 func broadcast(comms []models.Communication, uuid uuid.UUID) error {
-    _, ok := flows[uuid] 
+    _, ok := config.Flows[uuid] 
     if !ok{
         return fmt.Errorf("el flow con uuid %s no existe", uuid)
     }
@@ -157,8 +146,12 @@ func broadcast(comms []models.Communication, uuid uuid.UUID) error {
     return nil
 }
 
+func runMainFlow(c *models.Communication) {
+    runFlow(c, config.Main)
+}
+
 func runFlow(c *models.Communication, uuid uuid.UUID) {
-    rules, ok := flows[uuid] 
+    rules, ok := config.Flows[uuid] 
     if !ok{
         slog.Error(fmt.Sprintf("el flow con uuid %s no existe", uuid.String()))
         os.Exit(1)
@@ -170,12 +163,12 @@ func runFlow(c *models.Communication, uuid uuid.UUID) {
         }
 
         for _, action := range rule.Actions{
-            actionFunc := actionsDefinitions[action.ActionName].Func
+            actionFunc := actions[action.Name].Func
             
-            schedule.After(time.Duration(action.Intervalo), func() {
+            schedule.After(time.Duration(action.Interval), func() {
                 err := actionFunc(c, action.Params)
                 if err != nil {
-                    slog.Error(fmt.Sprintf("error in action %s: %s", action.ActionName, err.Error()))
+                    slog.Error(fmt.Sprintf("error in action %s: %s", action.Name, err.Error()))
                 }
             })
         }
@@ -205,8 +198,8 @@ func (s *Server) setupActions(){
     cotizacion1 := MustReadFile("../messages/plantilla_cotizacion_1.txt")
     cotizacion2 := MustReadFile("../messages/plantilla_cotizacion_2.txt")
 
-    actionsDefinitions = make(map[string]ActionDefinition)
-    actionsDefinitions["wpp.message"] = ActionDefinition{
+    actions = make(map[string]ActionDefinition)
+    actions["wpp.message"] = ActionDefinition{
         Func: func(c *models.Communication, params interface{}) error {
             s.logger.Info("wpp.message")
             param, ok := params.(*SendWppTextParam)
@@ -221,11 +214,26 @@ func (s *Server) setupActions(){
         ParamType: reflect.TypeOf(SendWppTextParam{}),
     }
 
-    actionsDefinitions["wpp.cotizacion"] = ActionDefinition{
+    actions["wpp.template"] = ActionDefinition{
+        Func:  func(c *models.Communication, params interface{}) error {
+            s.logger.Info("wpp.template")
+            param, ok := params.(*whatsapp.TemplatePayload)
+            if !ok {
+                return fmt.Errorf("invalid parameters for wpp.message")
+            }
+
+            whatsapp.ParseTemplatePayload(param)
+            s.whatsapp.SendTemplate(c.Telefono, *param)
+            return nil
+        },
+        ParamType: reflect.TypeOf(whatsapp.TemplatePayload{}), 
+    }
+
+    actions["wpp.cotizacion"] = ActionDefinition{
         Func: func(c *models.Communication, params interface{}) error {
             s.logger.Info("wpp.send_cotizacion")
             if c.Cotizacion == "" {
-                return fmt.Errorf("el lead no tiene cotizacion")
+                return fmt.Errorf("el lead %s no tiene cotizacion", c.Nombre)
             }
 
             var caption string
@@ -245,7 +253,7 @@ func (s *Server) setupActions(){
         },
     }
 
-    actionsDefinitions["wpp.send_message_asesor"] = ActionDefinition{
+    actions["wpp.send_message_asesor"] = ActionDefinition{
 		Func: func(c *models.Communication, params interface{}) error {
             s.logger.Info("wpp.send_message_asesor")
             s.whatsapp.SendMsgAsesor(c.Asesor.Phone, c, c.IsNew)
@@ -253,7 +261,7 @@ func (s *Server) setupActions(){
         },
     }
 
-    actionsDefinitions["wpp.send_image"] = ActionDefinition{
+    actions["wpp.send_image"] = ActionDefinition{
 		Func: func(c *models.Communication, params interface{}) error {
             s.logger.Info("wpp.send_image")
             s.whatsapp.SendImage(c.Telefono, os.Getenv("WHATSAPP_IMAGE_ID"))
@@ -261,7 +269,7 @@ func (s *Server) setupActions(){
         },
     }
 
-    actionsDefinitions["wpp.send_video"] = ActionDefinition{
+    actions["wpp.send_video"] = ActionDefinition{
 		Func: func(c *models.Communication, params interface{}) error {
             s.logger.Info("wpp.send_video")
             s.whatsapp.SendVideo(c.Telefono, os.Getenv("WHATSAPP_VIDEO_ID"))
@@ -269,7 +277,7 @@ func (s *Server) setupActions(){
         },
     }
 
-    actionsDefinitions["wpp.send_response"] = ActionDefinition{
+    actions["wpp.send_response"] = ActionDefinition{
             Func: func(c *models.Communication, params interface{}) error {
             s.logger.Info("wpp_send_response")
             s.whatsapp.SendResponse(c.Telefono, &c.Asesor)
@@ -277,7 +285,7 @@ func (s *Server) setupActions(){
         },
     }
 
-    actionsDefinitions["infobip.save"] = ActionDefinition{
+    actions["infobip.save"] = ActionDefinition{
         Func: func(c *models.Communication, params interface{}) error {
             infobipLead := infobip.Communication2Infobip(c)
             s.infobipApi.SaveLead(infobipLead)
@@ -285,14 +293,14 @@ func (s *Server) setupActions(){
         },
     }
 
-    actionsDefinitions["pipedrive.save"] = ActionDefinition{
+    actions["pipedrive.save"] = ActionDefinition{
         Func: func(c *models.Communication, params interface{}) error {
             s.pipedrive.SaveCommunication(c)
             return nil
         },
     }
     
-    err := loadActionConfig("actions.json")
+    err := loadConfig("actions.json")
     if err != nil{
         s.logger.Error(err.Error())
     }

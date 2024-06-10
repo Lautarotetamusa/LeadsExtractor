@@ -6,19 +6,19 @@ import (
 )
 
 type ErrorResponseType struct {
-    Success bool `json:"success"`
-    Error string `json:"error"`
+    Success bool    `json:"success"`
+    Error   string  `json:"error"`
 }
 
 type DataResponse struct {
-    Success bool `json:"success"`
-    Data interface{} `json:"data"` 
+    Success     bool        `json:"success"`
+    Data        interface{} `json:"data"` 
 }
 
 type SuccessResponse struct {
-    Success bool `json:"success"`
-    Message string `json:"message"`
-    Data interface{} `json:"data"` 
+    Success     bool        `json:"success"`
+    Message     string      `json:"message"`
+    Data        interface{} `json:"data"` 
 }
 
 func ErrorResponse(w http.ResponseWriter, r *http.Request, e error) {
@@ -30,7 +30,7 @@ func ErrorResponse(w http.ResponseWriter, r *http.Request, e error) {
     })
 }
 
-func dataResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
+func dataResponse(w http.ResponseWriter, data interface{}) {
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(DataResponse{
         Success: true,
@@ -38,7 +38,7 @@ func dataResponse(w http.ResponseWriter, r *http.Request, data interface{}) {
     })
 }
 
-func successResponse(w http.ResponseWriter, r *http.Request, message string, data interface{}) {
+func successResponse(w http.ResponseWriter, message string, data interface{}) {
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(SuccessResponse{
         Success: true,

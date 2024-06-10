@@ -10,12 +10,12 @@ import (
 )
 
 func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) error {
-	leades, err := s.Store.GetAll()
+	leads, err := s.Store.GetAll()
 	if err != nil {
 		return err
 	}
 
-	dataResponse(w, r, leades)
+	dataResponse(w, leads)
 	return nil
 }
 
@@ -27,7 +27,7 @@ func (s *Server) GetOne(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	dataResponse(w, r, lead)
+	dataResponse(w, lead)
 	return nil
 }
 
@@ -48,7 +48,7 @@ func (s *Server) Insert(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	successResponse(w, r, "Lead creado correctamente", lead)
+	successResponse(w, "Lead creado correctamente", lead)
 	return nil
 }
 
@@ -56,9 +56,7 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) error {
 	phone := mux.Vars(r)["phone"]
 
 	var updateLead models.UpdateLead
-	err := json.NewDecoder(r.Body).Decode(&updateLead)
-
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&updateLead); err != nil {
 		return err
 	}
 
@@ -69,15 +67,14 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	validate := validator.New()
-	if err = validate.Struct(lead); err != nil {
+    if err := validate.Struct(lead); err != nil {
 		return err
 	}
 
-	_, err = s.Store.Update(&lead, phone)
-	if err != nil {
+    if _, err := s.Store.Update(&lead, phone); err != nil {
 		return err
 	}
 
-	successResponse(w, r, "Lead actualizado correctamente", lead)
+	successResponse(w, "Lead actualizado correctamente", lead)
 	return nil
 }

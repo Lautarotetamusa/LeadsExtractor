@@ -22,15 +22,13 @@ type AsesorHandler struct {
 
 func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 	var asesores []models.Asesor
-
 	defer r.Body.Close()
 	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(reqBody, &asesores)
-	if err != nil {
+	if err = json.Unmarshal(reqBody, &asesores); err != nil {
 		return err
 	}
 
@@ -41,23 +39,20 @@ func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-    err = s.Store.GetAllActiveAsesores(&asesores)
-
-    if err != nil{
+    if err = s.Store.GetAllActiveAsesores(&asesores); err != nil{
         return err
     }
 
 	s.roundRobin.SetAsesores(asesores)
 
-	successResponse(w, r, "Asesores actualizados correctamente", nil)
+	successResponse(w, "Asesores actualizados correctamente", nil)
 	return nil
 }
 
 func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
 	c := &models.Communication{}
 	defer r.Body.Close()
-	err := json.NewDecoder(r.Body).Decode(c)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
 		return err
 	}
 
@@ -115,12 +110,11 @@ func (h *AsesorHandler) Reasign(w http.ResponseWriter, r *http.Request) error{
 
 func (s *Server) GetAllAsesores(w http.ResponseWriter, r *http.Request) error {
 	asesores := []models.Asesor{}
-	err := s.Store.GetAllAsesores(&asesores)
-	if err != nil {
+	if err := s.Store.GetAllAsesores(&asesores); err != nil {
 		return err
 	}
 
-	dataResponse(w, r, asesores)
+	dataResponse(w, asesores)
 	return nil
 }
 
@@ -132,7 +126,7 @@ func (s *Server) GetOneAsesor(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	dataResponse(w, r, asesor)
+	dataResponse(w, asesor)
 	return nil
 }
 
@@ -143,14 +137,12 @@ func (s *Server) InsertAsesor(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	err = json.Unmarshal(reqBody, &asesor)
-	if err != nil {
+	if err = json.Unmarshal(reqBody, &asesor); err != nil {
 		return err
 	}
 
 	validate := validator.New()
-	err = validate.Struct(asesor)
-	if err != nil {
+	if err = validate.Struct(asesor); err != nil {
 		return err
 	}
 
@@ -159,7 +151,7 @@ func (s *Server) InsertAsesor(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	successResponse(w, r, "Asesor creado correctamente", asesor)
+	successResponse(w, "Asesor creado correctamente", asesor)
 	return nil
 }
 
@@ -191,6 +183,6 @@ func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	successResponse(w, r, "Asesor actualizado correctamente", asesor)
+	successResponse(w, "Asesor actualizado correctamente", asesor)
 	return nil
 }
