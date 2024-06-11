@@ -46,6 +46,8 @@ services:
     ports:
       - $API_PORT:$API_PORT
     network_mode: "host"
+    volumes:
+      - ./api/actions.json:/go/app/api/actions.json
 
   prometheus:
     image: prom/prometheus

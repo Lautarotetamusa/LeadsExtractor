@@ -264,8 +264,5 @@ func (s *Server) setupActions(){
         nil,
     )
     
-    err := s.flowHandler.manager.Load()
-    if err != nil{
-        s.logger.Error(err.Error())
-    }
+    s.flowHandler.manager.MustLoad()
 }

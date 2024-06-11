@@ -12,19 +12,16 @@ import (
 	"github.com/google/uuid"
 )
 
-
-func (f *FlowManager) Load() error {
+func (f *FlowManager) MustLoad() {
     file, err := os.Open(f.filename)
     if err != nil {
-        return err
+        panic(err.Error())
     }
     defer file.Close()
 
     if err := json.NewDecoder(file).Decode(&f); err != nil {
-        return err
+        panic(err.Error())
     }
-
-    return nil
 }
 
 func (f *FlowManager) Save() error {
@@ -33,8 +30,7 @@ func (f *FlowManager) Save() error {
         return err
     }
 
-    err = os.WriteFile(f.filename, data, 0644)
-    if err != nil {
+    if err = os.WriteFile(f.filename, data, 0644); err != nil {
         return err
     }
 
