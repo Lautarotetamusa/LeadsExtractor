@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"fmt"
+	"leadsextractor/flow"
 	"leadsextractor/infobip"
 	"leadsextractor/models"
 	"leadsextractor/pipedrive"
@@ -23,6 +24,8 @@ type Server struct {
     whatsapp    *whatsapp.Whatsapp
     Store       *store.Store
     logger      *slog.Logger
+
+    flowHandler *FlowHandler
 }
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
 type HandlerFn func(w http.ResponseWriter, r *http.Request)
@@ -52,6 +55,9 @@ func NewServer(
 		Store:      s,
         logger:     logger,
         whatsapp:   whatsapp,
+        flowHandler: &FlowHandler{
+            manager: flow.NewFlowManager("actions.json", logger),
+        },
     }
 }
 
@@ -78,12 +84,13 @@ func (s *Server) Run() {
 	router.HandleFunc("/communication", handleErrors(s.NewCommunication)).Methods("POST")
 	router.HandleFunc("/communications", handleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 
-
-	router.HandleFunc("/actions", handleErrors(NewAction)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/actions", handleErrors(s.GetFlows)).Methods("GET")
+	router.HandleFunc("/actions", handleErrors(s.flowHandler.NewFlow)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/actions/{uuid}", handleErrors(s.flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/actions", handleErrors(s.flowHandler.GetFlows)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/actions/{uuid}", handleErrors(s.flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
 
 	router.HandleFunc("/broadcast", handleErrors(s.NewBroadcast)).Methods("POST")
-	router.HandleFunc("/mainFlow", handleErrors(s.SetFlowAsMain)).Methods("POST")
+	router.HandleFunc("/mainFlow", handleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST")
 
 	router.HandleFunc("/pipedrive", handleErrors(s.pipedrive.HandleOAuth)).Methods("GET")
 

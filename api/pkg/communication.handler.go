@@ -60,9 +60,10 @@ func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error 
 	}
 	c.Asesor = lead.Asesor
 
-    go runMainFlow(c)
+    go s.flowHandler.manager.RunMainFlow(c)
         
     if err = s.Store.InsertCommunication(c, lead, source); err != nil {
+        s.logger.Error(err.Error(), "path", "InsertCommunication")
         return err
     }
 

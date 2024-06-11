@@ -16,11 +16,12 @@ type Store struct {
 func NewStore(db *sqlx.DB, logger *slog.Logger) *Store {
 	return &Store{
 		Db: db,
-        logger: logger,
+        logger: logger.With("module", "store"),
 	}
 }
 
 func (s *Store) InsertCommunication(c *models.Communication, lead *models.Lead, source *models.Source) error {
+    s.logger.Debug("Saving communication")
 	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
     VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
     _, err := s.Db.NamedExec(query, map[string]interface{}{
@@ -38,6 +39,7 @@ func (s *Store) InsertCommunication(c *models.Communication, lead *models.Lead, 
 	if err != nil {
 		return err
 	}
+    s.logger.Info("communication saved")
     return nil
 }
 
