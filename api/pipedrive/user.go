@@ -8,9 +8,10 @@ type User struct{
     Email   string `json:"email"`
 }
 
+//TODO: Puede haber varias paginas, el maximo por pagina es 500
 func (p *Pipedrive) GetUserPersons(u *User) ([]Person, error) {
     var persons []Person
-    url := fmt.Sprintf("persons?user_id=%d&limit=1000", u.Id)
+    url := fmt.Sprintf("persons?user_id=%d&limit=500", u.Id)
 
     if err := p.makeRequest("GET", url, nil, &persons); err != nil {
         return nil, err

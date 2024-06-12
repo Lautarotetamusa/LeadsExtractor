@@ -74,7 +74,7 @@ type Source struct {
 }
 
 type Propiedad struct {
-    ID        int        `db:"id" json:"-"`
+    ID        NullInt16  `db:"id" json:"-"` //Lo hacemos null porque en el left join puede no traer
     Portal    string     `db:"portal" json:"-"`
     PortalId  NullString `db:"portal_id" json:"id"`
     Titulo    NullString `json:"titulo" db:"title"`
