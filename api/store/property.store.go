@@ -79,7 +79,7 @@ func (s *Store) insertOrGetProperty(c *models.Communication) (*models.Propiedad,
         if err != nil {
             return nil, err
         }
-        err = s.insertSource(int(property.ID.Int16))
+        err = s.insertSource(int(property.ID.Int32))
         if err != nil {
             return nil, err
         }
