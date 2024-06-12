@@ -16,15 +16,31 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
     }
     const format = "01-02-2006"
 
+    var isNew *bool;
+    isNewStr := r.URL.Query().Get("is_new")
+
+    switch isNewStr {
+    case "":
+        isNew = nil
+    case "false":
+        val := false
+        isNew = &val
+    case "true":
+        val := true
+        isNew = &val
+    default:
+        return fmt.Errorf("el parametro is_new tiene que ser un booleano")
+    }
+
     date, err := time.Parse(format, dateString)
     if err != nil{
         return err
     }
 
-    query := "CALL getCommunications(?)"
+    query := "CALL getCommunications(?, ?)"
 
 	communications := []models.Communication{}
-	if err := s.Store.Db.Select(&communications, query, date); err != nil {
+	if err := s.Store.Db.Select(&communications, query, date, isNew); err != nil {
         log.Fatal(err)
 	}
     s.logger.Info(fmt.Sprintf("Se encontraron %d comunicaciones", len(communications)))
