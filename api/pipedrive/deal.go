@@ -11,7 +11,8 @@ type Deal struct{
     Value       int32   `json:"value"`
     Currency    string  `json:"currency"`
     User        User    `json:"user_id"`
-    //VisibleTo   string  `json:"visible_to"` 
+    //VisibleTo   string  `json:"visible_to"`
+    Person      *Person `json:"person_id"`
 }
 
 func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, error){

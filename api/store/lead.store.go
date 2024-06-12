@@ -60,12 +60,15 @@ func (s *Store) Update(lead *models.Lead, phone string) (*models.Lead, error) {
 
 func (s *Store) UpdateLeadAsesor(phone string, a *models.Asesor) error {
 	query := "UPDATE Leads SET asesor=:asesor WHERE phone=:phone"
-	if _, err := s.Db.NamedExec(query, map[string]interface{}{
+	_, err := s.Db.NamedExec(query, map[string]interface{}{
         "asesor": a.Phone,
         "phone": phone,
-    }); err != nil {
+    });
+
+    if err != nil {
 		s.logger.Error(fmt.Sprintf("%v\n", err))
 		return err
-	}
-	return nil
+	}	
+
+    return nil
 }

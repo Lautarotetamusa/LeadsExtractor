@@ -15,6 +15,7 @@ type Person struct{
     Name    string `json:"name"`
     Phone   []PersonChannel `json:"phone"`
     Email   []PersonChannel `json:"email"`
+    Owner   *User           `json:"owner_id"`
 }
 
 type FieldOption struct{
@@ -75,6 +76,22 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
     if err != nil{
         return nil, err
     }
+    return &person, nil
+}
+
+func (p *Pipedrive) MergePersons(aId uint32, bId uint32) (*Person, error){
+    url := fmt.Sprintf("persons/%d/merge", aId)
+
+    type Payload struct{
+        Id  uint32 `json:"merge_with_id"`
+    }
+    payload := Payload{bId}
+    var person Person
+
+    if err := p.makeRequest("PUT", url, payload, &person); err != nil{
+        return nil, err
+    }
+
     return &person, nil
 }
 

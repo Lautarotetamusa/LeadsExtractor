@@ -47,6 +47,14 @@ func (s *Store) GetOneAsesor(phone string) (*models.Asesor, error) {
 	return &asesor, nil
 }
 
+func (s *Store) GetAsesorFromEmail(email string) (*models.Asesor, error) {
+	asesor := models.Asesor{}
+	if err := s.Db.Get(&asesor, "SELECT * FROM Asesor WHERE email=?", email); err != nil {
+		return nil, err
+	}
+	return &asesor, nil
+}
+
 func (s *Store) InsertAsesor(asesor *models.Asesor) (*models.Asesor, error) {
 	query := "INSERT INTO Asesor (name, phone, active) VALUES (:name, :phone, :active)"
 	if _, err := s.Db.NamedExec(query, asesor); err != nil {
