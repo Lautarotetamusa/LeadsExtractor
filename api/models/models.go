@@ -7,7 +7,9 @@ import (
 	"reflect"
 )
 
+
 type NullString sql.NullString
+
 func (s *NullString) MarshalJSON() ([]byte, error) {
     if !s.Valid {
         return []byte("null"), nil
@@ -67,6 +69,30 @@ func (ni *NullInt16) Scan(value interface{}) error {
 	return nil
 }
 
+type NullInt32 sql.NullInt32
+func (ni *NullInt32) MarshalJSON() ([]byte, error) {
+	if !ni.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ni.Int32)
+}
+
+// Scan implements the Scanner interface for NullInt64
+func (ni *NullInt32) Scan(value interface{}) error {
+	var i sql.NullInt32
+	if err := i.Scan(value); err != nil {
+		return err
+	}
+
+	// if nil then make Valid false
+	if reflect.TypeOf(value) == nil {
+		*ni = NullInt32{i.Int32, false}
+	} else {
+		*ni = NullInt32{i.Int32, true}
+	}
+	return nil
+}
+
 type Source struct {
 	Id         int           `db:"id"`
 	Tipo       string        `db:"type"`
@@ -74,7 +100,7 @@ type Source struct {
 }
 
 type Propiedad struct {
-    ID        NullInt16  `db:"id" json:"-"` //Lo hacemos null porque en el left join puede no traer
+    ID        NullInt32  `db:"id" json:"-"` //Lo hacemos null porque en el left join puede no traer
     Portal    string     `db:"portal" json:"-"`
     PortalId  NullString `db:"portal_id" json:"id"`
     Titulo    NullString `json:"titulo" db:"title"`
