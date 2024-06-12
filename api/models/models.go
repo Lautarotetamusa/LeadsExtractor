@@ -85,7 +85,7 @@ func (ni *NullInt32) Scan(value interface{}) error {
 	}
 
 	// if nil then make Valid false
-	if reflect.TypeOf(value) == nil {
+	if reflect.TypeOf(value) == nil || value == ""{
 		*ni = NullInt32{i.Int32, false}
 	} else {
 		*ni = NullInt32{i.Int32, true}
