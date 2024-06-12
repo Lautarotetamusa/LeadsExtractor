@@ -49,13 +49,13 @@ func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 	return lead, nil
 }
 
-func (s *Store) Update(lead *models.Lead, phone string) (*models.Lead, error) {
-	query := "UPDATE Leads SET name=:name, active=:active WHERE phone=:phone"
+func (s *Store) Update(lead *models.Lead, phone string) error {
+	query := "UPDATE Leads SET name=:name, cotizacion=:cotizacion WHERE phone=:phone"
 	if _, err := s.Db.NamedExec(query, lead); err != nil {
 		fmt.Printf("%v", err)
-		return nil, err
+		return err
 	}
-	return lead, nil
+	return nil
 }
 
 func (s *Store) UpdateLeadAsesor(phone string, a *models.Asesor) error {

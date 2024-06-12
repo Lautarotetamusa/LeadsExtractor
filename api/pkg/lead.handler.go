@@ -71,7 +71,7 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-    if _, err := s.Store.Update(&lead, phone); err != nil {
+    if err := s.Store.Update(&lead, phone); err != nil {
 		return err
 	}
 

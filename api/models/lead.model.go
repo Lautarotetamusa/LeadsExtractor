@@ -6,6 +6,7 @@ type Lead struct {
     Phone  string       `db:"phone"  json:"phone"`
     Email  NullString   `db:"email" json:"email"`
     Asesor Asesor       `db:"Asesor" json:"asesor"`
+    Cotizacion string   `db:"cotizacion" json:"cotizacion"`
 }
 
 type CreateLead struct {
@@ -13,6 +14,7 @@ type CreateLead struct {
     Phone  string       `json:"phone" db:"phone"`
     Email  NullString   `json:"email" db:"email"`
     AsesorPhone string  `json:"asesor_phone" db:"asesor"`
+    Cotizacion string   `db:"cotizacion" json:"cotizacion"`
 }
 
 type UpdateLead struct {

@@ -28,9 +28,9 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 	}
     fmt.Printf("%v\n", property)
 
-	err = s.Db.Get(&source, "SELECT * FROM Source WHERE property_id=?", property.ID)
+	err = s.Db.Get(&source, "SELECT * FROM Source WHERE property_id=?", property.ID.Int32)
 	if err != nil {
-        return nil, fmt.Errorf("error obteniendo el source con property_id: %d", property.ID)
+        return nil, fmt.Errorf("error obteniendo el source con property_id: %d", property.ID.Int32)
 	}
 	return &source, nil
 }
@@ -72,7 +72,7 @@ func (s *Store) insertProperty(c *models.Communication, p *models.Propiedad) err
 func (s *Store) insertOrGetProperty(c *models.Communication) (*models.Propiedad, error) {
 	property := models.Propiedad{}
 	query := "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
-	err := s.Db.Get(&property, query, c.Propiedad.ID, c.Fuente)
+	err := s.Db.Get(&property, query, c.Propiedad.ID.Int32, c.Fuente)
 
 	if err == sql.ErrNoRows {
         err = s.insertProperty(c, &property)
