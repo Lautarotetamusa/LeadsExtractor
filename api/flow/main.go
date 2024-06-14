@@ -84,6 +84,7 @@ func (f *FlowManager) DeleteFlow(uuid uuid.UUID) error {
 }
 
 func (f * FlowManager) Broadcast(comms []models.Communication, uuid uuid.UUID) error {
+    f.logger.Info("lanzando broadcast", "count", len(comms))
     _, ok := f.Flows[uuid] 
     if !ok{
         return fmt.Errorf("el flow con uuid %s no existe", uuid)
@@ -108,7 +109,7 @@ func (f *FlowManager) runFlow(c *models.Communication, uuid uuid.UUID) {
 
     for _, rule := range rules {
         if rule.Condition.IsNew != c.IsNew {
-           continue 
+            continue 
         }
 
         for _, action := range rule.Actions{

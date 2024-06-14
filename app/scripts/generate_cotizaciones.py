@@ -1,6 +1,7 @@
 import sys
-
+from dotenv import load_dotenv
 sys.path.append('.')
+load_dotenv()
 
 from src.logger import Logger
 import src.api as api
@@ -10,13 +11,15 @@ if __name__ == "__main__":
     logger = Logger("generate cotizaciones") 
 
     date = "01-01-2001"
-    leads = api.get_communications(logger, date)
+    leads = api.get_communications(logger, date, True)
+    logger.debug(f"generando cotizaciones para {len(leads)} leads")
 
-    #Cotizacion
-    if is_new:
-        self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
-        pdf_url = jotform.new_submission(self.logger, lead) 
+    for lead in leads:
+        logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
+        pdf_url = jotform.new_submission(logger, lead) 
         if pdf_url != None:
             lead.cotizacion = pdf_url
         else:
-            self.logger.error("No se pudo obtener la cotizacion en pdf")
+            logger.error("No se pudo obtener la cotizacion en pdf")
+
+        api.new_communication(logger, lead)

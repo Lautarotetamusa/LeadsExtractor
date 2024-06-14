@@ -247,6 +247,22 @@ func (s *Server) setupActions(){
         nil,
     )
 
+    flow.DefineAction("wpp.broadcast",         
+        func(c *models.Communication, params interface{}) error {
+            components := []whatsapp.Components{{
+                Type:       "body",
+                Parameters: []whatsapp.Parameter{{
+                    Type: "text",
+                    Text: c.Nombre,
+                }},
+            }}
+            s.whatsapp.Send(whatsapp.NewTemplatePayload(c.Telefono, "broadcast_1", components))
+            return nil
+        },
+        nil,
+    )
+    
+
     flow.DefineAction("infobip.save", 
         func(c *models.Communication, params interface{}) error {
             infobipLead := infobip.Communication2Infobip(c)
@@ -263,6 +279,6 @@ func (s *Server) setupActions(){
         },
         nil,
     )
-    
+
     s.flowHandler.manager.MustLoad()
 }

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS Leads(
     phone CHAR(16) NOT NULL,
     email VARCHAR(64) DEFAULT NULL,
     asesor CHAR(16) NOT NULL,
+    cotizacion VARCHAR(256) DEFAULT "",
 
     CHECK (phone > 0),
     CHECK (asesor > 0),
@@ -87,20 +88,20 @@ CREATE TABLE IF NOT EXISTS Communication(
 );
 
 DROP PROCEDURE IF EXISTS getCommunications;
-DELIMITER //
-CREATE PROCEDURE getCommunications(IN date_from DATETIME, IN is_new BOOLEAN)
-BEGIN
-        SELECT
-            C.created_at,
+CREATE PROCEDURE getCommunications (IN date_from DATETIME, IN is_new BOOLEAN)
+    BEGIN
+        SELECT 
+            C.created_at, 
             C.lead_date,
+            C.new_lead
             A.name as "asesor.name", A.phone as "asesor.phone", A.email as "asesor.email",
             IF(S.type = "property", P.portal, S.type) as "fuente",
             L.name, C.url, L.phone, L.email,
-                IFNULL(P.portal_id, "") as "propiedad.portal_id",
-                IFNULL(P.title, "") as "propiedad.title",
-                IFNULL(P.price, "") as "propiedad.price",
-                IFNULL(P.ubication, "") as "propiedad.ubication",
-                IFNULL(P.url, "") as "propiedad.url",
+                IFNULL(P.portal_id, "") as "propiedad.portal_id", 
+                IFNULL(P.title, "") as "propiedad.title", 
+                IFNULL(P.price, "") as "propiedad.price", 
+                IFNULL(P.ubication, "") as "propiedad.ubication", 
+                IFNULL(P.url, "") as "propiedad.url", 
                 IFNULL(P.tipo, "") as "propiedad.tipo",
             C.zones as "busquedas.zones", C.mt2_terrain as "busquedas.mt2_terrain", C.mt2_builded as "busquedas.mt2_builded", C.baths as "busquedas.baths", C.rooms as "busquedas.rooms"
         FROM Communication C
@@ -118,6 +119,8 @@ BEGIN
     END;
 //
 DELIMITER ; 
+
+CALL getCommunications('2024-01-01', null);
 
 
 INSERT INTO Asesor (name, phone, active) VALUES 

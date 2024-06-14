@@ -23,10 +23,10 @@ def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     return is_new, lead
 
 def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
-    url = f"http://{API_HOST}:{API_PORT}/communication"
+    url = f"https://{API_HOST}:{API_PORT}/communication"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
-        logger.error("Error en la peticion: "+str(res.json()))
+        logger.error("Error en la peticion: "+str(res.text))
         return False, None
     logger.success("Communication cargada correctamente")
 
@@ -36,8 +36,13 @@ def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     lead.set_args(lead_data)
     return is_new, lead
 
-def get_communications(logger: Logger, date: str) -> list[Lead]:
+def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> list[Lead]:
     url = f"https://{API_HOST}:{API_PORT}/communications?date={date}"
+
+    if is_new != None:
+        url += f"&is_new={'true' if is_new else 'false'}"
+    print(url)
+
     res = requests.get(url)
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.json()))

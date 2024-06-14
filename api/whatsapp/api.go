@@ -109,7 +109,7 @@ func newTextPayload(to string, message string) *Payload {
 	return p
 }
 
-func newTemplatePayload(to string, name string, components []Components) *Payload {
+func NewTemplatePayload(to string, name string, components []Components) *Payload {
 	p := newPayload(to, "template")
 	p.Template = &TemplatePayload{
 		Name:       name,
@@ -205,7 +205,7 @@ func (w *Whatsapp) SendResponse(to string, asesor *models.Asesor) (*Response, er
 		}},
 	}}
 
-	return w.Send(newTemplatePayload(to, "2do_mensaje_bienvenida", components[:]))
+	return w.Send(NewTemplatePayload(to, "2do_mensaje_bienvenida", components[:]))
 }
 
 func (w *Whatsapp) SendImage(to string, imageId string) {
@@ -248,7 +248,7 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		Type:       "body",
 		Parameters: parameters,
 	}}
-	return w.Send(newTemplatePayload(to, templateName, components))
+	return w.Send(NewTemplatePayload(to, templateName, components))
 }
 
 //Validamos que no haya campos vacios porque la api de whatsapp no lo permite

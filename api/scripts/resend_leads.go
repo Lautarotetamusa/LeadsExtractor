@@ -37,7 +37,7 @@ func m() {
         logger,
     )
 
-    query := "CALL getCommunications(DATE_SUB(NOW(), interval 20 day))"
+    query := "CALL getCommunications(DATE_SUB(NOW(), interval 20 day), NULL)"
 
 	communications := []models.Communication{}
 	if err := db.Select(&communications, query); err != nil {
