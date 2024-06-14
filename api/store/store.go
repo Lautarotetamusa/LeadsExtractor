@@ -2,7 +2,6 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 	"leadsextractor/models"
 	"log/slog"
 
@@ -49,14 +48,6 @@ func (s *Store) InsertOrGetLead(rr *RoundRobin, c *models.Communication) (*model
 
 	lead, err := s.GetOne(c.Telefono)
 
-    fmt.Println("prev lead")
-    lead.Cotizacion = c.Cotizacion
-    if err := s.Update(lead, lead.Phone); err != nil {
-        s.logger.Warn("error actualizando lead", "lead", lead.Phone)
-        return nil, err
-    }
-    fmt.Println("lead")
-
 	if err == sql.ErrNoRows {
 		c.IsNew = true
 		c.Asesor = rr.Next()
@@ -73,6 +64,11 @@ func (s *Store) InsertOrGetLead(rr *RoundRobin, c *models.Communication) (*model
 			return nil, err
 		}
 	} else if err != nil {
+        lead.Cotizacion = c.Cotizacion
+        if err := s.Update(lead, lead.Phone); err != nil {
+            s.logger.Warn("error actualizando lead", "lead", lead.Phone)
+        }
+
 		return nil, err
 	}
 

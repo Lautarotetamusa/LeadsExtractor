@@ -94,7 +94,7 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
         return err
     }
     
-    query := "CALL getCommunications(DATE_SUB(NOW(), interval 20 day))"
+    query := "CALL getCommunications('2001-01-01', true)"
 	communications := []models.Communication{}
 	if err := s.Store.Db.Select(&communications, query); err != nil {
         log.Fatal(err)
