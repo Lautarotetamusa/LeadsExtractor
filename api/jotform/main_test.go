@@ -1,0 +1,47 @@
+package jotform
+
+import (
+	"fmt"
+	"leadsextractor/models"
+	"log"
+	"os"
+	"testing"
+
+	"github.com/joho/godotenv"
+)
+
+func TestSubmitForm(t *testing.T) {
+	if err := godotenv.Load("../../.env"); err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+    jotform := NewJotform(os.Getenv("JOTFORM_API_KEY"))
+    form := jotform.AddForm(os.Getenv("JOTFORM_FORM_ID"))
+
+	c := &models.Communication{
+		Fuente:    "inmuebles24",
+		FechaLead: "2024-04-07",
+		ID:        "461161340",
+		Fecha:     "2024-04-08",
+		Nombre:    "Lautaro",
+		Link:      "https://www.inmuebles24.com/panel/interesados/198059132",
+		Telefono:  "5493415854220",
+        Email:     models.NullString{String: "cornejoy369@gmail.com"},
+        Asesor:     models.Asesor{
+            Email: "test@test.com",
+        },
+		Propiedad: models.Propiedad{
+            PortalId:   models.NullString{String: "a78c1555-f684-4de7-bbf1-a7288461fe51"},
+            Titulo:     models.NullString{String: "Casa en venta en El Cielo Country Club Incre\u00edble dise\u00f1o y amplitud"},
+            Link:       models.NullString{String: ""},
+            Precio:     models.NullString{String: "16117690"},
+            Ubicacion:  models.NullString{String: "cielo country club"},
+            Tipo:       models.NullString{String: "Casa"},
+		},
+	}
+
+    err := jotform.SubmitForm(c, form)
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+}
