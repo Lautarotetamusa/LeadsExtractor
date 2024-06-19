@@ -25,12 +25,6 @@ from src.lamudi.scraper import main as lamudi_scraper
 from src.propiedades_com.scraper import main as propiedades_scraper
 from src.casasyterrenos.scraper import main as casasyterrenos_scraper
 
-#Ruta para validar el webhook de la API de meta
-@app.route('/webhooks', methods=['GET'])
-def webhooks_validate():
-    hub_challenge = request.args.get('hub.challenge')
-    return hub_challenge
-
 @app.route('/asesor', methods=['GET'])
 def recive_ivr_call():
     args = request.args.to_dict()
@@ -73,6 +67,12 @@ def recive_ivr_call():
     api.new_communication(logger, lead)
 
     return lead.asesor
+
+#Ruta para validar el webhook de la API de meta
+@app.route('/webhooks', methods=['GET'])
+def webhooks_validate():
+    hub_challenge = request.args.get('hub.challenge')
+    return hub_challenge
 
 @app.route('/webhooks', methods=['POST'])
 def recive_wpp_msg():
