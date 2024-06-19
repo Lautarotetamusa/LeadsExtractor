@@ -27,3 +27,6 @@ api/*.json
 
 #Debug
 debug/grafana/*
+
+#pagekite
+pagekite.py

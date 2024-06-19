@@ -86,7 +86,7 @@ func NewWhatsapp(accesToken string, numberId string, l *slog.Logger) *Whatsapp {
 		accessToken: accesToken,
 		numberId:    numberId,
 		url:         fmt.Sprintf(baseUrl, numberId),
-        logger:      l.With("module", "Whatsapp"),
+        logger:      l.With("module", "whatsapp"),
 	}
 	return w
 }
@@ -150,7 +150,7 @@ func NewDocumentPayload(to string, link string, caption string, filename string)
 
 func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	jsonBody, _ := json.Marshal(payload)
-	w.logger.Debug(fmt.Sprintf("%v", payload))
+	w.logger.Debug(fmt.Sprintf("%v", payload), "to", payload.To, "type", payload.Type)
 	bodyReader := bytes.NewReader(jsonBody)
 
 	req, err := http.NewRequest(http.MethodPost, w.url, bodyReader)

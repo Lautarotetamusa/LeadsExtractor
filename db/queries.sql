@@ -13,3 +13,8 @@ INNER JOIN Asesor A
 LEFT JOIN Property P
     ON S.property_id = P.id
 ORDER BY C.id DESC;
+
+/* Lista de telefono unicos (leads distintos) */
+select distinct lead_phone from Communications; /* 17 jun -> 500 */
+
+select count(*) from Leads; /*17 jun 2024 -> 637 */

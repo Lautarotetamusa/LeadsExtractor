@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"fmt"
-	"leadsextractor/flow"
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"log"
@@ -24,8 +23,9 @@ type Server struct {
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
 type HandlerFn func(w http.ResponseWriter, r *http.Request)
 
-func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB) *Server {
+func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB, fh *FlowHandler) *Server {
 	s := store.NewStore(db, logger)
+
     var asesores []models.Asesor
     err := s.GetAllActiveAsesores(&asesores)
 
@@ -39,16 +39,12 @@ func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB) *Server {
 		roundRobin: rr,
 		Store:      s,
         logger:     logger,
-        flowHandler: &FlowHandler{
-            manager: flow.NewFlowManager("actions.json", logger),
-        },
+        flowHandler: fh,
     }
 }
 
 func (s *Server) SetRoutes(router *mux.Router) {
 	router.Use(CORS)
-
-    s.flowHandler.manager.MustLoad()
 
 	router.HandleFunc("/asesor", HandleErrors(s.GetAllAsesores)).Methods("GET")
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET")
@@ -66,22 +62,15 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/communication", HandleErrors(s.HandleNewCommunication)).Methods("POST")
 	router.HandleFunc("/communications", HandleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/actions", HandleErrors(s.flowHandler.NewFlow)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/actions/{uuid}", HandleErrors(s.flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/actions", HandleErrors(s.flowHandler.GetFlows)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/actions/{uuid}", HandleErrors(s.flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
-
 	router.HandleFunc("/broadcast", HandleErrors(s.NewBroadcast)).Methods("POST")
 	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST")
 }
 
 func (s *Server) Run(router *mux.Router) {
 	s.logger.Info(fmt.Sprintf("Server started at %s", s.listenAddr))
-	err := http.ListenAndServe(s.listenAddr, router)
-	if err != nil {
-		s.logger.Error("No se pudo iniciar el server\n", err)
+	if err := http.ListenAndServe(s.listenAddr, router); err != nil {
+		s.logger.Error("No se pudo iniciar el server", err)
 	}
-	s.logger.Info(fmt.Sprintf("Server started at %s\n", s.listenAddr))
 }
 
 func CORS(next http.Handler) http.Handler {

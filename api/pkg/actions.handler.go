@@ -22,6 +22,12 @@ type FlowHandler struct {
     manager *flow.FlowManager
 }
 
+func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
+    return &FlowHandler{
+        manager: m,
+    }
+}
+
 func (h *FlowHandler) GetFlows(w http.ResponseWriter, r *http.Request) error {
     dataResponse(w, h.manager.Flows)
     return nil

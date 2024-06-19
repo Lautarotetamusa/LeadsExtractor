@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"reflect"
 	"time"
@@ -23,6 +25,8 @@ import (
 )
 
 func main() {
+    ctx := context.Background()
+
     w := os.Stderr
 
     logger := slog.New(
@@ -32,11 +36,10 @@ func main() {
         }),
     )
 
-	err := godotenv.Load("../.env")
-	if err != nil {
+	if err := godotenv.Load("../.env"); err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	db := store.ConnectDB()
+	db := store.ConnectDB(ctx)
 
 	apiPort := os.Getenv("API_PORT")
 	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
@@ -62,26 +65,38 @@ func main() {
         logger,
 	)
 
+    flowManager := flow.NewFlowManager("actions.json", logger)
+    defineActions(wpp, pipedriveApi, infobipApi)
+    flowManager.MustLoad()
+
     webhook := whatsapp.NewWebhook(logger)
-    go webhook.ConsumeEntries(whatsapp.HandleNotification)
 
 	router := mux.NewRouter()
-	router.Use(pkg.CORS)
 
-    setupActions(wpp, pipedriveApi, infobipApi)
+    router.Use(loggingMiddleware)
 
-	server := pkg.NewServer(host, logger, db)
+    flowHandler := pkg.NewFlowHandler(flowManager)
+
+	server := pkg.NewServer(host, logger, db, flowHandler)
     server.SetRoutes(router)
+    
+    go webhook.ConsumeEntries(server.NewCommunication)
 
 	router.HandleFunc("/pipedrive", pkg.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
 
     router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
     router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
 
+	router.HandleFunc("/actions", pkg.HandleErrors(flowHandler.NewFlow)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/actions/{uuid}", pkg.HandleErrors(flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/actions", pkg.HandleErrors(flowHandler.GetFlows)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/actions/{uuid}", pkg.HandleErrors(flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
+
 	server.Run(router)
 }
 
-func setupActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, infobipApi *infobip.InfobipApi) {
+//Definimos las acciones permitidas dentro de un flow
+func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, infobipApi *infobip.InfobipApi) {
     cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
     cotizacion2 := mustReadFile("../messages/plantilla_cotizacion_2.txt")
 
@@ -200,6 +215,13 @@ func setupActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, inf
         },
         nil,
     )
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        log.Println(r.Method, r.RequestURI)
+        next.ServeHTTP(w, r)
+    })
 }
 
 func mustReadFile (filepath string) string {

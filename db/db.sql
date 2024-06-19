@@ -87,13 +87,14 @@ CREATE TABLE IF NOT EXISTS Communication(
     FOREIGN KEY (source_id) REFERENCES Source(id)
 );
 
+DELIMITER //
 DROP PROCEDURE IF EXISTS getCommunications;
 CREATE PROCEDURE getCommunications (IN date_from DATETIME, IN is_new BOOLEAN)
     BEGIN
         SELECT 
             C.created_at, 
             C.lead_date,
-            C.new_lead
+            C.new_lead,
             A.name as "asesor.name", A.phone as "asesor.phone", A.email as "asesor.email",
             IF(S.type = "property", P.portal, S.type) as "fuente",
             L.name, C.url, L.phone, L.email,

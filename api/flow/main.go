@@ -116,7 +116,7 @@ func (f *FlowManager) runFlow(c *models.Communication, uuid uuid.UUID) {
             actionFunc := actions[action.Name].Func
             
             schedule.After(time.Duration(action.Interval), func() {
-                f.logger.Info("running action", "name", action.Name)
+                f.logger.Debug("running action", "name", action.Name)
                 err := actionFunc(c, action.Params)
                 if err != nil {
                     f.logger.Error(err.Error(), "action", action.Name)
