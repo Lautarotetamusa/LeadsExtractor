@@ -56,19 +56,11 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-
-func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error {
-	c := &models.Communication{}
-	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
-		return err
-	}
-
+func (s *Server) NewCommunication(c *models.Communication) error {
 	source, err := s.Store.GetSource(c)
 	if err != nil {
 		return err
 	}
-    fmt.Printf("%v\n", source)
 
 	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
 	if err != nil {
@@ -82,14 +74,20 @@ func (s *Server) NewCommunication(w http.ResponseWriter, r *http.Request) error 
         s.logger.Error(err.Error(), "path", "InsertCommunication")
         return err
     }
+    return nil
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	res := struct {
-		Success bool        `json:"success"`
-		Data    interface{} `json:"data"`
-		IsNew   bool        `json:"is_new"`
-	}{true, c, c.IsNew}
+func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) error {
+	c := &models.Communication{}
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
+		return err
+	}
+    
+    if err := s.NewCommunication(c); err != nil {
+        return err
+    }
 
-	json.NewEncoder(w).Encode(res)
+    successResponse(w, "communication created succesfuly", c)
 	return nil
 }

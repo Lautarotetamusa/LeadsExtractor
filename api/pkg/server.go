@@ -3,11 +3,8 @@ package pkg
 import (
 	"fmt"
 	"leadsextractor/flow"
-	"leadsextractor/infobip"
 	"leadsextractor/models"
-	"leadsextractor/pipedrive"
 	"leadsextractor/store"
-	"leadsextractor/whatsapp"
 	"log"
 	"log/slog"
 	"net/http"
@@ -19,9 +16,6 @@ import (
 type Server struct {
     listenAddr  string
     roundRobin  *store.RoundRobin
-    infobipApi  *infobip.InfobipApi
-    pipedrive   *pipedrive.Pipedrive
-    whatsapp    *whatsapp.Whatsapp
     Store       *store.Store
     logger      *slog.Logger
 
@@ -30,14 +24,7 @@ type Server struct {
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
 type HandlerFn func(w http.ResponseWriter, r *http.Request)
 
-func NewServer(
-    listenAddr string, 
-    logger *slog.Logger,
-    db *sqlx.DB, 
-    infobipApi *infobip.InfobipApi, 
-    pipedrive *pipedrive.Pipedrive,
-    whatsapp *whatsapp.Whatsapp,
-) *Server {
+func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB) *Server {
 	s := store.NewStore(db, logger)
     var asesores []models.Asesor
     err := s.GetAllActiveAsesores(&asesores)
@@ -50,50 +37,45 @@ func NewServer(
 	return &Server{
 		listenAddr: listenAddr,
 		roundRobin: rr,
-		infobipApi: infobipApi,
-		pipedrive:  pipedrive,
 		Store:      s,
         logger:     logger,
-        whatsapp:   whatsapp,
         flowHandler: &FlowHandler{
             manager: flow.NewFlowManager("actions.json", logger),
         },
     }
 }
 
-func (s *Server) Run() {
-	router := mux.NewRouter()
-
+func (s *Server) SetRoutes(router *mux.Router) {
 	router.Use(CORS)
 
-    s.setupActions()
+    s.flowHandler.manager.MustLoad()
 
-	router.HandleFunc("/asesor", handleErrors(s.GetAllAsesores)).Methods("GET")
-	router.HandleFunc("/asesor/{phone}", handleErrors(s.GetOneAsesor)).Methods("GET")
-	router.HandleFunc("/asesor", handleErrors(s.InsertAsesor)).Methods("POST")
-	router.HandleFunc("/asesor/{phone}", handleErrors(s.UpdateAsesor)).Methods("PUT")
-	router.HandleFunc("/assign", handleErrors(s.AssignAsesor)).Methods("POST")
+	router.HandleFunc("/asesor", HandleErrors(s.GetAllAsesores)).Methods("GET")
+	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET")
+	router.HandleFunc("/asesor", HandleErrors(s.InsertAsesor)).Methods("POST")
+	router.HandleFunc("/asesor/{phone}", HandleErrors(s.UpdateAsesor)).Methods("PUT")
+	router.HandleFunc("/assign", HandleErrors(s.AssignAsesor)).Methods("POST")
 
-	router.HandleFunc("/asesores/", handleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/asesores/", HandleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
 
-	router.HandleFunc("/lead", handleErrors(s.GetAll)).Methods("GET")
-	router.HandleFunc("/lead/{phone}", handleErrors(s.GetOne)).Methods("GET")
-	router.HandleFunc("/lead", handleErrors(s.Insert)).Methods("POST")
-	router.HandleFunc("/lead/{phone}", handleErrors(s.Update)).Methods("PUT")
+	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET")
+	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET")
+	router.HandleFunc("/lead", HandleErrors(s.Insert)).Methods("POST")
+	router.HandleFunc("/lead/{phone}", HandleErrors(s.Update)).Methods("PUT")
 
-	router.HandleFunc("/communication", handleErrors(s.NewCommunication)).Methods("POST")
-	router.HandleFunc("/communications", handleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/communication", HandleErrors(s.HandleNewCommunication)).Methods("POST")
+	router.HandleFunc("/communications", HandleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/actions", handleErrors(s.flowHandler.NewFlow)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/actions/{uuid}", handleErrors(s.flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/actions", handleErrors(s.flowHandler.GetFlows)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/actions/{uuid}", handleErrors(s.flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
+	router.HandleFunc("/actions", HandleErrors(s.flowHandler.NewFlow)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/actions/{uuid}", HandleErrors(s.flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/actions", HandleErrors(s.flowHandler.GetFlows)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/actions/{uuid}", HandleErrors(s.flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
 
-	router.HandleFunc("/broadcast", handleErrors(s.NewBroadcast)).Methods("POST")
-	router.HandleFunc("/mainFlow", handleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST")
+	router.HandleFunc("/broadcast", HandleErrors(s.NewBroadcast)).Methods("POST")
+	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST")
+}
 
-	router.HandleFunc("/pipedrive", handleErrors(s.pipedrive.HandleOAuth)).Methods("GET")
-
+func (s *Server) Run(router *mux.Router) {
 	s.logger.Info(fmt.Sprintf("Server started at %s", s.listenAddr))
 	err := http.ListenAndServe(s.listenAddr, router)
 	if err != nil {
@@ -115,11 +97,4 @@ func CORS(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
-}
-func handleErrors(fn HandlerErrorFn) HandlerFn {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := fn(w, r); err != nil {
-			ErrorResponse(w, r, err)
-		}
-	}
 }

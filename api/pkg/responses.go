@@ -46,3 +46,11 @@ func successResponse(w http.ResponseWriter, message string, data interface{}) {
         Data: data,
     })
 }
+
+func HandleErrors(fn HandlerErrorFn) HandlerFn {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := fn(w, r); err != nil {
+			ErrorResponse(w, r, err)
+		}
+	}
+}

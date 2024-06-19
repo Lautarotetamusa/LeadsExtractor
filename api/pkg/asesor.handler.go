@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"encoding/json"
-	"io"
 
 	"leadsextractor/models"
 	"leadsextractor/store"
@@ -12,10 +11,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type ReasignData struct {
-	Phone string `json:"phone"`
-}
-
 type AsesorHandler struct {
 	Store *store.Store
 }
@@ -23,23 +18,17 @@ type AsesorHandler struct {
 func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 	var asesores []models.Asesor
 	defer r.Body.Close()
-	reqBody, err := io.ReadAll(r.Body)
-	if err != nil {
+    if err := json.NewDecoder(r.Body).Decode(&asesores); err != nil {
 		return err
-	}
-
-	if err = json.Unmarshal(reqBody, &asesores); err != nil {
-		return err
-	}
+    }
 
 	for i := range asesores {
-		err = s.Store.UpdateAsesor(&asesores[i], asesores[i].Phone)
-		if err != nil {
+        if err := s.Store.UpdateAsesor(&asesores[i], asesores[i].Phone); err != nil {
 			return err
 		}
 	}
 
-    if err = s.Store.GetAllActiveAsesores(&asesores); err != nil{
+    if err := s.Store.GetAllActiveAsesores(&asesores); err != nil{
         return err
     }
 
@@ -50,13 +39,13 @@ func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
-	c := &models.Communication{}
+    var c models.Communication
 	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
 		return err
 	}
 
-	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
+	lead, err := s.Store.InsertOrGetLead(s.roundRobin, &c)
 	if err != nil {
 		return err
 	}
@@ -73,43 +62,8 @@ func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-/*
-func (h *AsesorHandler) Reasign(w http.ResponseWriter, r *http.Request) error{
-    phone := r.URL.Query().Get("phone")
-    if err != nil {
-        return err
-    }
-
-    leads, err := h.Store.GetLeads(phone)
-    if len(leads) == 0 || err{
-        return fmt.Errorf("No se encontraron leads para el asesor %s. \nerr: %s", phone, err)
-    }
-
-    asesores, err := h.Store.GetAllExcept(phone)
-    if err != nil {
-        return err
-    }
-
-    each := math.Floor(len(leads) / len(asesores))
-    for i, asesor := range asesores{
-        query := `
-            UPDATE FROM Leads
-            SET asesor_phone = ?
-            WHERE phone IN (?)
-        `
-
-        query, args, err := h.Store.Db.In(query, asesor.Phone, leads[i:i+each])
-        query = h.Store.Db.Rebind(query)
-        err = h.Store.Db.Query(query, args...)
-        if err != nil{
-            return fmt.Errorf("No se pudo reasignar los leads err: %s", err)
-        }
-    }
-}
-*/
-
 func (s *Server) GetAllAsesores(w http.ResponseWriter, r *http.Request) error {
-	asesores := []models.Asesor{}
+    var asesores []models.Asesor
 	if err := s.Store.GetAllAsesores(&asesores); err != nil {
 		return err
 	}
@@ -132,22 +86,17 @@ func (s *Server) GetOneAsesor(w http.ResponseWriter, r *http.Request) error {
 
 func (s *Server) InsertAsesor(w http.ResponseWriter, r *http.Request) error {
 	var asesor models.Asesor
-	reqBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		return err
-	}
-
-	if err = json.Unmarshal(reqBody, &asesor); err != nil {
-		return err
-	}
+    defer r.Body.Close()
+    if err := json.NewDecoder(r.Body).Decode(&asesor); err != nil {
+        return err
+    }
 
 	validate := validator.New()
-	if err = validate.Struct(asesor); err != nil {
+    if err := validate.Struct(asesor); err != nil {
 		return err
 	}
 
-	_, err = s.Store.InsertAsesor(&asesor)
-	if err != nil {
+    if err := s.Store.InsertAsesor(&asesor); err != nil {
 		return err
 	}
 
@@ -159,14 +108,11 @@ func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
 	phone := mux.Vars(r)["phone"]
 
 	var updateAsesor models.UpdateAsesor
-	reqBody, err := io.ReadAll(r.Body)
-	if err != nil {
+    defer r.Body.Close()
+    if err := json.NewDecoder(r.Body).Decode(&updateAsesor); err != nil {
 		return err
-	}
+    }
 
-	if err = json.Unmarshal(reqBody, &updateAsesor); err != nil {
-		return err
-	}
 	asesor := models.Asesor{
 		Phone:  phone,
 		Name:   updateAsesor.Name,
@@ -174,12 +120,11 @@ func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	validate := validator.New()
-	if err = validate.Struct(asesor); err != nil {
+    if err := validate.Struct(asesor); err != nil {
 		return err
 	}
 
-	err = s.Store.UpdateAsesor(&asesor, phone)
-	if err != nil {
+    if err := s.Store.UpdateAsesor(&asesor, phone); err != nil {
 		return err
 	}
 

@@ -5,13 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/flow"
-	"leadsextractor/infobip"
 	"leadsextractor/models"
-	"leadsextractor/whatsapp"
 	"log"
 	"net/http"
-	"os"
-	"reflect"
 	"text/template"
 
 	"github.com/google/uuid"
@@ -142,15 +138,8 @@ func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
     return &uuid, nil
 }
 
-func mustReadFile (filepath string) string {
-    bytes, err := os.ReadFile(filepath)
-    if err != nil {
-        panic(fmt.Sprintf("error abriendo el archivo %s", filepath))
-    }
-    return string(bytes)
-}
 
-func formatMsg(tmpl string, c *models.Communication) string{
+func FormatMsg(tmpl string, c *models.Communication) string{
     t := template.Must(template.New("txt").Parse(tmpl))
     buf := &bytes.Buffer{}
     if err := t.Execute(buf, c); err != nil {
@@ -159,126 +148,3 @@ func formatMsg(tmpl string, c *models.Communication) string{
     return buf.String()
 }
 
-func (s *Server) setupActions(){
-    cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
-    cotizacion2 := mustReadFile("../messages/plantilla_cotizacion_2.txt")
-
-    flow.DefineAction("wpp.message",
-        func(c *models.Communication, params interface{}) error {
-            param, ok := params.(*flow.SendWppTextParam)
-            if !ok {
-                return fmt.Errorf("invalid parameters for wpp.message")
-            }
-
-            msg := formatMsg(param.Text, c)
-            s.whatsapp.SendMessage(c.Telefono, msg)
-            return nil
-        },
-        reflect.TypeOf(flow.SendWppTextParam{}),
-    )
-
-    flow.DefineAction("wpp.template", 
-        func(c *models.Communication, params interface{}) error {
-            param, ok := params.(*whatsapp.TemplatePayload)
-            if !ok {
-                return fmt.Errorf("invalid parameters for wpp.message")
-            }
-
-            whatsapp.ParseTemplatePayload(param)
-            s.whatsapp.SendTemplate(c.Telefono, *param)
-            return nil
-        },
-        reflect.TypeOf(whatsapp.TemplatePayload{}), 
-    )
-
-    flow.DefineAction("wpp.cotizacion", 
-        func(c *models.Communication, params interface{}) error {
-            if c.Cotizacion == "" {
-                return fmt.Errorf("el lead %s no tiene cotizacion", c.Nombre)
-            }
-
-            var caption string
-            if !c.Busquedas.CoveredArea.Valid {
-                caption = cotizacion2
-            }else{
-                caption = cotizacion1
-            }
-
-            s.whatsapp.Send(whatsapp.NewDocumentPayload(
-                c.Telefono,
-                c.Cotizacion,
-                caption,
-                fmt.Sprintf("Cotizacion para %s", c.Nombre),
-            ))
-            return nil
-        },
-        nil,
-    )
-
-    flow.DefineAction("wpp.send_message_asesor", 
-		func(c *models.Communication, params interface{}) error {
-            s.whatsapp.SendMsgAsesor(c.Asesor.Phone, c, c.IsNew)
-            return nil
-        },
-        nil,
-    )
-
-    flow.DefineAction("wpp.send_image", 
-		func(c *models.Communication, params interface{}) error {
-            s.whatsapp.SendImage(c.Telefono, os.Getenv("WHATSAPP_IMAGE_ID"))
-            return nil
-        },
-        nil,
-    )
-
-    flow.DefineAction("wpp.send_video", 
-		func(c *models.Communication, params interface{}) error {
-            s.whatsapp.SendVideo(c.Telefono, os.Getenv("WHATSAPP_VIDEO_ID"))
-            return nil
-        },
-        nil,
-    )
-
-    flow.DefineAction("wpp.send_response", 
-            func(c *models.Communication, params interface{}) error {
-            s.whatsapp.SendResponse(c.Telefono, &c.Asesor)
-            return nil
-        },
-        nil,
-    )
-
-    flow.DefineAction("wpp.broadcast",         
-        func(c *models.Communication, params interface{}) error {
-            components := []whatsapp.Components{{
-                Type:       "body",
-                Parameters: []whatsapp.Parameter{{
-                    Type: "text",
-                    Text: c.Nombre,
-                }},
-            }}
-            s.whatsapp.Send(whatsapp.NewTemplatePayload(c.Telefono, "broadcast_1", components))
-            return nil
-        },
-        nil,
-    )
-    
-
-    flow.DefineAction("infobip.save", 
-        func(c *models.Communication, params interface{}) error {
-            infobipLead := infobip.Communication2Infobip(c)
-            s.infobipApi.SaveLead(infobipLead)
-            return nil
-        },
-        nil,
-    )
-
-    flow.DefineAction("pipedrive.save", 
-        func(c *models.Communication, params interface{}) error {
-            s.pipedrive.SaveCommunication(c)
-            return nil
-        },
-        nil,
-    )
-
-    s.flowHandler.manager.MustLoad()
-}
