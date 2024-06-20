@@ -1,0 +1,754 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Leads Extractor
+  description: Extraccion de leads
+servers:
+  - url: https://reboraautomatizaciones.com/api/v1
+paths:
+  /communications/:
+    get:
+      summary: Buscar comunicaciones
+      description: >-
+        Busca comunicaciones utilizando parámetros de consulta para filtrar los
+        resultados.
+      tags:
+        - Communication
+      parameters:
+        - name: fuente
+          in: query
+          schema:
+            type: string
+          description: Fuente de la comunicación (e.g., sitio web, llamada telefónica)
+        - name: asesor
+          in: query
+          schema:
+            type: integer
+          description: ID del asesor asignado
+        - name: fecha
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Fecha de creación de la comunicación (formato YYYY-MM-DD)
+        - name: nombre
+          in: query
+          schema:
+            type: string
+          description: Nombre de la persona de contacto
+        - name: telefono
+          in: query
+          schema:
+            type: string
+          description: Número de teléfono de la persona de contacto
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Communication'
+                  length:
+                    type: integer
+                    description: Cantidad de communications encontradas
+        '500':
+          $ref: '#/components/responses/500'
+  /communications/{id}:
+    get:
+      summary: Obtener una comunicación específica
+      description: Recupera una comunicación individual en base a su ID.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la comunicación
+          schema:
+            type: integer
+      tags:
+        - Communication
+      responses:
+        '200':
+          description: Comunicación encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/Communication'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /asesores:
+    post:
+      summary: Crear Asesor
+      description: Crea un nuevo asesor en la base de datos.
+      tags:
+        - Asesores
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Asesor'
+      responses:
+        '201':
+          description: Asesor creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la solicitud fue exitosa
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/Asesor'
+        '400':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+    get:
+      summary: Obtener todos los asesores
+      description: Recupera una lista de todos los asesores existentes en la base de datos.
+      tags:
+        - Asesores
+      responses:
+        '200':
+          description: Lista de asesores encontrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la solicitud fue exitosa
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Asesor'
+                  length:
+                    type: integer
+                    description: Cantidad de elementos en el array de datos
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la solicitud fue exitosa
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+  /asesores/{phone}:
+    put:
+      summary: Actualizar Asesor
+      description: Actualiza un asesor existente en la base de datos.
+      tags:
+        - Asesores
+      parameters:
+        - name: phone
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAsesor'
+      responses:
+        '200':
+          description: Asesor actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la solicitud fue exitosa
+                  data:
+                    type: object
+                    $ref: '#/components/schemas/Asesor'
+        '400':
+          description: Solicitud incorrecta
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Indica si la solicitud fue exitosa
+                  errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /flows:
+    get:
+      summary: obtener lista de flows
+      description: ''
+      tags:
+        - Flows
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      <uuid>:
+                        $ref: '#/components/schemas/Flow'
+                    required:
+                      - <uuid>
+                required:
+                  - success
+                  - data
+        '500':
+          $ref: '#/components/responses/500'
+    post:
+      summary: ''
+      description: ''
+      operationId: ''
+      tags:
+        - Flows
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Flow'
+            examples:
+              example1:
+                value:
+                  - condition:
+                      is_new: true
+                    actions: []
+      responses:
+        '201':
+          description: ''
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: 'true'
+                  data:
+                    $ref: '#/components/schemas/Flow'
+                required:
+                  - success
+                  - data
+              examples:
+                example1:
+                  value: ''
+  /flows/{uuid}:
+    get:
+      description: ''
+      operationId: ''
+      tags:
+        - Flows
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: UUID de flow
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Flow'
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+    put:
+      description: ''
+      operationId: ''
+      tags:
+        - Flows
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: UUID de flow
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Flow'
+            examples:
+              example1:
+                value: ''
+      responses:
+        '201':
+          description: ''
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Flow'
+                required:
+                  - success
+                  - data
+    delete:
+      description: ''
+      operationId: ''
+      tags:
+        - Flows
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: UUID de flow
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      <uuid>:
+                        $ref: '#/components/schemas/Flow'
+                    description: Lista de flows
+                    required:
+                      - <uuid>
+                required:
+                  - success
+                  - data
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /broadcast:
+    post:
+      summary: Enviar un broadcast
+      description: Envía el broadcast a todos los leads seleccionados.
+      operationId: ''
+      tags:
+        - Broadcast
+      requestBody:
+        description: ''
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                uuid:
+                  type: string
+                  description: uuid del flow que se va a envair
+                params:
+                  type: object
+                  properties:
+                    fuente:
+                      type: string
+                      description: >-
+                        Fuente de la comunicación (e.g., sitio web, llamada
+                        telefónica)
+                    asesor:
+                      type: integer
+                      description: ID del asesor asignado
+                    fecha:
+                      type: string
+                      format: date
+                      description: >-
+                        Fecha de creación de la comunicación (formato
+                        YYYY-MM-DD)
+                    nombre:
+                      type: string
+                      description: Nombre de la persona de contacto
+                    telefono:
+                      type: string
+                      description: Número de teléfono de la persona de contacto
+                send_at:
+                  type: string
+                  format: date-time
+                  description: Fecha y hora en la que se va a enviar el broadcast
+              required:
+                - uuid
+                - send_at
+            examples:
+              example1:
+                value:
+                  uuid: c7bb1c08-c66a-48fd-87b1-616e8e5678bf
+      responses:
+        '201':
+          description: ''
+          content: {}
+          headers: {}
+        '404':
+          $ref: '#/components/responses/404'
+        '500':
+          $ref: '#/components/responses/500'
+  /flows/{uuid}/main:
+    post:
+      summary: Setear el flow con uuid como principal
+      description: El flow principal se activará cuando llegue un lead nuevo.
+      operationId: ''
+      tags:
+        - Flows
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          description: UUID de flow
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Flow'
+                required:
+                  - success
+                  - data
+        '500':
+          $ref: '#/components/responses/500'
+  /flows/definitions/:
+    get:
+      description: ''
+      operationId: ''
+      tags:
+        - Flows
+      responses:
+        '200':
+          description: ''
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    action_name:
+                      type: string
+                      description: Nombre de una acción permitida
+                    params:
+                      type: object
+                      properties: {}
+                      description: Los parámetros que necesita esa acción
+                  required:
+                    - action_name
+                    - params
+              examples:
+                example1:
+                  value: |-
+                    [
+                      {
+                        "action_name": "wpp.message",
+                        "params": {
+                          "to": "string"
+                          "text": "string"
+                        }
+                      }
+                    ]
+components:
+  schemas:
+    Communication:
+      type: object
+      properties:
+        fuente:
+          type: string
+          description: Fuente de la comunicación (e.g., sitio web, llamada telefónica)
+        fecha_lead:
+          type: string
+          format: date
+          description: Fecha en que se generó el lead (formato YYYY-MM-DD)
+        id:
+          type: string
+          description: Identificador único para el objeto Communication
+        fecha:
+          type: string
+          format: date-time
+          description: >-
+            Fecha y hora en que se creó la comunicación (formato YYYY-MM-DD
+            HH:MM:SS)
+        nombre:
+          type: string
+          description: Nombre de la persona de contacto
+        link:
+          type: string
+          description: Enlace asociado con la comunicación (e.g., listado de propiedades)
+        telefono:
+          type: string
+          description: Número de teléfono del contacto
+        email:
+          type: string
+          nullable: true
+          description: Dirección de correo electrónico del contacto (nullable)
+        cotizacion:
+          type: string
+          description: Presupuesto o estimación proporcionada (opcional)
+        asesor:
+          $ref: '#/components/schemas/Asesor'
+        propiedad:
+          type: object
+          properties:
+            portal:
+              type: string
+              nullable: true
+              description: Portal donde se encuentra la propiedad (nullable)
+            portal_id:
+              type: string
+              nullable: true
+              description: ID del portal (nullable)
+            titulo:
+              type: string
+              nullable: true
+              description: Título de la propiedad (nullable)
+            link:
+              type: string
+              nullable: true
+              description: Enlace al listado de la propiedad (nullable)
+            precio:
+              type: string
+              nullable: true
+              description: Precio de la propiedad (nullable)
+            ubicacion:
+              type: string
+              nullable: true
+              description: Ubicación de la propiedad (nullable)
+            tipo:
+              type: string
+              nullable: true
+              description: Tipo de propiedad (nullable)
+        busquedas:
+          type: object
+          properties:
+            zonas:
+              type: string
+              nullable: true
+              description: Zonas deseadas (nullable)
+            presupuesto:
+              type: string
+              nullable: true
+              description: Presupuesto (nullable)
+            cantidad_anuncios:
+              type: integer
+              nullable: true
+              description: Número de propiedades
+    Asesor:
+      type: object
+      required:
+        - name
+        - phone
+        - email
+        - active
+      properties:
+        name:
+          type: string
+          description: Name of the advisor
+          example: John Doe
+        phone:
+          type: string
+          description: Phone number of the advisor
+          example: '+1234567890'
+        email:
+          type: string
+          description: Email address of the advisor
+          example: johndoe@example.com
+        active:
+          type: boolean
+          example: true
+    UpdateAsesor:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the advisor (optional for updates)
+          example: Jane Smith
+        active:
+          type: boolean
+          description: Whether the advisor is active
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          description: A human readable error message
+          type: string
+    ActionDefinition:
+      type: object
+      properties:
+        Func:
+          type: string
+          description: Name of the function associated with the action.
+        ParamType:
+          type: string
+          description: Type of the parameter expected by the action function.
+    SendWppTextParam:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text message content for WhatsApp communication.
+    Action:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Unique name of the action to be performed.
+          example: "wpp.message"
+        interval:
+          type: string
+          format: "1h5m3s"
+          description: <hora>h<minutos>m<segundos>s
+          example: "1h3m3s"
+        params:
+          type: object
+          description: Parameters specific to the action type.
+          example: {
+            "text": "hola {{.Nombre}} bienvenido a rebora"
+          }
+    Condition:
+      type: object
+      properties:
+        isNew:
+          type: boolean
+          description: Flag indicating if the condition checks for a new communication.
+    Rule:
+      type: object
+      properties:
+        condition:
+          $ref: '#/components/schemas/Condition'
+          description: Condition that triggers the execution of associated actions.
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Action'
+          description: List of actions to be executed when the condition is met.
+    Flow:
+      type: array
+      description: An array of rules defining the communication workflow.
+      items:
+        $ref: '#/components/schemas/Rule'
+  responses:
+    '404':
+      description: Object not found
+      headers: &ref_2 {}
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+                description: Lista de errores posibles
+              success:
+                type: boolean
+                description: 'false'
+            required:
+              - errors
+              - success
+          examples:
+            example1:
+              value:
+                errors:
+                  - message: Object not found
+                success: false
+    '500':
+      description: Internal server error
+      headers: *ref_2
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              errors:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Error'
+              success:
+                type: boolean
+                description: 'false'
+            required:
+              - errors
+              - success
+          examples:
+            example1:
+              value:
+                errors:
+                  - message: Internal server error
+                success: false
+  parameters:
+    CommunicationParams:
+      in: query
+      name: a
+      description: ''
+      required: false
+      schema:
+        type: array
+        items:
+          type: string
+    UUID:
+      in: query
+      name: uuid
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: "e7cc2a6d-f738-4404-b919-af04db281ebf"
