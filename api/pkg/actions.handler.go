@@ -145,7 +145,7 @@ func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
 }
 
 
-func FormatMsg(tmpl string, c *models.Communication) string{
+func FormatMsg(tmpl string, c *models.Communication) string {
     t := template.Must(template.New("txt").Parse(tmpl))
     buf := &bytes.Buffer{}
     if err := t.Execute(buf, c); err != nil {

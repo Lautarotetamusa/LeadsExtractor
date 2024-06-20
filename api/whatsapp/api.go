@@ -8,6 +8,7 @@ import (
 	"leadsextractor/models"
 	"log/slog"
 	"net/http"
+	"text/template"
 	"time"
 )
 
@@ -182,7 +183,7 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
 	}
 
-    w.logger.Info("Mensaje enviando correctamente")
+    w.logger.Info("Mensaje enviando correctamente", "to", payload.To, "type", payload.Type)
 	return &data, nil
 }
 
@@ -251,14 +252,21 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 	return w.Send(NewTemplatePayload(to, templateName, components))
 }
 
-//Validamos que no haya campos vacios porque la api de whatsapp no lo permite
-//Si hay un campo vacio ponemos un " - "
-func ParseTemplatePayload(t *TemplatePayload) {
-    for i, _ := range t.Components {
-        for j, _ := range t.Components[i].Parameters {
-            if t.Components[i].Parameters[j].Text == "" {
-                t.Components[i].Parameters[j].Text = " - "
+func (c *Components) ParseParameters (communication *models.Communication) {
+	for i, param := range c.Parameters {
+        t, err := template.New("txt").Parse(param.Text)
+        if err == nil { //Si lo puede parsear lo hace
+            buf := &bytes.Buffer{}
+            if err := t.Execute(buf, communication); err != nil {
+                continue
             }
+            param.Text = buf.String()
+
+            if param.Text == "" {
+                param.Text = " - "
+            }
+
+            c.Parameters[i] = param
         }
     }
 }

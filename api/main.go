@@ -116,13 +116,13 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.template", 
         func(c *models.Communication, params interface{}) error {
-            param, ok := params.(*whatsapp.TemplatePayload)
+            payload, ok := params.(*whatsapp.TemplatePayload)
             if !ok {
                 return fmt.Errorf("invalid parameters for wpp.message")
             }
 
-            whatsapp.ParseTemplatePayload(param)
-            wpp.SendTemplate(c.Telefono, *param)
+            payload.Components[0].ParseParameters(c)
+            wpp.SendTemplate(c.Telefono, *payload)
             return nil
         },
         reflect.TypeOf(whatsapp.TemplatePayload{}), 

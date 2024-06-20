@@ -50,9 +50,10 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET")
 	router.HandleFunc("/asesor", HandleErrors(s.InsertAsesor)).Methods("POST")
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.UpdateAsesor)).Methods("PUT")
+	router.HandleFunc("/asesores/", HandleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
+
 	router.HandleFunc("/assign", HandleErrors(s.AssignAsesor)).Methods("POST")
 
-	router.HandleFunc("/asesores/", HandleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
 
 	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET")
 	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET")

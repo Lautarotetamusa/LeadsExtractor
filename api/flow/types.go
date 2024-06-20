@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
-	"leadsextractor/whatsapp"
 	"log/slog"
 	"reflect"
 	"time"
@@ -23,9 +22,6 @@ type ActionDefinition struct {
 
 type SendWppTextParam struct {
     Text string  `json:"text"`
-}
-type SendWppTemplateParam struct {
-    Template whatsapp.TemplatePayload `json:"template"`
 }
 
 type Action struct {
