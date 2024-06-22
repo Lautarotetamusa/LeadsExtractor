@@ -27,7 +27,16 @@ type Pipedrive struct{
     redirectUri string
     client      *http.Client
     logger      *slog.Logger
+    filePath    string
     State       string
+}
+
+type Config struct {
+    ClientId        string
+    ClientSecret    string
+    ApiToken        string
+    RedirectURI     string
+    FilePath        string
 }
 
 type Token struct{
@@ -45,26 +54,30 @@ type Auth struct{
 }
 
 type Response struct{
-    Success bool        `json:"success"`
-    Data    interface{} `json:"data"`
+    Success bool    `json:"success"`
+    Data    any     `json:"data"`
 }
 
-func NewPipedrive(clientId string, clientSecret string, apiToken string, redirectUri string, l *slog.Logger) *Pipedrive{
-    client := fmt.Sprintf("%s:%s", clientId, clientSecret) 
+func NewPipedrive(c Config, l *slog.Logger) *Pipedrive{
+    client := fmt.Sprintf("%s:%s", c.ClientId, c.ClientSecret) 
     p := Pipedrive{
         auth: Auth{
-            clientId: clientId,
-            clientSecret: clientSecret,
+            clientId: c.ClientId,
+            clientSecret: c.ClientSecret,
             value: fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(client))),
         },
         client: &http.Client{
             Timeout: 15 * time.Second,
         },
-        redirectUri: redirectUri,
-        apiToken: apiToken,
+        redirectUri: c.RedirectURI,
+        apiToken: c.ApiToken,
         token: nil,
         logger: l.With("module", "pipedrive"),
-    } 
+        filePath: c.FilePath,
+    }
+    if p.filePath == "" {
+        p.filePath = "./"
+    }
     p.loadToken()
 
     if p.token != nil{
@@ -130,7 +143,7 @@ func (p *Pipedrive) saveToken(){
     p.token.ExpiresIn = time.Now().Unix() + int64(p.token.ExpiresIn)
 
     file, _ := json.MarshalIndent(p.token, "", "\t")
-    fileName := fmt.Sprintf("%s.json", p.auth.clientId)
+    fileName := fmt.Sprintf("%s%s.json", p.filePath, p.auth.clientId)
 
     err := os.WriteFile(fileName, file, 0644)
     if err != nil{
@@ -138,8 +151,8 @@ func (p *Pipedrive) saveToken(){
     }
 }
 
-func (p *Pipedrive) loadToken() *Token{
-    fileName := fmt.Sprintf("%s.json", p.auth.clientId)
+func (p *Pipedrive) loadToken() {
+    fileName := fmt.Sprintf("%s%s.json", p.filePath, p.auth.clientId)
 
     tokenFile, err := os.Open(fileName) 
     if err != nil{
@@ -147,7 +160,8 @@ func (p *Pipedrive) loadToken() *Token{
         callbackUrl := fmt.Sprintf("https://oauth.pipedrive.com/oauth/authorize?client_id=%s&state=%s&redirect_uri=%s", p.auth.clientId, p.State, p.redirectUri)
         p.logger.Warn("No se pudo abrir el archivo", "file", fileName)
         log.Println("Autoriza la aplicacion: ", callbackUrl)
-        return nil
+        //TODO: Mantener la coneccion durante un tiempo X hasta que la aplicacion sea autorizada
+        //Se puede hacer con un channel en la funcion de callback
     }
     defer tokenFile.Close()
     bytes, _ := io.ReadAll(tokenFile)
@@ -158,7 +172,6 @@ func (p *Pipedrive) loadToken() *Token{
         log.Fatal("No se pudo leer el archivo", fileName)
     }
     p.token = &token
-    return &token
 }
 
 func (p *Pipedrive) ExchangeCodeToToken(code string) *Token{
@@ -195,7 +208,7 @@ func (p *Pipedrive) refreshToken() *Token{
     return p.token
 }
 
-func (p *Pipedrive) makeRequest(method string, path string, payload interface{}, data any) error {
+func (p *Pipedrive) makeRequest(method string, path string, payload any, data any) error {
     p.refreshToken()
     url := baseUrl + path
     

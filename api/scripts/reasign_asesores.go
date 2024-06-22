@@ -45,13 +45,13 @@ func reasignAsesor(phone string) error {
 	}
 	db := store.ConnectDB()
 
-	pipe := pipedrive.NewPipedrive(
-		os.Getenv("PIPEDRIVE_CLIENT_ID"),
-		os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
-		os.Getenv("PIPEDRIVE_API_TOKEN"),
-		os.Getenv("PIPEDRIVE_REDIRECT_URI"),
-        logger,
-	)
+    pipedriveConfig := pipedrive.Config{
+        ClientId: os.Getenv("PIPEDRIVE_CLIENT_ID"),
+        ClientSecret: os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
+        ApiToken: os.Getenv("PIPEDRIVE_API_TOKEN"),
+        RedirectURI: os.Getenv("PIPEDRIVE_REDIRECT_URI"),
+    }
+	pipe := pipedrive.NewPipedrive(pipedriveConfig, logger)
 
 	wpp := whatsapp.NewWhatsapp(
         os.Getenv("WHATSAPP_ACCESS_TOKEN"),

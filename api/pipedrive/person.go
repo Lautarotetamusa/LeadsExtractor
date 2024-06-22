@@ -23,6 +23,8 @@ type FieldOption struct{
     Label   string `json:"label"`
 }
 
+//TODO: Que esto no esté hardcodeado
+
 //Los atributos custom de pipedrive tienen un id para identificarlos
 var customFields = map[string]string{
     "fuente": "0a551c8c09663ce803d924f036af12c3cc6b8b73",
@@ -56,10 +58,10 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         },
         customFields["fuente"]: fuenteOptions[c.Fuente],
         customFields["fecha lead"]: c.FechaLead,
-        customFields["link"]: c.Propiedad.Link,
+        customFields["link"]: c.Propiedad.Link.String,
         //La zona no la pongo porque es un campo que tiene valores opcionales (tendría que cargar esta zona como opcion)
-        customFields["ubicacion"]: c.Propiedad.Ubicacion,
-        customFields["precio"]: c.Propiedad.Precio,
+        customFields["ubicacion"]: c.Propiedad.Ubicacion.String,
+        customFields["precio"]: c.Propiedad.Precio.String,
         customFields["cotizacion"]: c.Cotizacion,
     }
 

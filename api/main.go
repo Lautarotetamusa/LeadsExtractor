@@ -51,13 +51,13 @@ func main() {
         logger,
     )
 
-	pipedriveApi := pipedrive.NewPipedrive(
-		os.Getenv("PIPEDRIVE_CLIENT_ID"),
-		os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
-		os.Getenv("PIPEDRIVE_API_TOKEN"),
-		os.Getenv("PIPEDRIVE_REDIRECT_URI"),
-        logger,
-	)
+    pipedriveConfig := pipedrive.Config{
+        ClientId: os.Getenv("PIPEDRIVE_CLIENT_ID"),
+        ClientSecret: os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
+        ApiToken: os.Getenv("PIPEDRIVE_API_TOKEN"),
+        RedirectURI: os.Getenv("PIPEDRIVE_REDIRECT_URI"),
+    }
+	pipedriveApi := pipedrive.NewPipedrive(pipedriveConfig, logger)
 
 	wpp := whatsapp.NewWhatsapp(
         os.Getenv("WHATSAPP_ACCESS_TOKEN"),
@@ -87,10 +87,10 @@ func main() {
     router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
     router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/actions", pkg.HandleErrors(flowHandler.NewFlow)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/actions/{uuid}", pkg.HandleErrors(flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/actions", pkg.HandleErrors(flowHandler.GetFlows)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/actions/{uuid}", pkg.HandleErrors(flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
+	router.HandleFunc("/flows", pkg.HandleErrors(flowHandler.NewFlow)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/flows", pkg.HandleErrors(flowHandler.GetFlows)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
 
 	server.Run(router)
 }

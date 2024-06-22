@@ -31,11 +31,11 @@ func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, erro
         c.Fuente,
         c.Fecha,
         c.Link,
-        c.Propiedad.Titulo,
-        c.Propiedad.Link,
-        c.Propiedad.Precio,
-        c.Propiedad.Ubicacion,
-        c.Propiedad.Tipo,
+        c.Propiedad.Titulo.String,
+        c.Propiedad.Link.String,
+        c.Propiedad.Precio.String,
+        c.Propiedad.Ubicacion.String,
+        c.Propiedad.Tipo.String,
         c.Asesor.Name,
     )
 

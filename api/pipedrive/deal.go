@@ -15,6 +15,16 @@ type Deal struct{
     Person      *Person `json:"person_id"`
 }
 
+
+type CreateDeal struct {
+    Title       string  `json:"title"`
+    Value       string  `json:"value"`
+    Currency    string  `json:"currency"`
+    UserId      uint32  `json:"user_id"`
+    PersonId    uint32  `json:"person_id"`
+    VisibleTo   string  `json:"visible_to"`
+}
+
 func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, error){
     url := fmt.Sprintf("persons/%d/deals", personId)
 
@@ -25,7 +35,7 @@ func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, err
         return nil, err
     }
     if len(deals) == 0{
-        return nil, fmt.Errorf("la asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
+        return nil, fmt.Errorf("el asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
     }
 
     for _, deal := range deals{
@@ -34,7 +44,7 @@ func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, err
         }
     }
 
-    return nil, fmt.Errorf("la asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
+    return nil, fmt.Errorf("el asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
 }
 
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (*Deal, error){
@@ -43,13 +53,13 @@ func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId 
         title = "Trato con " + c.Nombre
     }
 
-    payload := map[string]interface{}{
-        "title": title,
-        "user_id": userId,
-        "person_id": personId,
-        "value": c.Propiedad.Precio,
-        "currency": "MXN",
-        "visible_to": "3", //Para todos
+    payload := CreateDeal{
+        Title: title,
+        UserId: userId,
+        PersonId: personId,
+        Value: c.Propiedad.Precio.String,
+        Currency: "MXN",
+        VisibleTo: "3", //Para todos
     }
 
     var deal Deal
