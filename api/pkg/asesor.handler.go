@@ -39,13 +39,13 @@ func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
-    var c models.Communication
+	c := &models.Communication{} //NO poner como var porque el Decode deja de funcionar
 	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
 		return err
 	}
 
-	lead, err := s.Store.InsertOrGetLead(s.roundRobin, &c)
+	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
 	if err != nil {
 		return err
 	}

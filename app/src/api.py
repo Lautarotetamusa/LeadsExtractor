@@ -14,7 +14,7 @@ def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.json()))
         return False, None
-    logger.success("Communication cargada correctamente")
+    logger.success("Asesor obtenido correctamente")
 
     json = res.json()
     lead_data = json["data"]
