@@ -61,6 +61,7 @@ func main() {
 
 	wpp := whatsapp.NewWhatsapp(
         os.Getenv("WHATSAPP_ACCESS_TOKEN"),
+
         os.Getenv("WHATSAPP_NUMBER_ID"),
         logger,
 	)
@@ -69,7 +70,10 @@ func main() {
     defineActions(wpp, pipedriveApi, infobipApi)
     flowManager.MustLoad()
 
-    webhook := whatsapp.NewWebhook(logger)
+    webhook := whatsapp.NewWebhook(
+        os.Getenv("WHATSAPP_VERIFY_TOKEN"),
+        logger,
+    )
 
 	router := mux.NewRouter()
 

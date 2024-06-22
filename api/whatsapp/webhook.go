@@ -10,6 +10,7 @@ import (
 
 type Webhook struct {
      entries    chan Entry 
+     token      string
      logger     *slog.Logger
 }
 
@@ -68,6 +69,14 @@ type Contact struct {
     }`json:"profile"`
 }
 
+func NewWebhook(token string, l *slog.Logger) *Webhook{
+    return &Webhook {
+        entries: make(chan Entry),
+        logger: l.With("module", "webhook"),
+        token: token,
+    }
+}
+
 func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) error {
     defer r.Body.Close()
     var payload NotificationPayload
@@ -79,6 +88,7 @@ func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) e
         wh.entries <- payload.Entries[i]
     }
 
+    w.WriteHeader(http.StatusOK)
     return nil
 }
 
@@ -87,7 +97,7 @@ func (wh *Webhook) Verify(w http.ResponseWriter, r *http.Request) error {
     verify_token := r.URL.Query().Get("hub.verify_token")
     mode := r.URL.Query().Get("hub.mode")
 
-    if mode == "subscribe" && verify_token == "Lautaro123." {
+    if mode == "subscribe" && verify_token == wh.token {
         w.Write([]byte(challenge))
     } else {
         w.WriteHeader(http.StatusBadRequest)
@@ -95,13 +105,6 @@ func (wh *Webhook) Verify(w http.ResponseWriter, r *http.Request) error {
     }
     
     return nil
-}
-
-func NewWebhook(l *slog.Logger) *Webhook{
-    return &Webhook {
-        entries: make(chan Entry),
-        logger: l.With("module", "webhook"),
-    }
 }
 
 func (wh *Webhook) ConsumeEntries(callback func (*models.Communication) error ) {
