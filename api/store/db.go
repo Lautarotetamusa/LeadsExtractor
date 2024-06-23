@@ -23,7 +23,7 @@ func ConnectDB(ctx context.Context) *sqlx.DB{
     ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
     defer cancel()
 
-    db, err := sqlx.Connect("mysql", connectionStr)
+    db, err := sqlx.ConnectContext(ctx, "mysql", connectionStr)
     if err != nil {
         log.Fatal("Imposible conectar con la base de datos", err)
     }

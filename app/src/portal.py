@@ -18,9 +18,11 @@ with open('../../messages/bienvenida_2.txt') as f:
 with open('../../messages/response_message.txt') as f:
     response_msg = f.read()
 
+
 class Mode(IntEnum):
     NEW = 1
     ALL = 2
+
 
 class Portal():
     def __init__(self,
@@ -29,7 +31,7 @@ class Portal():
                  send_msg_field: str,
                  username_env: str,
                  password_env: str,
-                 params_type: str, #headers | cookies
+                 params_type: str,  # headers | cookies
                  filename: str = __file__
         ):
 
@@ -41,7 +43,7 @@ class Portal():
         self.send_msg_field = send_msg_field
         self.logger.debug(f"Inicializando {self.name}")
 
-        self.params_file   = os.path.dirname(os.path.realpath(filename)) + "/params.json"
+        self.params_file = os.path.dirname(os.path.realpath(filename)) + "/params.json"
         self.username = os.getenv(username_env)
         self.password = os.getenv(password_env)
 
@@ -77,33 +79,22 @@ class Portal():
             for lead_res in page:
                 lead = self.get_lead_info(lead_res)
 
-                if lead.telefono == None or lead.telefono == "":
+                if lead.telefono is None or lead.telefono == "":
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
                     self.make_contacted(lead_res[self.contact_id_field])
                     continue
 
-                is_new, lead = api.assign_asesor(self.logger, lead)
-                if lead == None:
+                is_new, lead = api.new_communication(self.logger, lead)
+                if lead is None:
                     continue
-
-                #Cotizacion
-                if is_new:
-                    self.logger.debug("Lead con mt2 construccion, generando cotizacion pdf")
-                    pdf_url = jotform.new_submission(self.logger, lead) 
-                    if pdf_url != None:
-                        lead.cotizacion = pdf_url
-                    else:
-                        self.logger.error("No se pudo obtener la cotizacion en pdf")
-
-                api.new_communication(self.logger, lead)
                 lead.print()
 
-                if is_new: #Lead nuevo
+                if is_new:
                     portal_msg = bienvenida_1 + ' ' + format_msg(lead, bienvenida_2)
-                else: #Lead existente
+                else:
                     portal_msg = format_msg(lead, response_msg)
 
-                #Mensaje del portal
+                # Mensaje del portal
                 if self.send_msg_field in lead_res:
                     self.send_message(lead_res[self.send_msg_field], portal_msg)
                 lead.message = portal_msg.replace('\n', '')

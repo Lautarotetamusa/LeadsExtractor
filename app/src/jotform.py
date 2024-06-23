@@ -17,27 +17,34 @@ assert FORM_ID != "" and FORM_ID != None, "JOTFORM_FORM_ID is not in enviroment"
 API_URL = "https://api.jotform.com"
 PDF_URL = "https://www.jotform.com/pdf-submission/{submissionID}"
 
-def generate_url(logger: Logger, lead: Lead) -> str | None:
-    if lead.asesor['email'] == None or lead.asesor['email'] == "":
-        logger.error(f"El asesor {lead.asesor['name'] }no tiene email asignado")
-        return None
 
-    #Valores por defecto
-    if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] == None:
+def generate_url(logger: Logger, lead: Lead) -> [str, str | None]:
+    if lead.asesor['email'] is None or lead.asesor['email'] == "":
+        logger.error(f"El asesor {lead.asesor['name']} no tiene email asignado")
+        return "", f"El asesor {lead.asesor['name']} no tiene email asignado"
+    if lead.asesor['phone'] is None or lead.asesor['phone'] == "":
+        logger.error(f"El asesor {lead.asesor['name']} no tiene phone asignado")
+        return "", f"El asesor {lead.asesor['name']} no tiene phone asignado"
+    if lead.asesor['name'] is None or lead.asesor['name'] == "":
+        logger.error("El asesor no tiene name")
+        return "", "El asesor no tiene name"
+
+    # Valores por defecto
+    if lead.busquedas['covered_area'] == "" or lead.busquedas['covered_area'] is None:
         lead.busquedas['covered_area'] = '350, 350'
 
-    if lead.busquedas['banios'] == "" or lead.busquedas['banios'] == None:
+    if lead.busquedas['banios'] == "" or lead.busquedas['banios'] is None:
         lead.busquedas['banios'] = '5, 5'
 
-    if lead.busquedas['recamaras'] == "" or lead.busquedas['recamaras'] == None:
+    if lead.busquedas['recamaras'] == "" or lead.busquedas['recamaras'] is None:
         lead.busquedas['recamaras'] = '4, 4'
 
     props = {
         "covered_area": 0,
-        "banios": 0 ,
+        "banios": 0,
         "recamaras": 0,
     }
-    #La data viene como banios: 5, 6. osea entre 5 y 6, calculamos un promedio entre esos dos valores y usamos eso
+    # La data viene como banios: 5, 6. osea entre 5 y 6, calculamos un promedio entre esos dos valores y usamos eso
     for key in props:
         try:
             [min, max] = lead.busquedas[key].split(', ')
@@ -46,7 +53,7 @@ def generate_url(logger: Logger, lead: Lead) -> str | None:
             logger.error(f"No se pudo obtener el {key}")
             logger.debug(f"busquedas['{key}']: " + str(lead.busquedas[key]))
             logger.error(str(e))
-            return None
+            return "", f"No se pudo obtener el {key}"
 
     url = f"https://www.jotform.com/{FORM_ID}"
     params = {
@@ -61,34 +68,36 @@ def generate_url(logger: Logger, lead: Lead) -> str | None:
         "escribaUna9": "Premium",
         "cuantosCuartos": props['recamaras'],
         "cuantosBanos56": props['banios'],
-        "cuantosBanos": "0", #Tamaño del sotano
-        "tamanoDe": int(props['covered_area'] * 0.45),   #Tamaño planta baja
-        "tamanoDe79": int(props['covered_area'] * 0.45), #Tamaño planta alta
-        "tamanoDel": int(props['covered_area'] * 0.10),  #Tamaño roof garden
-        "tamanoDe84": "0",  #Tamaño rampa estacionamiento
-        "tamanoDe85": "30", #Tamaño jardin exterior
-        "tamanoDe86": "0",  #Tamaño de alberca
-        "tamanoDe87": "50", #Tamaño muro perimetral
+        "cuantosBanos": "0",  # Tamaño del sotano
+        "tamanoDe": int(props['covered_area'] * 0.45),    # Tamaño planta baja
+        "tamanoDe79": int(props['covered_area'] * 0.45),  # Tamaño planta alta
+        "tamanoDel": int(props['covered_area'] * 0.10),   # Tamaño roof garden
+        "tamanoDe84": "0",   # Tamaño rampa estacionamiento
+        "tamanoDe85": "30",  # Tamaño jardin exterior
+        "tamanoDe86": "0",   # Tamaño de alberca
+        "tamanoDe87": "50",  # Tamaño muro perimetral
     }
 
     url = urllib.parse.urljoin(url, '?' + urllib.parse.urlencode(params))
-    return url
+    return url, None
 
-#Devuelve un link al PDF creado
-def new_submission(logger: Logger, lead: Lead) -> None | str:
-    url = generate_url(logger, lead)
-    print(url)
-    if url == None:
-        return None
+
+# Devuelve un link al PDF creado
+def new_submission(logger: Logger, lead: Lead) -> [str, str | None]:
+    url, err = generate_url(logger, lead)
+    if err is not None:
+        return "", err
+    logger.debug("url: "+url)
 
     res = requests.get(url)
     if not res.ok:
         logger.error('Error en la solicitud:' + res.text)
-        return None
+        return "", "Error en la solicitud" + res.text
 
     options = Options()
-    options.add_argument(f"--headless") #Session
-    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+    options.add_argument("--headless")   # Session
+    # Necesario para correrlo como root dentro del container
+    options.add_argument("--no-sandbox")
 
     driver = webdriver.Chrome(options=options)
 
@@ -103,20 +112,21 @@ def new_submission(logger: Logger, lead: Lead) -> None | str:
         button.click()
     except Exception as e:
         logger.error("driver error: " + str(e))
-        return None
+        return "", "driver error: " + str(e)
     finally:
         driver.close()
 
     submission = get_last_submission(logger)
-    if submission == None:
-        return None
-    
-    if submission.get('id', None) == None:
+    if submission is None:
+        return "", "Submission is None"
+
+    if submission.get('id', None) is None:
         logger.error("No se pudo obtener el id de la submission")
         logger.debug("submission:" + str(submission))
-        return None
+        return "", "No se pudo obtener el id de la submission"
 
-    return PDF_URL.format(submissionID=submission['id'])
+    return PDF_URL.format(submissionID=submission['id']), None
+
 
 def get_last_submission(logger: Logger, form_id: str = FORM_ID):
     url = urllib.parse.urljoin(API_URL, f"form/{form_id}/submissions")
@@ -133,6 +143,7 @@ def get_last_submission(logger: Logger, form_id: str = FORM_ID):
     logger.success('Solicitud exitosa')
     data = res.json()
     return data.get('content', [None])[0]
+
 
 def get_questions_form(logger: Logger, form_id: str = FORM_ID):
     logger.fuente += " > Jotform API"

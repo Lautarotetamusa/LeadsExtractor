@@ -12,6 +12,7 @@ import (
 
 	"leadsextractor/flow"
 	"leadsextractor/infobip"
+	"leadsextractor/jotform"
 	"leadsextractor/models"
 	"leadsextractor/pipedrive"
 	"leadsextractor/pkg"
@@ -67,7 +68,8 @@ func main() {
 	)
 
     flowManager := flow.NewFlowManager("actions.json", logger)
-    defineActions(wpp, pipedriveApi, infobipApi)
+    defineActions(wpp, pipedriveApi, infobipApi, store.NewStore(db, logger))
+
     flowManager.MustLoad()
 
     webhook := whatsapp.NewWebhook(
@@ -100,9 +102,14 @@ func main() {
 }
 
 //Definimos las acciones permitidas dentro de un flow
-func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, infobipApi *infobip.InfobipApi) {
+func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, infobipApi *infobip.InfobipApi, store *store.Store) {
     cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
     cotizacion2 := mustReadFile("../messages/plantilla_cotizacion_2.txt")
+    jotformApi := jotform.NewJotform(
+        os.Getenv("JOTFORM_API_KEY"),
+        os.Getenv("APP_HOST"),
+    )
+    form := jotformApi.AddForm(os.Getenv("JOTFORM_FORM_ID"))
 
     flow.DefineAction("wpp.message",
         func(c *models.Communication, params interface{}) error {
@@ -134,8 +141,16 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.cotizacion", 
         func(c *models.Communication, params interface{}) error {
-            if c.Cotizacion == "" {
-                return fmt.Errorf("el lead %s no tiene cotizacion", c.Nombre)
+            if c.Cotizacion == ""{
+                url, err := jotformApi.GetPdf(c, form)
+                if err != nil {
+                    return err
+                }
+                c.Cotizacion = url
+                if err = store.InsertCotizacion(c); err != nil {
+                    return err
+                }
+                slog.Info("Cotizacion generada con exito")
             }
 
             var caption string

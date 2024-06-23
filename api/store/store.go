@@ -20,6 +20,14 @@ func NewStore(db *sqlx.DB, logger *slog.Logger) *Store {
 	}
 }
 
+func (s *Store) InsertCotizacion(c *models.Communication) error {
+    query := `UPDATE Leads SET cotizacion = ? WHERE phone = ?`
+    if _, err := s.Db.Query(query, c.Cotizacion, c.Telefono); err != nil {
+        return err
+    }
+    return nil
+}
+
 func (s *Store) InsertCommunication(c *models.Communication, lead *models.Lead, source *models.Source) error {
 	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
     VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
