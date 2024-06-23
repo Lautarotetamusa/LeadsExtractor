@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"leadsextractor/models"
 	"net/http"
 	"strconv"
@@ -18,11 +19,13 @@ type Form struct {
 type Jotform struct {
     apiKey  string    
     forms   []Form
+    apiHost string
 }
 
-func NewJotform(apiKey string) *Jotform {
+func NewJotform(apiKey string, apiHost string) *Jotform {
     return &Jotform{
         apiKey: apiKey,
+        apiHost: apiHost,
         forms: make([]Form, 0),
     }
 }
@@ -33,6 +36,41 @@ func (j *Jotform) AddForm(formId string) *Form {
     }
     j.forms = append(j.forms, form)
     return &form
+}
+
+//Hace una peticion a la app que genera un pdf de jotform
+func (j *Jotform) GetPdf(c *models.Communication, f *Form) (string, error) {
+    payload := map[string]any{
+        "data": c,
+    }
+	jsonBody, _ := json.Marshal(payload)
+	bodyReader := bytes.NewReader(jsonBody)
+
+    url := fmt.Sprintf("%s/jotform", j.apiHost)
+
+	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+
+    client := &http.Client{
+        Timeout: 15 * time.Second,
+    }
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("no se pudo realizar la peticion: %s", err)
+	}
+    
+	defer res.Body.Close()
+    buf, err := io.ReadAll(res.Body)
+    if err != nil {
+        return "", err
+    }
+    return string(buf), nil
 }
 
 func (j *Jotform) SubmitForm(c *models.Communication, f *Form) error {
