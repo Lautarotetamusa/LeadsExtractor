@@ -57,7 +57,7 @@ func (j *Jotform) GetPdf(c *models.Communication, f *Form) (string, error) {
 	req.Header.Add("Content-Type", "application/json")
 
     client := &http.Client{
-        Timeout: 15 * time.Second,
+        Timeout: 30 * time.Second,
     }
 
 	res, err := client.Do(req)
@@ -70,6 +70,11 @@ func (j *Jotform) GetPdf(c *models.Communication, f *Form) (string, error) {
     if err != nil {
         return "", err
     }
+
+    if res.StatusCode != http.StatusOK {
+        return "", fmt.Errorf("request not ok, status = %d", res.StatusCode)
+    }
+
     return string(buf), nil
 }
 

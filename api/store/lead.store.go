@@ -24,7 +24,7 @@ func (s *Store) GetAll() (*[]models.Lead, error) {
 func (s *Store) GetOne(phone string) (*models.Lead, error) {
 	query := `SELECT 
         a.phone as "Asesor.phone", a.name as "Asesor.name", a.email as "Asesor.email",
-        l.phone, l.name, l.email
+        l.phone, l.name, l.email, l.cotizacion
         FROM Leads l
         INNER JOIN Asesor a
             ON a.phone = l.asesor
@@ -50,11 +50,14 @@ func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 }
 
 func (s *Store) Update(lead *models.Lead, phone string) error {
+    s.logger.Debug("Actualizando lead", "cotizacion", lead.Cotizacion)
 	query := "UPDATE Leads SET name=:name, cotizacion=:cotizacion WHERE phone=:phone"
-	if _, err := s.Db.NamedExec(query, lead); err != nil {
-		fmt.Printf("%v", err)
+	res, err := s.Db.NamedExec(query, lead);
+    if err != nil {
 		return err
 	}
+    afid, _ := res.RowsAffected()
+    s.logger.Info("Lead actualizado", "rows", afid)
 	return nil
 }
 

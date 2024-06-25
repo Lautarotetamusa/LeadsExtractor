@@ -151,7 +151,7 @@ func NewDocumentPayload(to string, link string, caption string, filename string)
 
 func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	jsonBody, _ := json.Marshal(payload)
-	w.logger.Debug(fmt.Sprintf("%v", payload), "to", payload.To, "type", payload.Type)
+	w.logger.Debug("Enviando mensaje", "to", payload.To, "type", payload.Type)
 	bodyReader := bytes.NewReader(jsonBody)
 
 	req, err := http.NewRequest(http.MethodPost, w.url, bodyReader)
@@ -179,7 +179,8 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	if len(data.Messages) == 0 {
 		var debug interface{}
 		_ = json.Unmarshal(bodyBytes, &debug)
-		w.logger.Debug(fmt.Sprintf("debug: %v", debug))
+        w.logger.Info("TEST")
+		w.logger.Error(fmt.Sprintf("response: %v", debug))
 		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
 	}
 

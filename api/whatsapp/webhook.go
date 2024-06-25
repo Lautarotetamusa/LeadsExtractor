@@ -3,6 +3,7 @@ package whatsapp
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"leadsextractor/models"
 	"log/slog"
 	"net/http"
@@ -79,10 +80,24 @@ func NewWebhook(token string, l *slog.Logger) *Webhook{
 
 func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) error {
     defer r.Body.Close()
-    var payload NotificationPayload
+    /*var payload NotificationPayload
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
         return err
-    }
+    }*/
+	
+    bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		return fmt.Errorf("error al leer el cuerpo de la respuesta: %w", err)
+	}
+
+	var payload NotificationPayload
+	err = json.Unmarshal(bodyBytes, &payload)
+	if err != nil {
+		var debug interface{}
+		_ = json.Unmarshal(bodyBytes, &debug)
+		wh.logger.Error(fmt.Sprintf("response: %v", debug))
+		return fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
+	}
 
     for i, _ := range payload.Entries {
         wh.entries <- payload.Entries[i]
@@ -98,6 +113,7 @@ func (wh *Webhook) Verify(w http.ResponseWriter, r *http.Request) error {
     mode := r.URL.Query().Get("hub.mode")
 
     if mode == "subscribe" && verify_token == wh.token {
+        w.WriteHeader(http.StatusOK)
         w.Write([]byte(challenge))
     } else {
         w.WriteHeader(http.StatusBadRequest)

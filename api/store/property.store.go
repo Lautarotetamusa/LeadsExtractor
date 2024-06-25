@@ -26,7 +26,6 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 	if err != nil {
 		return nil, err
 	}
-    fmt.Printf("%v\n", property)
 
 	err = s.Db.Get(&source, "SELECT * FROM Source WHERE property_id=?", property.ID.Int32)
 	if err != nil {
@@ -44,7 +43,6 @@ func (s *Store) insertSource(propertyId int) error {
         Tipo:       "property",
         PropertyId: id,
     }
-    fmt.Printf("%v\n", source)
     query := "INSERT INTO Source (type, property_id) VALUES(:type, :property_id)"
     if _, err := s.Db.NamedExec(query, source); err != nil {
         return fmt.Errorf("error insertando source: %s", err.Error())

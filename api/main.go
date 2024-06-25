@@ -141,13 +141,19 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.cotizacion", 
         func(c *models.Communication, params interface{}) error {
-            if c.Cotizacion == ""{
+            if c.Cotizacion == "" {
                 url, err := jotformApi.GetPdf(c, form)
                 if err != nil {
                     return err
                 }
                 c.Cotizacion = url
-                if err = store.InsertCotizacion(c); err != nil {
+                lead := models.Lead{
+                    Name: c.Nombre,
+                    Email: c.Email,
+                    Phone: c.Telefono,
+                    Cotizacion: c.Cotizacion,
+                }
+                if err := store.Update(&lead, c.Telefono); err != nil {
                     return err
                 }
                 slog.Info("Cotizacion generada con exito")

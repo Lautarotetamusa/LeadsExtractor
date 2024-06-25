@@ -66,11 +66,15 @@ func (s *Server) NewCommunication(c *models.Communication) error {
 	if err != nil {
 		return err
 	}
+
 	c.Asesor = lead.Asesor
+    c.Cotizacion = lead.Cotizacion
+    c.Email = lead.Email
+    c.Nombre = lead.Name
 
     go s.flowHandler.manager.RunMainFlow(c)
         
-    if err = s.Store.InsertCommunication(c, lead, source); err != nil {
+    if err = s.Store.InsertCommunication(c, source); err != nil {
         s.logger.Error(err.Error(), "path", "InsertCommunication")
         return err
     }
