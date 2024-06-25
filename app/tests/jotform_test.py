@@ -25,7 +25,7 @@ lead.set_args({
 })
 lead.set_asesor({
     "name": "Asesor de prueba nro 2",
-    "phone": "+54 9 999999999",
+    "phone": "5213319466986",
     "email": "test@test.com"
 })
 lead.set_propiedad({
@@ -61,4 +61,9 @@ def save_questions():
         json.dump(questions, f, indent=4)
 
 if __name__ == "__main__":
-    test_new_submission()
+    url, err = jotform.generate_url(logger, lead)
+    if err != None:
+        print(err)
+        exit(1)
+
+    print(url)

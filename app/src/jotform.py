@@ -18,7 +18,7 @@ API_URL = "https://api.jotform.com"
 PDF_URL = "https://www.jotform.com/pdf-submission/{submissionID}"
 
 
-def generate_url(logger: Logger, lead: Lead) -> [str, str | None]:
+def generate_url(logger: Logger, lead: Lead) -> tuple[str, str | None]:
     if lead.asesor['email'] is None or lead.asesor['email'] == "":
         logger.error(f"El asesor {lead.asesor['name']} no tiene email asignado")
         return "", f"El asesor {lead.asesor['name']} no tiene email asignado"
@@ -61,7 +61,7 @@ def generate_url(logger: Logger, lead: Lead) -> [str, str | None]:
         "emailCliente": lead.email if lead.email != "" and lead.email != None else "cotizaciones@rebora.com.mx",
         "escribaUna": lead.asesor['name'],
         "email123": lead.asesor['email'],
-        "numeroDe[full]": lead.asesor['phone'],
+        "numeroDe[full]": lead.asesor['phone'][3:], #Sacar la caracteristica de pais
         "pagoInicial": "2,500,000",
         "pagoInicial118": "25%",
         "aCuantos": "16+meses",
