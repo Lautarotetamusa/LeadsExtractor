@@ -184,7 +184,7 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
 	}
 
-    w.logger.Info("Mensaje enviando correctamente", "to", payload.To, "type", payload.Type)
+    w.logger.Info("Mensaje enviando correctamente", "to", payload.To, "type", payload.Type, "id", data.Messages[0].Id)
 	return &data, nil
 }
 

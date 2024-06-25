@@ -3,7 +3,6 @@ package whatsapp
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"leadsextractor/models"
 	"log/slog"
 	"net/http"
@@ -36,8 +35,18 @@ type Value struct {
     Metadata         Metadata `json:"metadata"`
     Contacts         []Contact `json:"contacts"`
     Errors           []Error   `json:"errors"`
-    //Messages          []Message `json:"messages"`
+    Messages         []Message `json:"messages"`
     Statuses         []Status  `json:"statuses"`
+}
+
+type Message struct {
+    From        string  `json:"from"`
+    Id          string  `json:"id"`
+    Timestamp   string  `json:"timestamp"`
+    Type        string  `json:"type"`
+    Text        struct {
+        Body    string  `json:"body"`
+    } `json:"text,omitempty"`
 }
 
 type Metadata struct {
@@ -56,11 +65,11 @@ type Error struct {
 }
 
 type Status struct {
-    Id          uint32  `json:"id"`
-    CustomerId  uint32  `json:"customer_id"` 
+    Id          string  `json:"id"`
+    RecipientId string  `json:"recipient_id"` 
     Errors      []Error `json:"errors"`
     Status      string  `json:"status"` //delivered, read, sent
-    Timestamp   uint64  `json:"timestamp"`
+    Timestamp   string  `json:"timestamp"`
 }
 
 type Contact struct {
@@ -80,24 +89,11 @@ func NewWebhook(token string, l *slog.Logger) *Webhook{
 
 func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) error {
     defer r.Body.Close()
-    /*var payload NotificationPayload
+    var payload NotificationPayload
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+        wh.logger.Error("error parseando el payload", "err", err.Error())
         return err
-    }*/
-	
-    bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		return fmt.Errorf("error al leer el cuerpo de la respuesta: %w", err)
-	}
-
-	var payload NotificationPayload
-	err = json.Unmarshal(bodyBytes, &payload)
-	if err != nil {
-		var debug interface{}
-		_ = json.Unmarshal(bodyBytes, &debug)
-		wh.logger.Error(fmt.Sprintf("response: %v", debug))
-		return fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
-	}
+    }
 
     for i, _ := range payload.Entries {
         wh.entries <- payload.Entries[i]
@@ -127,7 +123,6 @@ func (wh *Webhook) ConsumeEntries(callback func (*models.Communication) error ) 
     for {
         select{
         case entry := <- wh.entries:
-            wh.logger.Info("new notification recived")
             c, err := wh.Entry2Communication(&entry)
             if err != nil {
                 continue
@@ -145,9 +140,12 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
 
     if len(value.Statuses) > 0 {
         for _, s := range value.Statuses {
-            wh.logger.Debug("cambio de estado de un mensaje", "status", s.Status, "customerID", s.CustomerId)
+            wh.logger.Debug("cambio de estado de un mensaje", "status", s.Status, "recipientId", s.RecipientId, "msgId", s.Id)
+            for _, e := range s.Errors {
+                wh.logger.Error(e.Message, "code", e.Code, "to", s.RecipientId)
+            }
         }
-        return nil, nil
+        return nil, fmt.Errorf("cambio de estado")
     }
 
     if len(value.Errors) > 0 {
@@ -157,7 +155,7 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         return nil, fmt.Errorf("%s - %s", value.Errors[0].Code, value.Errors[0].Message)
     }
 
-    wh.logger.Info("nuevo mensaje de whatsapp recibido", "phone", value.Contacts[0].WaID, "name", value.Contacts[0].Profile.Name)
+    wh.logger.Info("nuevo mensaje de whatsapp recibido", "phone", value.Contacts[0].WaID, "name", value.Contacts[0].Profile.Name, "id", value.Messages[0].Id)
 
     c := models.Communication {
         Fuente: "whatsapp",
