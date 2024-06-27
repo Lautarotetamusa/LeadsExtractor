@@ -122,7 +122,7 @@ func NewTemplatePayload(to string, name string, components []Components) *Payloa
 	return p
 }
 
-func newMediaPayload(to string, id string, tipo string) *Payload {
+func NewMediaPayload(to string, id string, tipo string) *Payload {
 	if tipo != "image" && tipo != "video" {
 		panic("El tipo de media tiene que ser o 'video' o 'image")
 	}
@@ -211,11 +211,11 @@ func (w *Whatsapp) SendResponse(to string, asesor *models.Asesor) (*Response, er
 }
 
 func (w *Whatsapp) SendImage(to string, imageId string) {
-	w.Send(newMediaPayload(to, imageId, "image"))
+	w.Send(NewMediaPayload(to, imageId, "image"))
 }
 
 func (w *Whatsapp) SendVideo(to string, videoId string) {
-	w.Send(newMediaPayload(to, videoId, "video"))
+	w.Send(NewMediaPayload(to, videoId, "video"))
 }
 
 func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool) (*Response, error) {

@@ -41,12 +41,12 @@ select distinct lead_phone, lead_date, source_id, url from Communication;
 select distinct lead_phone from Communication; 
 /* 17 jun 2024 -> 500 */
 /* 26 jun 2024 -> 650 | 150 mas*/
-/* dsp del inmuebles24 y lamudi first_run -> 1844 | 1139 mas */
+/* dsp del inmuebles24, lamudi, casasyterrenos first_run -> 2040 | 1390 mas */
 
 select count(*) from Leads; 
 /*17 jun 2024 -> 637 */
 /*26 jun 2024 -> 786 | 131 mas*/ 
-/* dsp del inmuebles24 y lamudi first_run -> 1925 | 1139 mas */
+/* dsp del inmuebles24 y lamudi, casasyterrenos first_run -> 2119 | 1333 mas */
 
 select count(*) from Communication;
 /*26 jun 2024 -> 4439*/ 

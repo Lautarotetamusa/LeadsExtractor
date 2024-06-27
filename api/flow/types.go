@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
+	"leadsextractor/whatsapp"
 	"log/slog"
 	"reflect"
 	"time"
@@ -22,6 +23,11 @@ type ActionDefinition struct {
 
 type SendWppTextParam struct {
     Text string  `json:"text"`
+}
+
+type SendWppMedia struct {
+	Image   *whatsapp.MediaPayload    `json:"image,omitempty"`
+	Video   *whatsapp.MediaPayload    `json:"video,omitempty"`
 }
 
 type Action struct {

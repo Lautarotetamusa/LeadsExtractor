@@ -129,14 +129,36 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
         func(c *models.Communication, params interface{}) error {
             payload, ok := params.(*whatsapp.TemplatePayload)
             if !ok {
-                return fmt.Errorf("invalid parameters for wpp.message")
+                return fmt.Errorf("invalid parameters for wpp.template")
             }
 
-            payload.Components[0].ParseParameters(c)
+            for i := range payload.Components {
+                payload.Components[i].ParseParameters(c)
+            }
             wpp.SendTemplate(c.Telefono, *payload)
             return nil
         },
         reflect.TypeOf(whatsapp.TemplatePayload{}), 
+    )
+
+    flow.DefineAction("wpp.media", 
+        func(c *models.Communication, params interface{}) error {
+            payload, ok := params.(*flow.SendWppMedia)
+            if !ok {
+                return fmt.Errorf("invalid parameters for wpp.media")
+            }
+
+            fmt.Printf("%v\n", payload)
+            if payload.Image != nil && payload.Video == nil {
+                wpp.SendImage(c.Telefono, payload.Image.Id)
+            }else if payload.Video != nil && payload.Image == nil {
+                wpp.SendVideo(c.Telefono, payload.Video.Id)
+            }else{
+                return fmt.Errorf("parameters 'image' or 'video' not found in wpp.media")
+            }
+            return nil
+        },
+        reflect.TypeOf(flow.SendWppMedia{}), 
     )
 
     flow.DefineAction("wpp.cotizacion", 
