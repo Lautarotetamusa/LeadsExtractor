@@ -1,15 +1,20 @@
 import os
 import requests
+from dotenv import load_dotenv
 
 from src.logger import Logger
 from src.lead import Lead
 
+load_dotenv()
+API_PROTOCOL = os.getenv("API_PROTOCOL")
 API_PORT = os.getenv("API_PORT")
 API_HOST = os.getenv("API_HOST")
-
+assert API_PORT != None, "Error: 'API_PORT env variable not set'"
+assert API_HOST != None, "Error: 'API_HOST env variable not set'"
+assert API_PROTOCOL != None, "Error: 'API_PROTOCOL env variable not set'"
 
 def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
-    url = f"http://{API_HOST}:{API_PORT}/assign"
+    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/assign"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.json()))
@@ -24,22 +29,23 @@ def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
 
 
 def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
-    url = f"http://{API_HOST}:{API_PORT}/communication"
+    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/communication"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.text))
+        logger.error(lead.__dict__)
         return False, None
     logger.success("Communication cargada correctamente")
 
     json = res.json()
     lead_data = json["data"]
-    is_new = json["is_new"]
+    is_new = lead_data["is_new"]
     lead.set_args(lead_data)
     return is_new, lead
 
 
 def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> list[Lead]:
-    url = f"http://{API_HOST}:{API_PORT}/communications?date={date}"
+    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/communications?date={date}"
 
     if is_new is not None:
         url += f"&is_new={'true' if is_new else 'false'}"

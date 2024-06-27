@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from typing import Iterator
 
 from src.lead import Lead
@@ -7,15 +8,17 @@ from src.make_requests import Request
 from src.logger import Logger
 from src.message import format_msg
 import src.api as api
-import src.jotform as jotform
 
 from enum import IntEnum
 
-with open('../../messages/bienvenida_1.txt') as f:
+dirpath = os.path.dirname(__file__)
+msgpath = os.path.join(dirpath, '../../messages')
+
+with open(os.path.join(msgpath, "bienvenida_1.txt")) as f:
     bienvenida_1 = f.read()
-with open('../../messages/bienvenida_2.txt') as f:
+with open(os.path.join(msgpath, 'bienvenida_2.txt')) as f:
     bienvenida_2 = f.read()
-with open('../../messages/response_message.txt') as f:
+with open(os.path.join(msgpath, 'response_message.txt')) as f:
     response_msg = f.read()
 
 
@@ -100,3 +103,26 @@ class Portal():
                 lead.message = portal_msg.replace('\n', '')
 
                 self.make_contacted(lead_res[self.contact_id_field])
+        
+    def first_run(self):
+        from multiprocessing.pool import ThreadPool
+        pool = ThreadPool(processes=20)
+
+        count = 0
+        for page in self.get_leads(Mode.ALL):
+            results = []
+            for lead_res in page:
+                r = pool.apply_async(self.get_lead_info, args=(lead_res, ))
+                time.sleep(0.4)
+                results.append(r)
+        
+            for r in results:
+                lead = r.get()
+                #lead.print()
+                if lead.telefono == None or lead.telefono == "":
+                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
+                    continue
+
+                is_new, lead = api.new_communication(self.logger, lead)
+                self.logger.debug(count)
+                count += 1

@@ -87,7 +87,7 @@ class Request():
 
             # Verifica el código de estado de la respuesta
             if res.status_code >= 400 and res.status_code < 500:
-                self.logger.error("El token de acceso expiro")
+                self.logger.error("El token de acceso expiro status="+str(res.status_code))
                 self.logger.debug(res.text)
                 self.login_method()
             elif 200 <= res.status_code < 300:
