@@ -54,8 +54,11 @@ type TemplatePayload struct {
 }
 
 type Parameter struct {
-    Type    string  `json:"type"`
-    Text    string  `json:"text,omitempty"`
+    Type        string           `json:"type"`
+    Text        string           `json:"text,omitempty"`
+	Image       *MediaPayload    `json:"image,omitempty"`
+	Video       *MediaPayload    `json:"video,omitempty"`
+	Document    *DocumentPayload `json:"document,omitempty"`
 }
 
 type Components struct {

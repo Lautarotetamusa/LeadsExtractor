@@ -52,3 +52,18 @@ select count(*) from Communication;
 /*26 jun 2024 -> 4439*/ 
 /* dsp del inmuebles24 y lamudi first_run -> 6726  | 2287 mas */
 /* 2287 - 1139 = 1148 */
+
+
+/* Lista negra, no está ninguno xd*/
+select * from Communication where lead_phone IN
+(
+"5213332072880",
+"5213333610908",
+"5213316035907",
+"5213336765454",
+"5213310088151",
+"5213111227357",
+"5213319167138",
+"5213318943811",
+"5213310258112"
+);

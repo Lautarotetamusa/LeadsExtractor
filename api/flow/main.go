@@ -92,6 +92,7 @@ func (f * FlowManager) Broadcast(comms []models.Communication, uuid uuid.UUID) e
 
     for _, c := range comms {
         go f.runFlow(&c, uuid)
+        time.Sleep(100 * time.Millisecond)
     }
     return nil
 }

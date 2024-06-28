@@ -102,7 +102,7 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
         log.Fatal(err)
 	}
 
-    s.flowHandler.manager.Broadcast(communications, *uuid)
+    go s.flowHandler.manager.Broadcast(communications, *uuid)
 
 	w.Header().Set("Content-Type", "application/json")
 	res := struct {
