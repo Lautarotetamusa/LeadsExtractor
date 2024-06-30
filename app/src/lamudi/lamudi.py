@@ -15,12 +15,6 @@ API_URL = "https://api.proppit.com"
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 
-def main():
-    lamudi = Lamudi()
-    lamudi.main()
-def first_run():
-    lamudi = Lamudi()
-    lamudi.first_run()
 
 class Lamudi(Portal):
     def __init__(self):

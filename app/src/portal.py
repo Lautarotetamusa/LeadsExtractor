@@ -126,3 +126,19 @@ class Portal():
                 is_new, lead = api.new_communication(self.logger, lead)
                 self.logger.debug(count)
                 count += 1
+
+    # Obtener solamente 10 leads para ver si está funcionando correctamente
+    def test(self):
+        self.login()
+
+        count = 0
+        max = 10
+        for page in self.get_leads(Mode.ALL):
+            for lead_res in page:
+                lead = self.get_lead_info(lead_res)
+                lead.print()
+                self.logger.debug(count)
+                count += 1
+
+                if count >= max:
+                    return

@@ -1,9 +1,9 @@
 from threading import Thread
 
-import src.casasyterrenos.casasyterrenos as casasyterrenos
-import src.propiedades_com.propiedades as propiedades
-import src.lamudi.lamudi as lamudi
-import src.inmuebles24.inmuebles24 as inmuebles24
+from src.casasyterrenos.casasyterrenos import CasasYTerrenos
+from src.propiedades_com.propiedades import Propiedades
+from src.lamudi.lamudi import Lamudi
+from src.inmuebles24.inmuebles24 import Inmuebles24
 
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
@@ -27,30 +27,18 @@ def run_all():
         thread.join()
 
 PORTALS = {
-    "all":{
-        "main": run_all
-    },
-    "casasyterrenos": {
-        "first_run": casasyterrenos.first_run,
-        "main": casasyterrenos.main,
-        "scraper": casasyterrenos_scraper
-    },
-    "propiedades": {
-        "first_run": propiedades.first_run,
-        "main": propiedades.main,
-        "scraper": propiedades_scraper
-    },
-    "inmuebles24": {
-        "first_run": inmuebles24.first_run,
-        "main": inmuebles24.main,
-        "scraper": inmuebles24_scraper
-    },
-    "lamudi": {
-        "first_run": lamudi.first_run,
-        "main": lamudi.main,
-        "scraper": lamudi_scraper 
-    }
+    "casasyterrenos": CasasYTerrenos,
+    "propiedades": Propiedades,
+    "inmuebles24": Inmuebles24,
+    "lamudi": Lamudi,
 }
+
+TASKS = [
+    "first_run",
+    "main",
+    "scraper",
+    "test"
+]
 
 def USAGE():
     print("""
@@ -67,6 +55,7 @@ def USAGE():
             - first_run
             - main
             - scraper <URL> <MESSAGE>
+            - test
     """)
 
 if __name__ == "__main__":
@@ -85,10 +74,11 @@ if __name__ == "__main__":
         print("Task scraper needs a URL parameter") 
         USAGE()
         exit(1)
-    if task not in PORTALS[portal]:
+    if task not in TASKS:
         print(f"Task {task} doesnt exists")
         USAGE()
         exit(1)
     
     print(portal, task, *sys.argv[3:])
-    PORTALS[portal][task](*sys.argv[3:])
+    portal = PORTALS[portal]() 
+    getattr(portal, task)(*sys.argv[3:])

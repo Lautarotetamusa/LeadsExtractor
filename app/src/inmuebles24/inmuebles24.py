@@ -57,13 +57,6 @@ def extract_busqueda_info(data: dict | None) -> dict:
 
 	return busqueda
 
-def main():
-    inmuebles24 = Inmuebles24()
-    inmuebles24.main()
-def first_run():
-    inmuebles24 = Inmuebles24()
-    inmuebles24.first_run()
-
 class Inmuebles24(Portal):
     def __init__(self):
         super().__init__(

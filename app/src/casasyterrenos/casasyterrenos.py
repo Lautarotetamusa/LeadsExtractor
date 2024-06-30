@@ -21,12 +21,6 @@ assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
 CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
 
-def main():
-    scraper = CasasYTerrenos()
-    scraper.main()
-def first_run():
-    scraper = CasasYTerrenos()
-    scraper.first_run()
 
 class CasasYTerrenos(Portal):
     def __init__(self):

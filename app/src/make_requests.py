@@ -65,7 +65,7 @@ class Request():
         status_code = 401
         max_tries = 3
         tries = 0
-        while (tries <= max_tries) and (status_code == 401 or status_code == 422):
+        while (tries <= max_tries) and (status_code >= 400 and status_code < 500):
             # Define los métodos HTTP permitidos
             allowed_methods = {
                 'GET': requests.get,

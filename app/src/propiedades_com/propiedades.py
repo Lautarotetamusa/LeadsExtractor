@@ -33,12 +33,6 @@ class Status(IntEnum):
     CONVERTIDO = 5
     CERRADA = 6
 
-def main():
-    scraper = Propiedades()
-    scraper.main()
-def first_run():
-    scraper = Propiedades()
-    scraper.first_run()
 
 class Propiedades(Portal):
     def __init__(self):
@@ -155,7 +149,6 @@ class Propiedades(Portal):
         options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
 
         driver = webdriver.Chrome(options=options)
-        access_token = None
 
         self.logger.debug("Iniciando sesion")
         try:
@@ -179,10 +172,7 @@ class Propiedades(Portal):
             cookies = driver.get_cookies()
             self.logger.success("Cookies obtenidas con exito:"+str(cookies))
         except Exception as e:
-            self.logger.error("Ocurrio un error generando el access token")
             self.logger.error(str(e))
+            raise e
         finally:
             driver.quit()
-
-if __name__ == "__main__":
-    main()
