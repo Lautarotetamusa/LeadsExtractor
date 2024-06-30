@@ -79,6 +79,5 @@ if __name__ == "__main__":
         USAGE()
         exit(1)
     
-    print(portal, task, *sys.argv[3:])
     portal = PORTALS[portal]() 
     getattr(portal, task)(*sys.argv[3:])

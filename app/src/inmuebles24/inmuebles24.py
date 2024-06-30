@@ -17,7 +17,7 @@ PARAMS = {
 	"apikey": os.getenv("ZENROWS_APIKEY"),
 	"url": "",
     #"js_render": "true",
-    #"antibot": "true",
+    "antibot": "true",
     "premium_proxy": "true",
     "proxy_country": "mx",
 	#"session_id": 10,
@@ -85,9 +85,10 @@ class Inmuebles24(Portal):
         self.logger.debug(f"POST {login_url}")
         params = PARAMS.copy()
         params["url"] = login_url
-        res = self.request.make(ZENROWS_API_URL, 'POST', params=params, data=data)
-        if res == None:
-            exit(1)
+        res = requests.post(ZENROWS_API_URL, params=params, data=data)
+        if not res.ok:
+            self.logger.error("status="+str(res.status_code)+" res="+str(res.text))
+            return
         data = res.json()
 
         self.request.headers = {
@@ -97,6 +98,7 @@ class Inmuebles24(Portal):
             "idUsuario": str(data["contenido"]["idUsuario"])
         }
 
+        print("headers", self.request.headers)
         with open(self.params_file, "w") as f:
             json.dump(self.request.headers, f, indent=4)
         self.logger.success("Sesion iniciada con exito")
@@ -120,6 +122,12 @@ class Inmuebles24(Portal):
             offset += limit
 
             data = res.json()
+            self.logger.debug("Response type:" + str(type(data)))
+            if isinstance(data, list):
+                data = data[0]
+            if not isinstance(data, dict):
+                self.logger.error("Unexpected response type")
+                continue
 
             if first:
                 total = data["paging"]["total"]

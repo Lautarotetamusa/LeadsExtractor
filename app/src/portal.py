@@ -2,6 +2,7 @@ import json
 import os
 import time
 from typing import Iterator
+from multiprocessing.pool import ThreadPool
 
 from src.lead import Lead
 from src.make_requests import Request
@@ -105,7 +106,6 @@ class Portal():
                 self.make_contacted(lead_res[self.contact_id_field])
         
     def first_run(self):
-        from multiprocessing.pool import ThreadPool
         pool = ThreadPool(processes=20)
 
         count = 0
@@ -131,14 +131,23 @@ class Portal():
     def test(self):
         self.login()
 
+        pool = ThreadPool(processes=20)
+
         count = 0
         max = 10
         for page in self.get_leads(Mode.ALL):
+            results = []
             for lead_res in page:
-                lead = self.get_lead_info(lead_res)
+                r = pool.apply_async(self.get_lead_info, args=(lead_res, ))
+                time.sleep(0.4)
+                results.append(r)
+                count += 1
+                if count >= max:
+                    break
+            
+            for r in results:
+                lead = r.get()
                 lead.print()
                 self.logger.debug(count)
-                count += 1
 
-                if count >= max:
-                    return
+            return
