@@ -114,10 +114,10 @@ class Propiedades(Portal):
         data = PROPS[property_id]
 
         return {
-            "id": data["id"],
+            "id": str(data["id"]),
             "titulo": data["short_address"],
             "link": data["url"],
-            "precio": data["price"],
+            "precio": str(data["price"]),
             "ubicacion": data["address"],
             "tipo": data["type_children_string"],
             "municipio": data["municipality"]
@@ -173,6 +173,5 @@ class Propiedades(Portal):
             self.logger.success("Cookies obtenidas con exito:"+str(cookies))
         except Exception as e:
             self.logger.error(str(e))
-            raise e
         finally:
             driver.quit()
