@@ -1,6 +1,6 @@
 Quiero invitarte a ver el siguiente video donde explicamos en 1 minuto cómo puedes ahorrar un 15% al comprar tu casa con Rebora. 
 
-{{.Asesor.Name}} será tu asesor y se pondrá en contacto contigo en un par de minutos! 🙋‍♂️📲
+{asesor_name} será tu asesor y se pondrá en contacto contigo en un par de minutos! 🙋‍♂️📲
 
 Telefono del asesor:
-+{{.Asesor.Phone}}
++{asesor_phone}

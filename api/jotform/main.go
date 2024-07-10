@@ -155,7 +155,7 @@ func (j *Jotform) sendRequest(url string, payload map[string]string) (any, error
     req.Header.Add("APIKEY", j.apiKey)
 
     client := &http.Client{
-        Timeout: 15 * time.Second,
+        Timeout: 40 * time.Second,
     }
 
 	res, err := client.Do(req)

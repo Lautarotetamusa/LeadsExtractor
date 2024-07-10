@@ -95,6 +95,7 @@ CREATE PROCEDURE getCommunications (IN date_from DATETIME, IN is_new BOOLEAN)
             C.created_at, 
             C.lead_date,
             C.new_lead,
+            L.cotizacion,
             A.name as "asesor.name", A.phone as "asesor.phone", A.email as "asesor.email",
             IF(S.type = "property", P.portal, S.type) as "fuente",
             L.name, C.url, L.phone, L.email,
