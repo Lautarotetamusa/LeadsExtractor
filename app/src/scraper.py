@@ -1,5 +1,11 @@
+from multiprocessing.context import TimeoutError
+from multiprocessing.pool import ThreadPool
+import os
+import time
+from typing import Iterator
 
-from sheets import Sheet
+from src.message import generate_post_message
+from src.sheets import Sheet
 from src.logger import Logger
 
 class Scraper():
@@ -7,48 +13,71 @@ class Scraper():
             name: str,
         ):
         self.name = name 
+        self.sleep_secs: float = 1.0
+        self.sender = {
+            "email": os.getenv("SENDER_EMAIL"),
+            "name":  os.getenv("SENDER_NAME"),
+            "phone": os.getenv("SENDER_PHONE"),
+        }
 
         self.logger  = Logger(name)
         self.sheet   = Sheet(self.logger, 'scraper_mapping.json')
         self.headers = self.sheet.get("Extracciones!A1:Z1")[0]
 
-    def main(filters: dict, spin_msg: str):
+    def get_posts(self, url) -> Iterator[list[dict]]:
+        yield []
 
-        page = 1
-        len_posts = 0
-        total_posts = 1e9
-        session_id = generate_session_id()
+    def extract_posts(self, raw) -> list[dict]:
+        return []
 
-        #url = f"https://propiedades.com/df/casas-venta/recamaras-2?pagina={page}"
-        while len_posts < total_posts:
-            logger.debug(f"Page: {page}")
-            res = request.make(URL_PROPS, "POST", json=filters)
-            data = res.json()
+    def send_message(self, msg: str, post: dict):
+        pass 
 
-            if total_posts  == 1e9:
-                total_posts = data.get("nbHits", 0)
-                logger.debug(f"Total posts: {total_posts}")
-            #print(data)
-            posts = extract_posts(data.get("hits", []))
+    def view_phone(self, post) -> str:
+        return ""
 
-            page += 1
-            len_posts += len(posts)
-            filters["searchConfig"]["page"] = page
+    def get_total_posts(self) -> int:
+        return 0
 
+    def _action(self, ad, spin_msg: str | None) -> list[str]:
+        if spin_msg != None:
+            msg = generate_post_message(ad, spin_msg)
+            self.send_message(msg, ad)
+            ad["message"] = msg.replace('\n', '')
+        else:
+            ad["message"] = ""
+
+        if ad.get("phone") == "" or ad.get("phone") == None:
+            ad["phone"] = self.view_phone(ad)
+        return self.sheet.map_lead(ad, self.headers)
+
+    def main(self, spin_msg: str | None, param: str | dict):
+        total_posts = 0
+        pool = ThreadPool(processes=20)
+
+        max = 10
+        timeout = 30
+        
+        for page in self.get_posts(param):
+            total_posts += len(page)
+            results = []
             row_ads = []
-            for ad in posts:
-                publisher = get_publisher_info(ad["canonical"])
-                if publisher == None:
-                    logger.error(f"Ocurrio un error encontrando la informacion de la propiedad {ad['id']}")
-                else:
-                    ad["publisher"] = publisher
-                msg = generate_post_message(ad, spin_msg)
-                send_message(ad["id"], ad["publisher"]["id"], session_id, msg)
-                ad["message"] = msg.replace('\n', '')
-                #Guardamos los leads como filas para el sheets
-                row_ad = sheet.map_lead(ad, sheets_headers)
-                row_ads.append(row_ad)
+
+            for ad in page:
+                r = pool.apply_async(self._action, args=(ad, spin_msg, ))
+                time.sleep(self.sleep_secs)
+                results.append(r)
+
+                if len(results) >= max:
+                    for r in results:
+                        try:
+                            row = r.get(timeout)
+                        except TimeoutError:
+                            self.logger.error("Timeout running action")
+                            continue
+                        row_ads.append(row)
+                    results = []
 
             #Save the lead in the sheet
-            sheet.write(row_ads, "Extracciones!A2")
-        logger.success(f"Se encontraron un total de {len_posts} en la url especificada")
+            self.sheet.write(row_ads, "Extracciones!A2")
+        self.logger.success(f"Se encontraron un total de {total_posts} en la url especificada")

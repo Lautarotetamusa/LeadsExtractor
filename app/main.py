@@ -8,7 +8,7 @@ from src.inmuebles24.inmuebles24 import Inmuebles24
 #Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
 from src.lamudi.scraper import main as lamudi_scraper
-from src.propiedades_com.scraper import main as propiedades_scraper
+from src.propiedades_com.scraper import PropiedadesScraper 
 from src.casasyterrenos.scraper import main as casasyterrenos_scraper
 
 import sys
@@ -31,6 +31,10 @@ PORTALS = {
     "propiedades": Propiedades,
     "inmuebles24": Inmuebles24,
     "lamudi": Lamudi,
+}
+
+SCRAPES = {
+    "propiedades": PropiedadesScraper
 }
 
 TASKS = [

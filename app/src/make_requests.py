@@ -17,7 +17,7 @@ class ApiRequest():
         self.api_url = api_url
         self.api_params = api_params
 
-    def make(self, url, method='GET', **kwargs):
+    def make(self, url, method='GET', **kwargs) -> None | requests.Response:
         assert method in METHODS, f"Método HTTP no permitido: {method}"
 
         max_tries = 3

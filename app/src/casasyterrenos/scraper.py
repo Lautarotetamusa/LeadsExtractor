@@ -1,18 +1,25 @@
+if __name__ == "__main__":
+    import sys
+    from dotenv import load_dotenv
+    sys.path.append('.')
+    load_dotenv()
+
 import json
 import os
+import re
 from time import gmtime, strftime
 
-from src.logger import Logger
-from src.sheets import Sheet
+import requests
+
+from src.scraper import Scraper
 from src.make_requests import ApiRequest
-from src.message import generate_post_message
 
 SITE = "https://www.casasyterrenos.com"
-URL_SEND = f"{SITE}/api/amp/register"
+URL_SEND = "https://cytpanel.casasyterrenos.com/api/v1/public/contact"
 URL_INFO = "https://www.casasyterrenos.com/_next/data/7b7AOhXs2MXfNPVCJedJS/es{canonical}.json"
-URL_PROPS = f"{SITE}/api/search/"
 URL_SESSION = f"{SITE}/api/amp/auth"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
+URL_PROPS = f"https://www.casasyterrenos.com/_next/data/NmK5TM6UtMKwPf9rnMbvp/es/buscar/buscar/jalisco/zapopan/casas/venta.json?desde=10000000&hasta=100000000%2B&utm_source=results_page&page=2&slug=buscar&slug=jalisco&slug=zapopan&slug=casas&slug=venta"
 
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
@@ -24,172 +31,166 @@ SENDER = {
     "isProp": True,
     "isProto": False,
     "message": "",
-    "property": ""
+    "property": "",
+    "utm_source": "results_page"
 }
-logger = Logger("scraper casasyterrenos.com")
 
-request = ApiRequest(logger, ZENROWS_API_URL, {
-    "apikey": os.getenv("ZENROWS_APIKEY"),
-    "url": "",
-})
+class CasasyterrenosScraper(Scraper):
+    def __init__(self):
+        super().__init__("Casasyterrenos")
 
-# Esta funcion extrae la data que nos sirve de la api
-def extract_posts(data: list[dict]):
-    posts = []
-    for post in data:
-        posts.append({
-            "fuente": "CASASYTERRENOS",
-            "id": post.get("id", ""),
-            "canonical": post.get("canonical", ""),
-            "title": post.get("name", ""),
-            "extraction_date": strftime(DATE_FORMAT, gmtime()),
-            "message_date": strftime(DATE_FORMAT, gmtime()),
-            "price": post.get("priceSale", ""),
-            "currency": post.get("currency", ""),
-            "type": post.get("type", ""),
-            "url": SITE + post.get("canonical", ""),
-            "bedrooms": post.get("rooms", ""), 
-            "bathrooms": post.get("bathrooms", ""),
-            "building_size": post.get("construction", ""),
-            "parkings": post.get("parkingLots", ""),
-            "location": {
-                "full": ", ".join([post.get("municipality", ""), post.get("neighborhood", ""), post.get("state", "")]),
-                "zone": post.get("neighborhood"),
-                "city": post.get("municipality", ""),
-                "province": post.get("state", ""), 
-            },
-            "publisher":{
-                "name": "",
-                "id": "",
-                "whatsapp": "",
-                "phone": "",
-                "cellPhone": ""
-            }
+        self.session_id = ""
+        self.sleep_secs = 0.1
+        self.request = ApiRequest(self.logger, ZENROWS_API_URL, {
+            "apikey": os.getenv("ZENROWS_APIKEY"),
+            "url": "",
         })
-    return posts
 
-def get_publisher_info(canonical):
-    logger.debug(f"Obteniendo informacion de la propiedad {canonical}")
-    url = URL_INFO.format(canonical=canonical)
-    
-    res = request.make(url, "GET")
-    if res == None:
-        return None
-
-    data = res.json().get("pageProps", {}).get("property", {}).get("seller")
-    if data:
-        publisher = {
-            "name": data.get("first_name", "") + data.get("last_name", ""),
-            "id": data.get("client", ""),
-            "whatsapp": data.get("whatsapp", ""),
-            "phone": data.get("phone_number", ""),
-            "email": data.get("email", ""),
-            "cellPhone": data.get("cel", "") 
+    def generate_session_id(self):
+        self.logger.success("Generando nuevo session id")
+        payload = {
+            "domain": SITE,
+            "referrer": ""
         }
-    else:
-        data = res.json().get("pageProps", {}).get("development", None)
-        if not data:
-            return None
-        publisher = {
-            "name": data.get("agencyName", ""),
-            "id": data.get("id", ""),
-            "whatsapp": data.get("contactData", {}).get("whatsApp", ""),
-            "phone": data.get("contactData", {}).get("tel", ""),
-            "email": data.get("contactData", {}).get("email", ""),
-            "cellPhone": data.get("cel", "") 
-        }
-
-    print(publisher)
-    return publisher
-
-def generate_session_id() -> str:
-    logger.success("Generando nuevo session id")
-    data = {
-        "domain": SITE,
-        "referrer": ""
-    }
-    
-    res = request.make(URL_SESSION, "POST", json=data).json()
-    session_id = res.get("uuid")
-    if not session_id:
-        logger.error("Error generando el session id, saliendo")
-        exit(1)
-
-    logger.success("Session id generado con exito")
-    logger.success("session_id: "+session_id)
-    return session_id
-
-def send_message(property_id: int, client_id: int, session_id: str, message: str):
-    data = SENDER.copy()
-    data = {
-        "client_id": client_id,
-        "distinct_id": f"prp_{property_id}",
-        "event_type": "submit",
-        "event_value": "contact_form",
-        "meta": {
-            "client_id": client_id,
-            "contact_place": "casasyterrenos.com",
-            "email": "ventas.rebora@gmail.com",
-            "isDev": False,
-            "isProp": True,
-            "isProto": False,
-            "message": message,
-            "name": "Brenda Diaz",
-            "phone": "3313420733",
-            "property": int(property_id),
-            "type": "property"
-        },
-        "referrer": "",
-        "session_uuid": session_id
-    }    
-    res = request.make(URL_SEND, "POST", json=data)
-    if res.status_code != 200:
-        logger.error("Error enviando el mensaje")
-        logger.error(res.text)
-        return None
-
-    logger.success(f"Mensaje enviado con exito a la propiedad {property_id}")
-    logger.debug(res.text)
-
-def main(filters: dict, spin_msg: str):
-    sheet = Sheet(logger, 'scraper_mapping.json')
-    sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
-
-    page = 1
-    len_posts = 0
-    total_posts = 1e9
-    session_id = generate_session_id()
-
-    #url = f"https://propiedades.com/df/casas-venta/recamaras-2?pagina={page}"
-    while len_posts < total_posts:
-        logger.debug(f"Page: {page}")
-        res = request.make(URL_PROPS, "POST", json=filters)
+        
+        res = self.request.make(URL_SESSION, "POST", json=payload)
+        if res == None:
+            self.logger.error("Error generando el session id, saliendo")
+            exit(1)
         data = res.json()
 
-        if total_posts  == 1e9:
-            total_posts = data.get("nbHits", 0)
-            logger.debug(f"Total posts: {total_posts}")
-        #print(data)
-        posts = extract_posts(data.get("hits", []))
+        session_id = data.get("uuid")
+        if not session_id:
+            self.logger.error("Error generando el session id, saliendo")
+            exit(1)
 
-        page += 1
-        len_posts += len(posts)
-        filters["searchConfig"]["page"] = page
+        self.logger.success("Session id generado con exito")
+        self.logger.success("session_id: "+session_id)
+        self.session_id = session_id
+    
+    def extract_posts(self, raw: list[dict]):
+        posts = []
 
-        row_ads = []
-        for ad in posts:
-            publisher = get_publisher_info(ad["canonical"])
-            if publisher == None:
-                logger.error(f"Ocurrio un error encontrando la informacion de la propiedad {ad['id']}")
-            else:
-                ad["publisher"] = publisher
-            msg = generate_post_message(ad, spin_msg)
-            send_message(ad["id"], ad["publisher"]["id"], session_id, msg)
-            ad["message"] = msg.replace('\n', '')
-            #Guardamos los leads como filas para el sheets
-            row_ad = sheet.map_lead(ad, sheets_headers)
-            row_ads.append(row_ad)
+        for post in raw:
+            prop = post.get("broker", {})
 
-        #Save the lead in the sheet
-        sheet.write(row_ads, "Extracciones!A2")
-    logger.success(f"Se encontraron un total de {len_posts} en la url especificada")
+            args = {
+                "rooms": "", 
+                "bathrooms": "",
+                "construction": "", 
+                "parkingLots": "",
+            }
+            for arg in args:
+                v = post.get(arg, "")
+                if isinstance(v, dict):
+                    args[arg] = str(v.get("from", "")) + ", " + str(v.get("to", ""))
+                else:
+                    args[arg] = v
+
+            posts.append({
+                "fuente": "CASASYTERRENOS",
+                "id": post.get("id"),
+                "title": post.get("name", ""),
+                "extraction_date": strftime(DATE_FORMAT, gmtime()),
+                "message_date": strftime(DATE_FORMAT, gmtime()),
+                "price": post.get("priceSale", ""),
+                "currency": post.get("currency", ""),
+                "type": post.get("type", ""),
+                "url": SITE + post.get("canonical", ""),
+                "bedrooms": args["rooms"], 
+                "bathrooms": args["bathrooms"],
+                "building_size": args["construction"],
+                "parkings": args["parkingLots"],
+                "location": {
+                    "full": ", ".join([post.get("municipality", ""), post.get("neighborhood", ""), post.get("state", "")]),
+                    "zone": post.get("neighborhood"),
+                    "city": post.get("municipality", ""),
+                    "province": post.get("state", ""), 
+                },
+                "publisher": {
+                    "name": prop.get("name", ""), 
+                    "id": "",
+                    "whatsapp": prop.get("whatsapp", ""),
+                    "phone": prop.get("phone", ""),
+                    "cellPhone": prop.get("phone", "")
+                }
+            })
+        return posts
+
+    def send_message(self, msg: str, post):
+        self.logger.debug(f"Enviando mensaje a propiedad con {post['id']}")
+
+        property_id = post["id"] 
+        data = SENDER.copy()
+        data["message"] = msg
+        data["property"] = int(post["id"])
+
+        res = requests.post(URL_SEND, json=data)
+        print("TEST")
+        if not res: return None
+
+        if not res.ok:
+            self.logger.error("Error enviando el mensaje")
+            self.logger.error(res.text)
+            return None
+
+        self.logger.success(f"Mensaje enviado con exito a la propiedad {property_id}")
+    
+    def get_posts(self, url):
+        page = 1
+        len_posts = 0
+        total_posts = 1e9
+        #self.generate_session_id()
+    
+        r = re.search(r'(?<=page=)\d+', url)
+        if r:
+            page = int(r.group(0))
+        else:
+            self.logger.warning("Page not found")
+
+        url = url.replace(r'/page=\d+/', "{page}")
+
+        while len_posts < total_posts:
+            url.format(page=page)
+            self.logger.debug(f"Page: {page}")
+            res = requests.get(url)
+            if not res.ok: 
+                self.logger.error("Error geting page")
+                self.logger.error(res.text)
+                continue
+
+            data = res.json().get("pageProps", {}).get("initialState")
+            if data == None:
+                self.logger.debug(res.text)
+                return
+
+            if total_posts == 1e9:
+                total_posts = data.get("propertyData", {}).get("estimatedTotalHits", 0)
+                self.logger.debug(f"Total posts: {total_posts}")
+
+            posts = self.extract_posts(data.get("propertyData", {}).get("properties", []))
+            if len(posts) <= 0: return
+
+            page += 1
+            len_posts += len(posts)
+            yield posts
+
+if __name__ == "__main__":
+    url = "https://www.casasyterrenos.com/_next/data/BjfFbQqYClvcX0zy0nfMq/es/buscar/buscar/jalisco/zapopan/casas/venta.json?desde=10000000&hasta=100000000+&utm_source=results_page&page=22&slug=buscar&slug=jalisco&slug=zapopan&slug=casas&slug=venta"
+
+    url = "https://www.casasyterrenos.com/_next/data/BjfFbQqYClvcX0zy0nfMq/es/buscar/buscar/jalisco/guadalajara/casas/venta.json?desde=10000000&hasta=100000000+&utm_source=results_page&page=21&slug=buscar&slug=jalisco&slug=guadalajara&slug=casas&slug=venta"
+
+    scraper = CasasyterrenosScraper()
+    msg = """Hola! {nombre}, como estás? 
+Veo que tienes publicaciones en {ubicacion} y nosotros tenemos casas en Pre-venta para tu cartera de clientes en esa misma zona y zonas cercanas. Me interesa hacer una alianza con {nombre}.
+
+Soy Gerente comercial de Rebora Arquitectos y ofrecemos el 2.5% a la firma de contrato de anticipo (A diferencia de una propiedad terminada que es 50% al inicio y 50% a la escritura). Por favor visita: rebora.com.mx/socios-comerciales/ o dejo mi numero de WhatsApp: 33 2809 2850.
+
+Beneficios de nuestro programa de socios comerciales:
+
+•⁠  ⁠Aumenta en un 50% tus ingresos anuales, al mostrarles a tus clientes la casa que están buscando.
+•⁠  ⁠Diversifica tus ingresos con tu cartera actual de clientes.
+•⁠  ⁠Cierra tu primera operación tan rápido como en un mes.
+
+•⁠  ⁠Marcelo Michel"""
+    scraper.main(msg, url)

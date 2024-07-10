@@ -125,6 +125,8 @@ def new_submission(logger: Logger, lead: Lead) -> [str, str | None]:
         logger.debug("submission:" + str(submission))
         return "", "No se pudo obtener el id de la submission"
 
+    logger.success("Pdf generado con exito")
+
     return PDF_URL.format(submissionID=submission['id']), None
 
 

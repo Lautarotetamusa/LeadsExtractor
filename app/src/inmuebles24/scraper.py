@@ -1,3 +1,9 @@
+if __name__ == "__main__":
+    import sys
+    from dotenv import load_dotenv
+    sys.path.append('.')
+    load_dotenv()
+
 import string
 import random
 import json
@@ -32,7 +38,7 @@ request = ApiRequest(logger, ZENROWS_API_URL, {
     "apikey": os.getenv("ZENROWS_APIKEY"),
     "url": "",
     #"js_render": "true",
-    #"antibot": "true",
+    "antibot": "true",
     "premium_proxy": "true",
     "proxy_country": "mx",
 })
@@ -244,60 +250,64 @@ def get_filters(url):
 def main(filters: dict, spin_msg):
     print(type(filters))
     get_postings(filters, spin_msg)
-    #url = "https://www.inmuebles24.com/departamentos-en-renta-en-ciudad-de-mexico.html"
-    #get_filters(url)
 
-    # filters = {
-    #     "ambientesmaximo": 0,
-    #     "ambientesminimo": 0,
-    #     "amenidades": "",
-    #     "antiguedad": null,
-    #     "areaComun": "",
-    #     "areaPrivativa": "",
-    #     "auctions": null,
-    #     "banks": "",
-    #     "banos": null,
-    #     "caracteristicasprop": null,
-    #     "city": null,
-    #     "comodidades": "",
-    #     "condominio": "",
-    #     "coordenates": null,
-    #     "direccion": null,
-    #     "disposicion": null,
-    #     "etapaDeDesarrollo": "",
-    #     "excludePostingContacted": "",
-    #     "expensasmaximo": null,
-    #     "expensasminimo": null,
-    #     "garages": null,
-    #     "general": "",
-    #     "grupoTipoDeMultimedia": "",
-    #     "habitacionesmaximo": 0,
-    #     "habitacionesminimo": 0,
-    #     "idInmobiliaria": null,
-    #     "idunidaddemedida": 1,
-    #     "metroscuadradomax": null,
-    #     "metroscuadradomin": null,
-    #     "moneda": 10,
-    #     "multipleRets": "",
-    #     "outside": "",
-    #     "pagina": 1,
-    #     "places": "",
-    #     "polygonApplied": null,
-    #     "preciomax": null,
-    #     "preciomin": "5000000",
-    #     "province": null,
-    #     "publicacion": null,
-    #     "q": null,
-    #     "roomType": "",
-    #     "searchbykeyword": "",
-    #     "services": "",
-    #     "sort": "relevance",
-    #     "subtipoDePropiedad": null,
-    #     "subZone": null,
-    #     "superficieCubierta": 1,
-    #     "tipoAnunciante": "ALL",
-    #     "tipoDeOperacion": "1",
-    #     "tipoDePropiedad": "1,101,12",
-    #     "valueZone": null,
-    #     "zone": "47735"
-    # }
+
+if __name__ == "__main__":
+    spin_msg = "hola"
+    filters = {
+            "ambientesmaximo": 0,
+            "ambientesminimo": 0,
+            "amenidades": "",
+            "antiguedad": None,
+            "areaComun": "",
+            "areaPrivativa": "",
+            "auctions": None,
+            "banks": "",
+            "banos": None,
+            "caracteristicasprop": None,
+            "city": "779,778",
+            "comodidades": "",
+            "condominio": "",
+            "coordenates": None,
+            "direccion": None,
+            "disposicion": None,
+            "etapaDeDesarrollo": "",
+            "excludePostingContacted": "",
+            "expensasmaximo": None,
+            "expensasminimo": None,
+            "garages": None,
+            "general": "",
+            "grupoTipoDeMultimedia": "",
+            "habitacionesmaximo": 0,
+            "habitacionesminimo": 0,
+            "idInmobiliaria": None,
+            "idunidaddemedida": 1,
+            "metroscuadradomax": None,
+            "metroscuadradomin": None,
+            "moneda": 10,
+            "multipleRets": "",
+            "outside": "",
+            "pagina": 2,
+            "places": "",
+            "polygonApplied": None,
+            "preciomax": None,
+            "preciomin": "10000000",
+            "province": None,
+            "publicacion": None,
+            "q": None,
+            "roomType": "",
+            "searchbykeyword": "",
+            "services": "",
+            "sort": "relevance",
+            "subtipoDePropiedad": None,
+            "subZone": None,
+            "superficieCubierta": 1,
+            "tipoAnunciante": "ALL",
+            "tipoDeOperacion": "1",
+            "tipoDePropiedad": "1,101,12",
+            "valueZone": None,
+            "withoutguarantor": None,
+            "zone": None
+        }
+
+    get_postings(filters, spin_msg)
