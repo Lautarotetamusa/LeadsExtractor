@@ -15,7 +15,7 @@ func (s *Store) GetAll() (*[]models.Lead, error) {
             ON a.phone = l.asesor`
 
 	leads := []models.Lead{}
-	if err := s.Db.Select(&leads, query); err != nil {
+	if err := s.db.Select(&leads, query); err != nil {
 		return nil, err
 	}
 	return &leads, nil
@@ -31,7 +31,7 @@ func (s *Store) GetOne(phone string) (*models.Lead, error) {
         WHERE l.phone=?`
 
 	lead := models.Lead{}
-	if err := s.Db.Get(&lead, query, phone); err != nil {
+	if err := s.db.Get(&lead, query, phone); err != nil {
 		return nil, err
 	}
 	return &lead, nil
@@ -39,7 +39,7 @@ func (s *Store) GetOne(phone string) (*models.Lead, error) {
 
 func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 	query := "INSERT INTO Leads (name, phone, email, asesor) VALUES (:name, :phone, :email, :asesor)"
-	if _, err := s.Db.NamedExec(query, createLead); err != nil {
+	if _, err := s.db.NamedExec(query, createLead); err != nil {
 		if strings.Contains(err.Error(), "Error 1452") {
 			return nil, fmt.Errorf("el asesor con telefono %s no existe", createLead.AsesorPhone)
 		}
@@ -52,7 +52,7 @@ func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 func (s *Store) Update(lead *models.Lead, phone string) error {
     s.logger.Debug("Actualizando lead", "cotizacion", lead.Cotizacion)
 	query := "UPDATE Leads SET name=:name, cotizacion=:cotizacion WHERE phone=:phone"
-	res, err := s.Db.NamedExec(query, lead);
+	res, err := s.db.NamedExec(query, lead);
     if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (s *Store) Update(lead *models.Lead, phone string) error {
 
 func (s *Store) UpdateLeadAsesor(phone string, a *models.Asesor) error {
 	query := "UPDATE Leads SET asesor=:asesor WHERE phone=:phone"
-	_, err := s.Db.NamedExec(query, map[string]interface{}{
+	_, err := s.db.NamedExec(query, map[string]interface{}{
         "asesor": a.Phone,
         "phone": phone,
     });

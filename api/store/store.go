@@ -9,13 +9,13 @@ import (
 )
 
 type Store struct {
-	Db *sqlx.DB
+	db *sqlx.DB
     logger *slog.Logger
 }
 
 func NewStore(db *sqlx.DB, logger *slog.Logger) *Store {
 	return &Store{
-		Db: db,
+		db: db,
         logger: logger.With("module", "store"),
 	}
 }
@@ -23,7 +23,7 @@ func NewStore(db *sqlx.DB, logger *slog.Logger) *Store {
 func (s *Store) InsertCotizacion(c *models.Communication) error {
     s.logger.Debug("Guardando cotizacion")
     query := `UPDATE Leads SET cotizacion = $1 WHERE phone = $2`
-    if _, err := s.Db.Query(query, c.Cotizacion, c.Telefono); err != nil {
+    if _, err := s.db.Query(query, c.Cotizacion, c.Telefono); err != nil {
         return err
     }
     s.logger.Info("Cotizacion guardada con exito")

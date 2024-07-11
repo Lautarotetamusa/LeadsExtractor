@@ -15,7 +15,7 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 	}
 
 	if slices.Contains([]string{"whatsapp", "ivr", "viewphone"}, c.Fuente) {
-		err := s.Db.Get(&source, "SELECT * FROM Source WHERE type LIKE ?", c.Fuente)
+		err := s.db.Get(&source, "SELECT * FROM Source WHERE type LIKE ?", c.Fuente)
 		if err != nil {
 			return nil, fmt.Errorf("source: %s no existe", c.Fuente)
 		}
@@ -27,7 +27,7 @@ func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 		return nil, err
 	}
 
-	err = s.Db.Get(&source, "SELECT * FROM Source WHERE property_id=?", property.ID.Int32)
+	err = s.db.Get(&source, "SELECT * FROM Source WHERE property_id=?", property.ID.Int32)
 	if err != nil {
         return nil, fmt.Errorf("error obteniendo el source con property_id: %d", property.ID.Int32)
 	}
@@ -44,7 +44,7 @@ func (s *Store) insertSource(propertyId int) error {
         PropertyId: id,
     }
     query := "INSERT INTO Source (type, property_id) VALUES(:type, :property_id)"
-    if _, err := s.Db.NamedExec(query, source); err != nil {
+    if _, err := s.db.NamedExec(query, source); err != nil {
         return fmt.Errorf("error insertando source: %s", err.Error())
     }
     return nil
@@ -55,12 +55,12 @@ func (s *Store) insertProperty(c *models.Communication, p *models.Propiedad) err
     property := c.Propiedad
     property.Portal = c.Fuente
 
-    if _, err := s.Db.NamedExec(query, &property); err != nil {
+    if _, err := s.db.NamedExec(query, &property); err != nil {
         return fmt.Errorf("error insertando propiedad: %s", err.Error())
     }
 
     query = "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
-    err := s.Db.Get(p, query, c.Propiedad.PortalId, c.Fuente)
+    err := s.db.Get(p, query, c.Propiedad.PortalId, c.Fuente)
     if err != nil {
         return fmt.Errorf("error encontrando la propiedad: %s", err.Error())
     }
@@ -70,7 +70,7 @@ func (s *Store) insertProperty(c *models.Communication, p *models.Propiedad) err
 func (s *Store) insertOrGetProperty(c *models.Communication) (*models.Propiedad, error) {
 	property := models.Propiedad{}
 	query := "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
-	err := s.Db.Get(&property, query, c.Propiedad.ID.Int32, c.Fuente)
+	err := s.db.Get(&property, query, c.Propiedad.ID.Int32, c.Fuente)
 
 	if err == sql.ErrNoRows {
         err = s.insertProperty(c, &property)
