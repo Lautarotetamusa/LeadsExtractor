@@ -20,10 +20,10 @@ type QueryParam struct{
 
 type Query struct {
     query   string
-    params map[string]interface{}
+    params  map[string]interface{}
 }
 
-const PageSize = 20
+const PageSize = 10
 const selectQuery = ` 
 SELECT 
     C.created_at, 
@@ -111,16 +111,15 @@ func (q *Query) buildWhere(params *QueryParam) {
 }
 
 func (q *Query) buildPagination(params *QueryParam) {
-	q.query += " ORDER BY C.id DESC"
-	if params.Page > 0 {
-		offset := (params.Page - 1) * PageSize
-		q.query += " LIMIT :pageSize OFFSET :offset"
-		q.params["pageSize"] = PageSize
-		q.params["offset"] = offset
-	}else{
-		q.query += " LIMIT :pageSize"
-		q.params["pageSize"] = PageSize
+    if params.Page == 0 {
+        params.Page = 1
     }
+
+	q.query += " ORDER BY C.id DESC"
+    offset := (params.Page - 1) * PageSize
+    q.query += " LIMIT :pageSize OFFSET :offset"
+    q.params["pageSize"] = PageSize
+    q.params["offset"] = offset
 }
 
 func (s *Store) InsertCommunication(c *models.Communication, source *models.Source) error {
