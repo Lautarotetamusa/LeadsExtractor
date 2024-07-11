@@ -30,28 +30,6 @@ func (s *Store) InsertCotizacion(c *models.Communication) error {
     return nil
 }
 
-func (s *Store) InsertCommunication(c *models.Communication, source *models.Source) error {
-	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
-    VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
-    _, err := s.Db.NamedExec(query, map[string]interface{}{
-		"lead_phone":  c.Telefono,
-		"source_id":   source.Id,
-		"new_lead":    c.IsNew,
-		"lead_date":   c.FechaLead,
-		"url":         c.Link,
-		"zones":       c.Busquedas.Zonas,
-		"mt2_terrain": c.Busquedas.TotalArea,
-		"mt2_builded": c.Busquedas.CoveredArea,
-		"baths":       c.Busquedas.Banios,
-		"rooms":       c.Busquedas.Recamaras,
-	})
-	if err != nil {
-		return err
-	}
-    s.logger.Info("communication saved")
-    return nil
-}
-
 func (s *Store) InsertOrGetLead(rr *RoundRobin, c *models.Communication) (*models.Lead, error) {
 	var lead *models.Lead
 

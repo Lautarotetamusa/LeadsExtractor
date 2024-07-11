@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"leadsextractor/flow"
 	"leadsextractor/models"
-	"log"
+	"leadsextractor/store"
 	"net/http"
 	"text/template"
 
@@ -95,11 +95,13 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
     if err != nil {
         return err
     }
-    
-    query := "CALL getCommunications('2001-01-01', true)"
-	communications := []models.Communication{}
-	if err := s.Store.Db.Select(&communications, query); err != nil {
-        log.Fatal(err)
+   
+    params := store.QueryParam{
+        IsNew: true,
+    }
+	communications, err := s.Store.GetCommunications(&params)
+	if err != nil {
+        return err
 	}
 
     go s.flowHandler.manager.Broadcast(communications, *uuid)
