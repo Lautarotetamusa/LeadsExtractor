@@ -12,9 +12,9 @@ import src.jotform as jotform
 
 # Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
-from src.lamudi.scraper import main as lamudi_scraper
-from src.propiedades_com.scraper import main as propiedades_scraper
-from src.casasyterrenos.scraper import main as casasyterrenos_scraper
+from src.lamudi.scraper import LamudiScraper
+from src.propiedades_com.scraper import PropiedadesScraper
+from src.casasyterrenos.scraper import CasasyterrenosScraper
 
 app = Flask(__name__)
 CORS(app)
@@ -23,7 +23,6 @@ logger = Logger("Server")
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
-
 
 @app.route('/asesor', methods=['GET'])
 def recive_ivr_call():
@@ -54,7 +53,7 @@ def recive_ivr_call():
         telefono = parse_number(logger, "+"+phone)
     lead.telefono = telefono or lead.telefono
 
-    is_new, lead = api.new_communication(logger, lead)
+    _, lead = api.new_communication(logger, lead)
 
     return {}, 200
 
@@ -75,21 +74,12 @@ def generate_pdf():
 
 
 # Ejecucion de scripts
-PORTALS = {
-    "casasyterrenos": {
-        "scraper": casasyterrenos_scraper
-    },
-    "propiedades": {
-        "scraper": propiedades_scraper
-    },
-    "inmuebles24": {
-        "scraper": inmuebles24_scraper
-    },
-    "lamudi": {
-        "scraper": lamudi_scraper
-    }
+SCRAPERS = {
+    "casasyterrenos": CasasyterrenosScraper,
+    "propiedades": PropiedadesScraper,
+    "inmuebles24": inmuebles24_scraper,
+    "lamudi": LamudiScraper
 }
-
 
 @app.route('/execute', methods=['POST'])
 def ejecutar_script_route():
@@ -97,22 +87,28 @@ def ejecutar_script_route():
 
     portal = data.get('portal')
     spin_msg = data.get('message')
-    url_or_filters = data.get('url_or_filters')
+    params = data.get('url_or_filters')
 
-    if not all([portal, spin_msg, url_or_filters]):
+    if portal not in SCRAPERS:
+        return jsonify({'error': f"El portal {portal} no existe"}), 404
+
+    if not all([portal, spin_msg, params]):
         return jsonify({'error': 'Se requieren campos portal, message y url_or_filters'}), 400
 
     # Ejecutar el script en segundo plano usando threading
-    thread = threading.Thread(target=ejecutar_script, args=(portal, url_or_filters, spin_msg))
+    thread = threading.Thread(target=ejecutar_script, args=(portal, params, spin_msg))
     thread.start()
 
     return "Proceso en segundo plano iniciado."
 
 
-def ejecutar_script(portal, url_or_filters, spin_msg):
+def ejecutar_script(portal: str, params: str | dict, spin_msg: str):
+    assert portal in SCRAPERS, f"El portal {portal} no existe"
+
     # Reemplaza esta línea con la lógica de ejecución de tus scripts
-    print("Ejecutando", f"python main.py {portal} {url_or_filters} {spin_msg}")
-    PORTALS[portal]["scraper"](url_or_filters, spin_msg)
+    print("Ejecutando", f"python main.py {portal} {params} {spin_msg}")
+    scraper = SCRAPERS[portal]()
+    scraper.main(spin_msg, params)
 
 
 if __name__ == '__main__':
