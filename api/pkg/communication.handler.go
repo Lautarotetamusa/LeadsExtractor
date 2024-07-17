@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"net/http"
@@ -33,6 +34,20 @@ var timeConverter = func(value string) reflect.Value {
     return reflect.Value{} // this is the same as the private const invalidType
 }
 
+var boolConverter = func(value string) reflect.Value {
+    fmt.Println(value)
+    switch value{
+    case "true":
+        fmt.Println("true")
+        return reflect.ValueOf(true)
+    case "false":
+        fmt.Println("is false")
+        return reflect.ValueOf(false)
+    default:
+        return reflect.Value{}
+    }
+}
+
 func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error {
     var (
         params store.QueryParam
@@ -41,9 +56,12 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
     )
 
     decoder.RegisterConverter(time.Time{}, timeConverter)
+    decoder.RegisterConverter(true, boolConverter)
+
     if err := decoder.Decode(&params, r.URL.Query()); err != nil{
         return err;
     }
+    fmt.Printf("%#v", params)
 
     communications, err := s.Store.GetCommunications(&params) 
     if err != nil {

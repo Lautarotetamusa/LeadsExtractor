@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"leadsextractor/models"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ type QueryParam struct{
     Fuente      string      `schema:"fuente" db:"fuente"`
     Nombre      string      `schema:"nombre" db:"nombre"`
     Telefono    string      `schema:"telefono" db:"telefono"`
-    IsNew       bool        `schema:"is_new" db:"isNew"`
+    IsNew       *bool        `schema:"is_new" db:"isNew"`
     Page        int         `schema:"page" db:"page"`
 }
 
@@ -80,7 +81,7 @@ func (q *Query) buildWhere(params *QueryParam) {
 		whereClauses = append(whereClauses, "C.created_at <= :dateTo")
 		q.params["dateTo"] = params.DateTo
 	}
-	if params.IsNew {
+	if params.IsNew != nil{
 		whereClauses = append(whereClauses, "C.new_lead = :isNew")
 		q.params["isNew"] = params.IsNew
 	}
@@ -151,6 +152,7 @@ func (s *Store) GetCommunications(params *QueryParam) ([]models.Communication, e
     query := NewQuery(selectQuery + joinQuery)
     query.buildWhere(params)
     query.buildPagination(params)
+    fmt.Println(query.query)
 
     stmt, err := s.db.PrepareNamed(query.query)
     if err != nil {

@@ -96,8 +96,9 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
         return err
     }
    
+    trueVal := true
     params := store.QueryParam{
-        IsNew: true,
+        IsNew: &trueVal,
     }
 	communications, err := s.Store.GetCommunications(&params)
 	if err != nil {
