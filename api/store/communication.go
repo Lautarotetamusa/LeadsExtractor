@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"leadsextractor/models"
 	"strings"
 	"time"
@@ -78,11 +79,11 @@ func (q *Query) buildWhere(params *QueryParam) {
     var whereClauses []string
 
 	if !params.DateFrom.IsZero() {
-		whereClauses = append(whereClauses, "C.created_at >= :dateFrom")
+		whereClauses = append(whereClauses, "DATE_SUB(C.created_at, INTERVAL 6 HOUR) >= :dateFrom")
 		q.params["dateFrom"] = params.DateFrom
 	}
 	if !params.DateTo.IsZero() {
-		whereClauses = append(whereClauses, "C.created_at <= :dateTo")
+		whereClauses = append(whereClauses, "DATE_SUB(C.created_at, INTERVAL 6 HOUR) <= :dateTo")
 		q.params["dateTo"] = params.DateTo
 	}
 	if params.IsNew != nil{
@@ -109,6 +110,7 @@ func (q *Query) buildWhere(params *QueryParam) {
 		whereClauses = append(whereClauses, "L.name LIKE :nombre")
 		q.params["nombre"] = "%"+params.Nombre+"%"
 	}
+    fmt.Printf("%#v\n", q.params)
 
 	if len(whereClauses) > 0 {
 		q.query += " WHERE " + strings.Join(whereClauses, " AND ")
