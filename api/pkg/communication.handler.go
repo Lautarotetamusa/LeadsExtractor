@@ -61,7 +61,6 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
     if err := decoder.Decode(&params, r.URL.Query()); err != nil{
         return err;
     }
-    fmt.Printf("%#v", params)
 
     communications, err := s.Store.GetCommunications(&params) 
     if err != nil {

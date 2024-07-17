@@ -118,9 +118,8 @@ class Lamudi(Portal):
     def get_lead_info(self, raw_lead: dict) -> Lead:
         lead = Lead()
         lead.set_args({
-            "id": raw_lead["id"],
+            "lead_id": raw_lead["id"],
             "fuente": self.name,
-            "fecha": strftime(DATE_FORMAT, gmtime()),
             "fecha_lead": datetime.strptime(raw_lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
             "nombre": raw_lead["name"],
             "link": f"https://proppit.com/leads/{raw_lead['id']}",

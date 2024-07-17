@@ -13,73 +13,73 @@ assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
 SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 PARAMS = {
-	#"resolve_captcha": "true",
-	"apikey": os.getenv("ZENROWS_APIKEY"),
-	"url": "",
-    #"js_render": "true",
-    "antibot": "true",
-    "premium_proxy": "true",
-    "proxy_country": "mx",
-	#"session_id": 10,
-	"custom_headers": "true",
-	"original_status": "true",
-	"autoparse": "true"
-}
+        #"resolve_captcha": "true",
+        "apikey": os.getenv("ZENROWS_APIKEY"),
+        "url": "",
+        #"js_render": "true",
+        "antibot": "true",
+        "premium_proxy": "true",
+        "proxy_country": "mx",
+        #"session_id": 10,
+        "custom_headers": "true",
+        "original_status": "true",
+        "autoparse": "true"
+        }
 
 def extract_busqueda_info(data: dict | None) -> dict:
-	if data == None:
-		return {} 
+    if data == None:
+        return {} 
 
-	features = data.get("property_features", {})
-	lead_info = data.get("lead_info", {})
+    features = data.get("property_features", {})
+    lead_info = data.get("lead_info", {})
 
-	busqueda = {
-		"zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data.get("searched_locations", {}) else "",
-		"tipo": lead_info.get("search_type", {}).get("type", ""),
-		"presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
-		"cantidad_anuncios": lead_info.get("views", None),
-		"contactos": lead_info.get("contacts", None),
-		"inicio_busqueda": lead_info.get("started_search_days", None)
-	}
+    busqueda = {
+            "zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data.get("searched_locations", {}) else "",
+            "tipo": lead_info.get("search_type", {}).get("type", ""),
+            "presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
+            "cantidad_anuncios": lead_info.get("views", None),
+            "contactos": lead_info.get("contacts", None),
+            "inicio_busqueda": lead_info.get("started_search_days", None)
+            }
 
-	range_props = {
-		"total_area": "total_area_xm2",
-		"covered_area": "covered_area_xm2",
-		"banios": "baths",
-		"recamaras": "bedrooms",
-	}
-	for prop in range_props:
-		try:
-			value = features[range_props[prop]]
-			busqueda[prop] = str(value["min"]) + ", " + str(value["max"])
-		except KeyError:
-			busqueda[prop] = ""
+    range_props = {
+            "total_area": "total_area_xm2",
+            "covered_area": "covered_area_xm2",
+            "banios": "baths",
+            "recamaras": "bedrooms",
+            }
+    for prop in range_props:
+        try:
+            value = features[range_props[prop]]
+            busqueda[prop] = str(value["min"]) + ", " + str(value["max"])
+        except KeyError:
+            busqueda[prop] = ""
 
-	return busqueda
+    return busqueda
 
 class Inmuebles24(Portal):
     def __init__(self):
         super().__init__(
-            name="inmuebles24",
-            contact_id_field="contact_publisher_user_id",
-            send_msg_field="id",
-            username_env="INMUEBLES24_USERNAME",
-            password_env="INMUEBLES24_PASSWORD",
-            params_type="headers",
-            filename=__file__
-        )
+                name="inmuebles24",
+                contact_id_field="contact_publisher_user_id",
+                send_msg_field="id",
+                username_env="INMUEBLES24_USERNAME",
+                password_env="INMUEBLES24_PASSWORD",
+                params_type="headers",
+                filename=__file__
+                )
 
     def login(self):
         self.logger.debug("Iniciando sesion")
         login_url = f"{SITE_URL}login_login.ajax"
 
         data = {
-            "email": self.username,
-            "password": self.password,
-            "recordarme": "true",
-            "homeSeeker": "true",
-            "urlActual": SITE_URL
-        }
+                "email": self.username,
+                "password": self.password,
+                "recordarme": "true",
+                "homeSeeker": "true",
+                "urlActual": SITE_URL
+                }
         self.request.headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
 
         self.logger.debug(f"POST {login_url}")
@@ -92,11 +92,11 @@ class Inmuebles24(Portal):
         data = res.json()
 
         self.request.headers = {
-            "sessionId": data["contenido"]["sessionID"],
-            "x-panel-portal": "24MX",
-            "content-type": "application/json;charset=UTF-8",
-            "idUsuario": str(data["contenido"]["idUsuario"])
-        }
+                "sessionId": data["contenido"]["sessionID"],
+                "x-panel-portal": "24MX",
+                "content-type": "application/json;charset=UTF-8",
+                "idUsuario": str(data["contenido"]["idUsuario"])
+                }
 
         print("headers", self.request.headers)
         with open(self.params_file, "w") as f:
@@ -133,7 +133,7 @@ class Inmuebles24(Portal):
                 total = data["paging"]["total"]
                 self.logger.debug(f"Total: {total}")
                 first = False
-            
+
             if mode == Mode.NEW: #Obtenemos todos los leads sin leer de este pagina
                 leads = []
                 for lead in data["result"]:
@@ -145,7 +145,7 @@ class Inmuebles24(Portal):
                 yield leads 
             else: #Obtenemos todos los leads
                 yield data["result"]
-    
+
     def get_lead_info(self, raw_lead):
         raw_lead_id = raw_lead["id"]
         contact_id = raw_lead[self.contact_id_field]
@@ -155,15 +155,14 @@ class Inmuebles24(Portal):
 
         lead = Lead()
         lead.set_args({
-            "id": raw_lead_id,
+            "lead_id": raw_lead_id,
             "contact_id": contact_id, 
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
-            "fecha": strftime(DATE_FORMAT, gmtime()),
             "nombre": raw_lead.get("lead_user", {}).get("name"),
             "link": f"{SITE_URL}panel/interesados/{contact_id}",
             "email": raw_lead.get("lead_user", {}).get("email"),
-        })
+            })
         lead.set_busquedas(busqueda)
         lead.set_propiedad({
             "id": posting.get("id", None),
@@ -172,7 +171,7 @@ class Inmuebles24(Portal):
             "ubicacion": posting.get("address", ""),
             "tipo": posting.get("real_estate_type", {}).get("name"),
             "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
-        })
+            })
         #Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
         if lead.propiedad["id"] == None:
             lead.fuente = "viewphone"
@@ -205,17 +204,17 @@ class Inmuebles24(Portal):
 
     def send_message_condition(self, lead) -> bool:
         return "last_message" not in lead or (lead.get("last_message", {}).get("to") == self.request.headers["idUsuario"])
-    
+
     def send_message(self, id: str,  message: str):
         self.logger.debug(f"Enviando mensaje a lead {id}")
         msg_url = f"{SITE_URL}leads-api/leads/{id}/messages"
 
         print(message)
         data = {
-            "is_comment": False,
-            "message": message,
-            "message_attachments": []
-        }
+                "is_comment": False,
+                "message": message,
+                "message_attachments": []
+                }
 
         PARAMS["url"] = msg_url
         res = self.request.make(ZENROWS_API_URL, 'POST', params=PARAMS, json=data)

@@ -147,6 +147,7 @@ class Portal():
             
             for r in results:
                 lead = r.get()
+                api.new_communication(self.logger, lead)
                 lead.print()
                 self.logger.debug(count)
 

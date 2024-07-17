@@ -87,8 +87,7 @@ class Propiedades(Portal):
         lead.set_args({
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["updated_at"], DATE_FORMAT).strftime(DATE_FORMAT),
-            "id": str(raw_lead["id"]),
-            "fecha": strftime(DATE_FORMAT, gmtime()),
+            "lead_id": str(raw_lead["id"]),
             "nombre": raw_lead.get("name", ""),
             "email": raw_lead.get("email", ""),
             "propiedad": prop,

@@ -9,9 +9,10 @@ load_dotenv()
 API_PROTOCOL = os.getenv("API_PROTOCOL")
 API_PORT = os.getenv("API_PORT")
 API_HOST = os.getenv("API_HOST")
-assert API_PORT != None, "Error: 'API_PORT env variable not set'"
-assert API_HOST != None, "Error: 'API_HOST env variable not set'"
-assert API_PROTOCOL != None, "Error: 'API_PROTOCOL env variable not set'"
+assert API_PORT is not None, "Error: 'API_PORT env variable not set'"
+assert API_HOST is not None, "Error: 'API_HOST env variable not set'"
+assert API_PROTOCOL is not None, "Error: 'API_PROTOCOL env variable not set'"
+
 
 def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/assign"

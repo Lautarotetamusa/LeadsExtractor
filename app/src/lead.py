@@ -4,8 +4,7 @@ class Lead():
     def __init__(self):
         self.fuente = ""
         self.fecha_lead = ""
-        self.id = ""
-        self.fecha = ""
+        self.lead_id = ""
         self.nombre = ""
         self.link = ""
         self.telefono = ""
