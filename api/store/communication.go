@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"leadsextractor/models"
 	"strings"
 	"time"
@@ -28,9 +27,9 @@ type Query struct {
 const defaultPageSize = 10
 const minPageSize = 5
 const maxPageSize = 100
+//DATE_SUB(C.lead_date, INTERVAL 6 HOUR) as "lead_date", // falta este campo, hay muchos que es NULL
 const selectQuery = ` 
 SELECT 
-    DATE_SUB(C.lead_date, INTERVAL 6 HOUR) as "lead_date",
     C.id,
     DATE_SUB(C.created_at, INTERVAL 6 HOUR) as "created_at",
     C.new_lead,
@@ -110,7 +109,6 @@ func (q *Query) buildWhere(params *QueryParam) {
 		whereClauses = append(whereClauses, "L.name LIKE :nombre")
 		q.params["nombre"] = "%"+params.Nombre+"%"
 	}
-    fmt.Printf("%#v\n", q.params)
 
 	if len(whereClauses) > 0 {
 		q.query += " WHERE " + strings.Join(whereClauses, " AND ")
