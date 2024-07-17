@@ -126,7 +126,8 @@ type Busquedas struct {
 type Communication struct {
     Fuente     string    `json:"fuente" db:"fuente"`
     FechaLead  string    `json:"fecha_lead" db:"lead_date"`
-    ID         string    `json:"id" db:"id"`
+    Id         int       `json:"id" db:"id"`
+    LeadId     string    `json:"lead_id"` //No guardamos este campo
     Fecha      string    `json:"fecha" db:"created_at"`
     Nombre     string    `json:"nombre" db:"name"`
     Link       string    `json:"link" db:"url"`

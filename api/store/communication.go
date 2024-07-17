@@ -29,6 +29,7 @@ const minPageSize = 5
 const maxPageSize = 100
 const selectQuery = ` 
 SELECT 
+    C.id,
     C.created_at, 
     C.new_lead,
     L.cotizacion,
