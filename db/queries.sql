@@ -164,3 +164,11 @@ SELECT
         ON S.property_id = P.id
     GROUP BY L.phone
     INTO OUTFILE '/tmp/leads.csv';
+
+
+/* Cambiar la zona horaria a mexico
+vamos a restar -6hs a todos los leads */
+select * from Communication
+SET created_at = DATE_SUB(created_at, INTERVAL 6 HOUR);
+
+

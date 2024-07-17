@@ -7,7 +7,6 @@ services:
     environment:
       - MARIADB_ROOT_PASSWORD=$DB_PASS
       - MYSQL_PASSWORD=$DB_PASS
-      - TZ=America/Mexico_City
     ports:
       - $DB_PORT:$DB_PORT
     volumes:

@@ -29,9 +29,9 @@ const minPageSize = 5
 const maxPageSize = 100
 const selectQuery = ` 
 SELECT 
-    C.lead_date,
+    DATE_SUB(C.lead_date, INTERVAL 6 HOUR) as "lead_date",
     C.id,
-    C.created_at, 
+    DATE_SUB(C.created_at, INTERVAL 6 HOUR) as "created_at",
     C.new_lead,
     L.cotizacion,
     A.name as "asesor.name", 
