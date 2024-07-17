@@ -78,7 +78,7 @@ func (s *Server) GetCommunications(w http.ResponseWriter, r *http.Request) error
         Success: true,
         Pagination: Pagination{
             Page: params.Page,
-            PageSize: store.PageSize,
+            PageSize: params.PageSize,
             Items: len(communications),
             Total: count,
         },

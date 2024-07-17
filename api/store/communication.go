@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"leadsextractor/models"
 	"strings"
 	"time"
@@ -15,8 +14,9 @@ type QueryParam struct{
     Fuente      string      `schema:"fuente" db:"fuente"`
     Nombre      string      `schema:"nombre" db:"nombre"`
     Telefono    string      `schema:"telefono" db:"telefono"`
-    IsNew       *bool        `schema:"is_new" db:"isNew"`
+    IsNew       *bool       `schema:"is_new" db:"isNew"`
     Page        int         `schema:"page" db:"page"`
+    PageSize    int         `schema:"page_size"`
 }
 
 type Query struct {
@@ -24,7 +24,9 @@ type Query struct {
     params  map[string]interface{}
 }
 
-const PageSize = 10
+const defaultPageSize = 10
+const minPageSize = 5
+const maxPageSize = 100
 const selectQuery = ` 
 SELECT 
     C.created_at, 
@@ -117,9 +119,13 @@ func (q *Query) buildPagination(params *QueryParam) {
     }
 
 	q.query += " ORDER BY C.id DESC"
-    offset := (params.Page - 1) * PageSize
+    if (params.PageSize < minPageSize || params.PageSize > maxPageSize){
+        params.PageSize = defaultPageSize;
+    }
+
+    offset := (params.Page - 1) * params.PageSize
     q.query += " LIMIT :pageSize OFFSET :offset"
-    q.params["pageSize"] = PageSize
+    q.params["pageSize"] = params.PageSize
     q.params["offset"] = offset
 }
 
@@ -152,7 +158,6 @@ func (s *Store) GetCommunications(params *QueryParam) ([]models.Communication, e
     query := NewQuery(selectQuery + joinQuery)
     query.buildWhere(params)
     query.buildPagination(params)
-    fmt.Println(query.query)
 
     stmt, err := s.db.PrepareNamed(query.query)
     if err != nil {
