@@ -21,6 +21,7 @@ DATE_FORMAT = "%d/%m/%Y"
 
 logger = Logger("scraper lamudi.com")
 
+
 class LamudiScraper(Scraper):
     def __init__(self):
         super().__init__("Lamudi")
@@ -41,7 +42,7 @@ class LamudiScraper(Scraper):
         sender["message"] = msg
         sender["propertyAdId"] = property_id
         res = requests.post(CONTACT_URL, json=sender)
-        
+
         if res.status_code != 204:
             logger.error(f"Ocurrio un error enviando un mensaje al ad  {property_id}")
             return None
@@ -71,26 +72,26 @@ class LamudiScraper(Scraper):
         print("ads: ", len(ads))
         posts = []
         for ad in ads:
-            location  = ad.find("span", attrs={"data-test": "snippet-content-location"}).text.split(',')
-            bedrooms  = ad.find("span", attrs={"data-test": "bedrooms-value"})
+            location = ad.find("span", attrs={"data-test": "snippet-content-location"}).text.split(',')
+            bedrooms = ad.find("span", attrs={"data-test": "bedrooms-value"})
             bathromms = ad.find("span", attrs={"data-test": "full-bathrooms-value"})
             area = ad.find("div", attrs={"data-test": "area-value"})
-        
+
             # El primero es el simbolo $, lo ignoramos con _
             price_text = ad.find("div", class_="snippet__content__price").text.strip()
             [_, price, currency] = price_text.split(" ")
 
             phone = ""
             wpp_btn = ad.find("button", attrs={"data-test": "snippet-whatsapp-button-in-content"})
-            if wpp_btn != None:
+            if wpp_btn is not None:
                 phone = wpp_btn.get("value", "").split("phone=")[1].split("&text")[0]
 
             if phone == self.sender["userPhone"]:
                 print("Se encontro una propiedad de Rebora")
-                continue  
+                continue
 
             post = {
-                "fuente": "LAMUDI", 
+                "fuente": "LAMUDI",
                 "id":           ad.get("data-idanuncio"),
                 "title":        ad.find("span", class_="snippet__content__title").get("content"),
                 "extraction_date": strftime(DATE_FORMAT, gmtime()),
@@ -99,14 +100,14 @@ class LamudiScraper(Scraper):
                 "currency":     currency,
                 "type":         "",
                 "url":          SITE + ad.get("href", ""),
-                "bedrooms": bedrooms.next_sibling.strip() if bedrooms != None else "",
-                "bathrooms": bathromms.next_sibling.strip() if bathromms != None else "",
-                "building_size": area.next_sibling.strip() if area != None else "",
+                "bedrooms": bedrooms.next_sibling.strip() if bedrooms is not None else "",
+                "bathrooms": bathromms.next_sibling.strip() if bathromms is not None else "",
+                "building_size": area.next_sibling.strip() if area is not None else "",
                 "location": {
                     "full": ','.join(location),
                     "zone": "",
                     "city": location[0],
-                    "province": location[1] if len(location) >= 2 else "", 
+                    "province": location[1] if len(location) >= 2 else "",
                 },
                 "publisher":    {
                     "name": ad.find("span", attrs={"data-test": "agency-name"}).get("text", ""),
@@ -118,9 +119,9 @@ class LamudiScraper(Scraper):
             }
 
             posts.append(post)
-        
+
         return posts
-    
+
     def get_posts(self, url):
         headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0"}
 
@@ -132,18 +133,25 @@ class LamudiScraper(Scraper):
             res = requests.get(url, headers=headers)
             soup = BeautifulSoup(res.text, "html.parser")
 
-            pagination = soup.find("a", id="pagination-next")
-            if pagination == None:
-                self.logger.error("No se encontro div de paginacion")
+            if res.status_code != 200:
+                self.logger.error("Error en la peticion", res.status_code)
+                page += 1
                 continue
 
-            #Usamos json.loads para parsear el booleano, "false" será False
+            pagination = soup.find("a", id="pagination-next")
+            if pagination is None:
+                self.logger.error("No se encontro div de paginacion")
+                page += 1
+                continue
+
+            # Usamos json.loads para parsear el booleano, "false" será False
             is_last = json.loads(pagination.get("data-islast", ""))
             url = pagination.get("href", "")
             page += 1
-           
-            posts = self.extract_posts(soup) 
-            yield posts 
+
+            posts = self.extract_posts(soup)
+            yield posts
+
 
 if __name__ == "__main__":
     url = "https://www.lamudi.com.mx/jalisco/guadalajara/casa/for-sale/?minPrice=10000000"

@@ -120,14 +120,15 @@ class CasasyterrenosScraper(Scraper):
     def send_message(self, msg: str, post):
         self.logger.debug(f"Enviando mensaje a propiedad con {post['id']}")
 
-        property_id = post["id"] 
+        property_id = post["id"]
         data = SENDER.copy()
         data["message"] = msg
         data["property"] = int(post["id"])
 
         res = requests.post(URL_SEND, json=data)
         print("TEST")
-        if not res: return None
+        if not res:
+            return None
 
         if not res.ok:
             self.logger.error("Error enviando el mensaje")
@@ -135,13 +136,12 @@ class CasasyterrenosScraper(Scraper):
             return None
 
         self.logger.success(f"Mensaje enviado con exito a la propiedad {property_id}")
-    
+
     def get_posts(self, url):
         page = 1
         len_posts = 0
         total_posts = 1e9
-        #self.generate_session_id()
-    
+
         r = re.search(r'(?<=page=)\d+', url)
         if r:
             page = int(r.group(0))
@@ -160,7 +160,7 @@ class CasasyterrenosScraper(Scraper):
                 continue
 
             data = res.json().get("pageProps", {}).get("initialState")
-            if data == None:
+            if data is None:
                 self.logger.debug(res.text)
                 return
 

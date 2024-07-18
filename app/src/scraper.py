@@ -72,13 +72,14 @@ class Scraper():
                     self.logger.debug("Propiedad de Rebora encontrada")
                     continue
 
-                if ad["phone"] in occurences:
-                    occurences[ad["phone"]] += 1
+                phone = ad["publiser"]["phone"]
+                if phone in occurences:
+                    occurences[phone] += 1
                 else:
-                    occurences[ad["phone"]] = 0
+                    occurences[phone] = 0
 
-                if occurences[ad["phone"]] > max_messages:
-                    self.logger.debug(f"Maxima cantidad de mensajes enviados para {ad['phone']}")
+                if occurences[phone] > max_messages:
+                    self.logger.debug(f"Maxima cantidad de mensajes enviados para {phone}")
                     continue
 
                 r = pool.apply_async(self._action, args=(ad, spin_msg, ))
