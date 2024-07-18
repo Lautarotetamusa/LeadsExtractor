@@ -8,11 +8,13 @@ from src.message import generate_post_message
 from src.sheets import Sheet
 from src.logger import Logger
 
+SENDER_PHONE = os.getenv("SENDER_PHONE")
+assert SENDER_PHONE is not None, "Falta la variable 'SENDER_PHONE'"
+
+
 class Scraper():
-    def __init__(self,
-            name: str,
-        ):
-        self.name = name 
+    def __init__(self, name: str):
+        self.name = name
         self.sleep_secs: float = 1.0
         self.sender = {
             "email": os.getenv("SENDER_EMAIL"),
@@ -20,8 +22,8 @@ class Scraper():
             "phone": os.getenv("SENDER_PHONE"),
         }
 
-        self.logger  = Logger(name)
-        self.sheet   = Sheet(self.logger, 'scraper_mapping.json')
+        self.logger = Logger(name)
+        self.sheet = Sheet(self.logger, 'scraper_mapping.json')
         self.headers = self.sheet.get("Extracciones!A1:Z1")[0]
 
     def get_posts(self, url) -> Iterator[list[dict]]:
@@ -31,7 +33,7 @@ class Scraper():
         return []
 
     def send_message(self, msg: str, post: dict):
-        pass 
+        pass
 
     def view_phone(self, post) -> str:
         return ""
@@ -40,14 +42,14 @@ class Scraper():
         return 0
 
     def _action(self, ad, spin_msg: str | None) -> list[str]:
-        if spin_msg != None:
+        if spin_msg is not None:
             msg = generate_post_message(ad, spin_msg)
             self.send_message(msg, ad)
             ad["message"] = msg.replace('\n', '')
         else:
             ad["message"] = ""
 
-        if ad.get("phone") == "" or ad.get("phone") == None:
+        if ad.get("phone") == "" or ad.get("phone") is None:
             ad["phone"] = self.view_phone(ad)
         return self.sheet.map_lead(ad, self.headers)
 
@@ -57,13 +59,28 @@ class Scraper():
 
         max = 10
         timeout = 30
-        
+        max_messages = 3
+        occurences = {}
+
         for page in self.get_posts(param):
             total_posts += len(page)
             results = []
             row_ads = []
 
             for ad in page:
+                if ad["phone"] == SENDER_PHONE:
+                    self.logger.debug("Propiedad de Rebora encontrada")
+                    continue
+
+                if ad["phone"] in occurences:
+                    occurences[ad["phone"]] += 1
+                else:
+                    occurences[ad["phone"]] = 0
+
+                if occurences[ad["phone"]] > max_messages:
+                    self.logger.debug(f"Maxima cantidad de mensajes enviados para {ad['phone']}")
+                    continue
+
                 r = pool.apply_async(self._action, args=(ad, spin_msg, ))
                 time.sleep(self.sleep_secs)
                 results.append(r)
@@ -78,6 +95,6 @@ class Scraper():
                         row_ads.append(row)
                     results = []
 
-            #Save the lead in the sheet
+            # Save the lead in the sheet
             self.sheet.write(row_ads, "Extracciones!A2")
         self.logger.success(f"Se encontraron un total de {total_posts} en la url especificada")
