@@ -33,6 +33,30 @@ func (h *FlowHandler) GetFlows(w http.ResponseWriter, r *http.Request) error {
     return nil
 }
 
+func (h *FlowHandler) GetMainFlow(w http.ResponseWriter, r *http.Request) error {
+    flow, err := h.manager.GetMainFlow()
+    if err != nil {
+        return err
+    }
+
+    dataResponse(w, flow)
+    return nil
+}
+
+func (h *FlowHandler) GetFlow(w http.ResponseWriter, r *http.Request) error {
+    uuid, err := h.getUUIDFromParam(r)
+    if err != nil {
+        return err
+    }
+    flow, err := h.manager.GetFlow(*uuid)
+    if err != nil {
+        return err
+    }
+
+    dataResponse(w, flow)
+    return nil
+}
+
 func (h *FlowHandler) NewFlow(w http.ResponseWriter, r *http.Request) error {
     var f flow.Flow
     if err := json.NewDecoder(r.Body).Decode(&f); err != nil {
@@ -124,8 +148,8 @@ func (h *FlowHandler) getUUIDFromBody(r *http.Request) (*uuid.UUID, error) {
 		return nil, err
 	}
 
-    if _, exists := h.manager.Flows[body.Uuid.UUID]; !exists {
-        return nil, fmt.Errorf("no existe ningun flow con id %s", body.Uuid.UUID)
+    if _, err := h.manager.GetFlow(body.Uuid.UUID); err != nil{
+        return nil, err
     }
 
     return &body.Uuid.UUID, nil
@@ -140,8 +164,8 @@ func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
     if err != nil {
         return nil, err
     }
-    if _, exists := h.manager.Flows[uuid]; !exists {
-        return nil, fmt.Errorf("no existe ningun flow con id %s", uuid)
+    if _, err := h.manager.GetFlow(uuid); err != nil{
+        return nil, err
     }
 
     return &uuid, nil

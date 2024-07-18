@@ -96,6 +96,8 @@ func main() {
 	router.HandleFunc("/flows", pkg.HandleErrors(flowHandler.NewFlow)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
 	router.HandleFunc("/flows", pkg.HandleErrors(flowHandler.GetFlows)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/flows/main", pkg.HandleErrors(flowHandler.GetMainFlow)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.GetFlow)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
 
 	server.Run(router)

@@ -37,6 +37,21 @@ func (f *FlowManager) Save() error {
     return nil
 }
 
+func (f *FlowManager) GetFlow(uuid uuid.UUID) (*Flow, error){
+    flow, ok := f.Flows[uuid] 
+    if !ok{
+        return nil, fmt.Errorf("el flow con uuid %s no existe", uuid)
+    }
+    return &flow, nil
+}
+
+func (f *FlowManager) GetMainFlow() (*Flow, error){
+    flow, ok := f.Flows[f.Main] 
+    if !ok{
+        return nil, fmt.Errorf("no hay ningun flow main")
+    }
+    return &flow, nil
+}
 
 func (f *FlowManager) SetMain(uuid uuid.UUID) error {
     f.Main = uuid 
