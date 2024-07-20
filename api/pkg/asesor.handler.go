@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"leadsextractor/models"
 	"leadsextractor/store"
@@ -13,53 +14,6 @@ import (
 
 type AsesorHandler struct {
 	Store *store.Store
-}
-
-func (s *Server) UpdateStatuses(w http.ResponseWriter, r *http.Request) error {
-	var asesores []models.Asesor
-	defer r.Body.Close()
-    if err := json.NewDecoder(r.Body).Decode(&asesores); err != nil {
-		return err
-    }
-
-	for i := range asesores {
-        if err := s.Store.UpdateAsesor(&asesores[i], asesores[i].Phone); err != nil {
-			return err
-		}
-	}
-
-    if err := s.Store.GetAllActiveAsesores(&asesores); err != nil{
-        return err
-    }
-
-	s.roundRobin.SetAsesores(asesores)
-
-	successResponse(w, "Asesores actualizados correctamente", nil)
-	return nil
-}
-
-func (s *Server) AssignAsesor(w http.ResponseWriter, r *http.Request) error {
-	c := &models.Communication{} //NO poner como var porque el Decode deja de funcionar
-	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
-		return err
-	}
-
-	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
-	if err != nil {
-		return err
-	}
-	c.Asesor = lead.Asesor
-
-	w.Header().Set("Content-Type", "application/json")
-	res := struct {
-		Success bool        `json:"success"`
-		Data    interface{} `json:"data"`
-		IsNew   bool        `json:"is_new"`
-	}{true, c, c.IsNew}
-
-	json.NewEncoder(w).Encode(res)
-	return nil
 }
 
 func (s *Server) GetAllAsesores(w http.ResponseWriter, r *http.Request) error {
@@ -104,6 +58,43 @@ func (s *Server) InsertAsesor(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) Reasign(w http.ResponseWriter, r *http.Request) error {
+    phone := mux.Vars(r)["phone"]
+
+    asesorReasignado, err := s.Store.GetOneAsesor(phone)
+    if err != nil {
+        return fmt.Errorf("no se encontro el asesor con telefono %s", phone)
+    }
+    asesorReasignado.Active = false
+
+    if err = s.Store.UpdateAsesor(asesorReasignado.Phone, asesorReasignado); err != nil {
+        return fmt.Errorf("no fue posible actualizar al asesor")
+    }
+
+    var asesores []models.Asesor
+    if err = s.Store.GetAllActiveAsesores(&asesores); err != nil {
+        return fmt.Errorf("no fue posible obtener la lista de asesores")
+    }
+    s.roundRobin.SetAsesores(asesores)
+
+    leads, err := s.Store.GetLeadsFromAsesor(phone)
+    if err != nil {
+        return fmt.Errorf("no fue posible obtener los leads del asesor")
+    }
+    for _, lead := range *leads{
+        if err = s.Store.UpdateLeadAsesor(lead.Phone, asesorReasignado); err != nil {
+            return fmt.Errorf("no fue posible reasignar a %s", lead.Phone)
+        }
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]any{
+        "success": true,
+        "message": fmt.Sprintf("se reasignaron un total de %d leads", len(*leads)),
+    })
+    return nil
+}
+
 func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
 	phone := mux.Vars(r)["phone"]
 
@@ -113,21 +104,42 @@ func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
 		return err
     }
 
-	asesor := models.Asesor{
-		Phone:  phone,
-		Name:   updateAsesor.Name,
-		Active: updateAsesor.Active,
-	}
+    asesor, err := s.Store.GetOneAsesor(phone)
+    if err != nil {
+        return fmt.Errorf("no existe asesor con telefono %s", phone)
+    }
 
-	validate := validator.New()
-    if err := validate.Struct(asesor); err != nil {
+    updateFields(asesor, updateAsesor)
+
+    if err := s.Store.UpdateAsesor(phone, asesor); err != nil {
 		return err
 	}
 
-    if err := s.Store.UpdateAsesor(&asesor, phone); err != nil {
-		return err
-	}
+    if updateAsesor.Active != nil {
+        s.logger.Debug("Actualizando round robin")
+        var asesores []models.Asesor
+        err := s.Store.GetAllActiveAsesores(&asesores)
+        if err != nil {
+            return fmt.Errorf("no fue posible obtener la lista de asesores")
+        }
+        s.roundRobin.SetAsesores(asesores)
+    }
 
 	successResponse(w, "Asesor actualizado correctamente", asesor)
 	return nil
+}
+
+func updateFields(asesor *models.Asesor, updateAsesor models.UpdateAsesor) {
+	if updateAsesor.Name != nil {
+		asesor.Name = *updateAsesor.Name
+	}
+	if updateAsesor.Phone != nil {
+		asesor.Phone = *updateAsesor.Phone
+	}
+	if updateAsesor.Email != nil {
+		asesor.Email = *updateAsesor.Email
+	}
+	if updateAsesor.Active != nil {
+		asesor.Active = *updateAsesor.Active
+	}
 }

@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"strings"
+
+	"github.com/jmoiron/sqlx"
 )
+
+func (s *Store) Transaction() *sqlx.Tx {
+    return s.db.MustBegin()
+}
 
 func (s *Store) GetAll() (*[]models.Lead, error) {
 	query := `SELECT 

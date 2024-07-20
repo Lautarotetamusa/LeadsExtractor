@@ -62,8 +62,15 @@ func (s *Store) InsertAsesor(asesor *models.Asesor) error {
 	return nil
 }
 
-func (s *Store) UpdateAsesor(asesor *models.Asesor, phone string) error {
-	query := "UPDATE Asesor SET name=:name, active=:active WHERE phone=:phone"
+func (s *Store) UpdateAsesor(phone string, asesor *models.Asesor) error {
+	query := `
+    UPDATE Asesor 
+    SET name=:name, 
+        active=:active,
+        email=:email,
+        active=:active
+    WHERE phone=:phone`
+
 	if _, err := s.db.NamedExec(query, asesor); err != nil {
 		return err
 	}

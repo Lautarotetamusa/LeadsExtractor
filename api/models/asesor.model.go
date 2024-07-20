@@ -8,6 +8,8 @@ type Asesor struct {
 }
 
 type UpdateAsesor struct {
-    Name   string `db:"name"   json:"name" validate:"required"`
-    Active bool   `db:"active" json:"active" validate:"required"`
+    Name   *string `db:"name"   json:"name"`
+    Phone  *string `db:"phone"  json:"phone"`
+    Email  *string `db:"email"  json:"email"`
+    Active *bool  `db:"active" json:"active"`
 }

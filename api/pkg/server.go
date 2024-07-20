@@ -27,9 +27,7 @@ func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB, fh *FlowHand
 	s := store.NewStore(db, logger)
 
     var asesores []models.Asesor
-    err := s.GetAllActiveAsesores(&asesores)
-
-    if err != nil{  
+    if err := s.GetAllActiveAsesores(&asesores); err != nil{  
         log.Fatal("No se pudo obtener la lista de asesores")
     }
     rr := store.NewRoundRobin(asesores)
@@ -50,10 +48,7 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET")
 	router.HandleFunc("/asesor", HandleErrors(s.InsertAsesor)).Methods("POST")
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.UpdateAsesor)).Methods("PUT")
-	router.HandleFunc("/asesores/", HandleErrors(s.UpdateStatuses)).Methods("POST", "OPTIONS")
-
-	router.HandleFunc("/assign", HandleErrors(s.AssignAsesor)).Methods("POST")
-
+    router.HandleFunc("/asesor/{phone}/reasign", HandleErrors(s.Reasign)).Methods("PUT")
 
 	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET")
 	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET")

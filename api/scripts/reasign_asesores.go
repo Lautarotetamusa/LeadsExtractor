@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
-	"leadsextractor/whatsapp"
 	"leadsextractor/pipedrive"
 	"log"
 	"log/slog"
