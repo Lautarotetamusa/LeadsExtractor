@@ -147,8 +147,7 @@ SELECT
     C.created_at as "Fecha",
     C.lead_date as "Fecha lead",
     IF(S.type = "property", P.portal, S.type) as "Fuente",
-        IFNULL(P.portal_id, "") as "Portal_id", 
-        IFNULL(P.title, "") as "Title", 
+        IFNULL(P.portal_id, "") as "Portal_id", IFNULL(P.title, "") as "Title", 
         IFNULL(P.price, "") as "Price", 
         IFNULL(P.ubication, "") as "Ubicacion", 
         IFNULL(P.url, "") as "Link", 
@@ -171,4 +170,46 @@ vamos a restar -6hs a todos los leads */
 select * from Communication
 SET created_at = DATE_SUB(created_at, INTERVAL 6 HOUR);
 
+update Communication
+set created_at="2024-07-18T00:00:01"
+where id=38;
+select * from Communication where id=38;
 
+/*maggie*/
+select * from Leads
+where asesor="5213314299454";
+
+/*Lucy*/
+select * from Leads
+where asesor="5213317186543";
+
+/* Agregar asesor */
+insert into Asesor
+(email, phone, name, active)
+values
+("mmichel.marti@gmail.com", "+523321608647", "Marti Michel", true);
+
+select * from Leads
+where asesor="5213313291761";
+select * from Leads
+where asesor="5213317186543"; /*87 leads, 270 comms */
+
+delete from Asesor
+where phone="5213313291761";
+
+update Asesor
+set name="Eduardo Jordan",
+email="eduardo.jordan@rebora.com.mx "
+where phone="5213317186543";
+
+update Leads 
+set asesor="5213317186543"
+where asesor="5213313291761";
+
+update Asesor
+set phone="5213317186543"
+where phone="5213313291761";
+
+update Asesor
+set active=false
+where phone="5213322563353";

@@ -68,11 +68,11 @@ class Scraper():
             row_ads = []
 
             for ad in page:
+                phone = ad["publisher"]["phone"]
                 if ad["phone"] == SENDER_PHONE:
                     self.logger.debug("Propiedad de Rebora encontrada")
                     continue
 
-                phone = ad["publiser"]["phone"]
                 if phone in occurences:
                     occurences[phone] += 1
                 else:

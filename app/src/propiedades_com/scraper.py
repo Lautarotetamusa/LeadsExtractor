@@ -87,9 +87,9 @@ class PropiedadesScraper(Scraper):
                     "full": post.get("full_address", ""),
                     "zone": "",
                     "city": post.get("municipality", ""),
-                    "province": post.get("state", ""), 
+                    "province": post.get("state", ""),
                 },
-                "publisher":{
+                "publisher": {
                     "name": "",
                     "id": "",
                     "whatsapp": "",

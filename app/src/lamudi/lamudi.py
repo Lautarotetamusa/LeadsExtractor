@@ -13,7 +13,7 @@ from src.lead import Lead
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = os.getenv("DATE_FORMAT")
-assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
+assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 
 
 class Lamudi(Portal):
@@ -27,6 +27,7 @@ class Lamudi(Portal):
             params_type="cookies",
             filename=__file__
         )
+
     def login(self):
         self.logger.debug("Iniciando sesion")
         login_url = f"{API_URL}/login"
@@ -36,9 +37,9 @@ class Lamudi(Portal):
             "password": self.password
         }
         res = requests.post(login_url, json=data)
-        if res == None:
+        if res is None:
             return
-        
+
         self.request.cookies = {
             "authToken": res.cookies["authToken"]
         }
@@ -60,7 +61,7 @@ class Lamudi(Portal):
         self.logger.debug(f"Extrayendo leads")
 
         res = self.request.make(url, 'GET')
-        if res == None:
+        if res is None:
            exit(1) 
         data = res.json()["data"]
 
@@ -80,7 +81,7 @@ class Lamudi(Portal):
             self.logger.debug(url)
 
             res = self.request.make(url, 'GET')
-            if res == None:
+            if res is None:
                 break
             data = res.json()["data"]
 
@@ -89,7 +90,7 @@ class Lamudi(Portal):
     def get_lead_property(self, lead_id):
         property_url = f"{API_URL}/leads/{lead_id}/properties"
         res = self.request.make(property_url)
-        if res == None:
+        if res is None:
             return [{
                 "titulo": "",
                 "id": "",
@@ -108,7 +109,7 @@ class Lamudi(Portal):
                 "id": p['id'],
                 "link": f"https://www.lamudi.com.mx/detalle/{p['id']}",
                 "precio": str(p["price"]["amount"]),
-                "ubicacion": p["address"], #Direccion completa
+                "ubicacion": p["address"], # Direccion completa
                 "tipo": p["propertyType"],
                 "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else "" #Solamente el municipio, lo usamos para generar el mensaje
             })
