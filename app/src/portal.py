@@ -129,7 +129,7 @@ class Portal():
 
     # Obtener solamente 10 leads para ver si está funcionando correctamente
     def test(self):
-        self.login()
+        #self.login()
 
         pool = ThreadPool(processes=20)
 

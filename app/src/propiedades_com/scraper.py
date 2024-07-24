@@ -34,7 +34,6 @@ class PropiedadesScraper(Scraper):
         })
 
     def send_message(self, msg: str, post: dict):
-        return #Esto no funciona
         data = {
             "lead_type": "1",
             "ContactForm[name]": self.sender["name"],
@@ -60,6 +59,8 @@ class PropiedadesScraper(Scraper):
         else:
             self.logger.error("Error enviando el mensaje")
             self.logger.error(res.text)
+
+        return res.json()["track"]["phone_contact"]
 
     def extract_posts(self, raw: bs4.BeautifulSoup) -> list[dict]:
         next_page_tag = raw.find("script", id="__NEXT_DATA__")

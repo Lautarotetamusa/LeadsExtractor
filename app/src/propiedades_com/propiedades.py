@@ -1,4 +1,3 @@
-from time import gmtime, strftime
 from datetime import datetime
 import json
 import os
@@ -21,12 +20,13 @@ with open("src/propiedades_com/properties.json") as f:
     PROPS = json.load(f)
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
-assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
+assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 
 #Lista de estados posibles de un lead
 #Los tomamos de la pagina
 class Status(IntEnum):
+    NUEVO = 1
     CONTACTADO = 2
     CALIFICADO = 3
     EN_PROCESO = 4
@@ -54,7 +54,7 @@ class Propiedades(Portal):
 
         while (not end) and (first == True or page != None):
             res = self.request.make(url)
-            if res == None:
+            if res is None:
                 break
             data = res.json()["leads"]
             
@@ -69,7 +69,7 @@ class Propiedades(Portal):
             if mode == Mode.NEW: #Si el modo es NEW Buscamos solamente los leads sin leer
                 leads = []
                 for lead in data["properties"]:
-                    if lead["status"] == Status.CONTACTADO:
+                    if lead["status"] != Status.NUEVO:
                         self.logger.debug("Se encontro un lead ya contactado, paramos")
                         end = True #Cuando encontramos un lead conctado paramos
                         break
@@ -79,10 +79,6 @@ class Propiedades(Portal):
                 yield data["properties"]
 
     def get_lead_info(self, raw_lead: dict) -> Lead:
-        prop = self.get_lead_property(str(raw_lead["property_id"]))
-        prop["address"] = raw_lead["address"]
-        if prop["titulo"] == "": prop["titulo"] = prop["address"]
-
         lead = Lead()
         lead.set_args({
             "fuente": self.name,
@@ -90,26 +86,28 @@ class Propiedades(Portal):
             "lead_id": str(raw_lead["id"]),
             "nombre": raw_lead.get("name", ""),
             "email": raw_lead.get("email", ""),
-            "propiedad": prop,
         })
         telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
         if not telefono:
             telefono = parse_number(self.logger, raw_lead.get("phone", ""))
         lead.telefono = telefono or lead.telefono
+
+        prop = self.get_lead_property(str(raw_lead["property_id"]))
+
+        if prop is None: # Si no tiene propiedad lo marcamos como cerrado
+            self.make_contacted(raw_lead["id"], Status.CERRADA)
+            return lead
+
+        prop["address"] = raw_lead["address"]
+        if prop["titulo"] == "": prop["titulo"] = prop["address"]
+        lead.propiedad = prop
+
         return lead
 
-    def get_lead_property(self, property_id: str):
+    def get_lead_property(self, property_id: str) -> dict | None:
         if property_id not in PROPS:
             self.logger.error(f"No se encontro la propiedad con id {property_id}")
-            return {
-                "id": "",
-                "titulo": "",
-                "link": "",
-                "precio": "",
-                "ubicacion": "",
-                "tipo": "",
-                "municipio": ""
-            }
+            return None
         data = PROPS[property_id]
 
         return {
@@ -122,8 +120,7 @@ class Propiedades(Portal):
             "municipio": data["municipality"]
         }
 
-    def make_contacted(self, id: str):
-        status: Status = Status.CONTACTADO
+    def make_contacted(self, id: str, status=Status.CONTACTADO):
         self.logger.debug(f"Marcando como {status.name} al lead {id}")
         
         url = f"{API_URL}/prod/leads/status"
@@ -135,7 +132,7 @@ class Propiedades(Portal):
         }
 
         res = self.request.make(url, "PUT", json=req)
-        if (res == None):
+        if (res is None):
             self.logger.error(f"No se pudo marcar al lead como {status.name}")
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")

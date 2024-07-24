@@ -9,25 +9,24 @@ from src.lead import Lead
 from src.numbers import parse_number 
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
-assert DATE_FORMAT != None, "DATE_FORMAT is not seted"
+assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 PARAMS = {
-        #"resolve_captcha": "true",
         "apikey": os.getenv("ZENROWS_APIKEY"),
         "url": "",
-        #"js_render": "true",
-        "antibot": "true",
+        "js_render": "true",
+        #"antibot": "true",
         "premium_proxy": "true",
         "proxy_country": "mx",
         #"session_id": 10,
         "custom_headers": "true",
         "original_status": "true",
         "autoparse": "true"
-        }
+    }
 
 def extract_busqueda_info(data: dict | None) -> dict:
-    if data == None:
+    if data is None:
         return {} 
 
     features = data.get("property_features", {})
@@ -117,7 +116,7 @@ class Inmuebles24(Portal):
             self.logger.debug(f"GET {leads_url}")
             PARAMS["url"] = leads_url
             res = self.request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
-            if res == None:
+            if res is None:
                 break
             offset += limit
 
@@ -173,7 +172,7 @@ class Inmuebles24(Portal):
             "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
             })
         #Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
-        if lead.propiedad["id"] == None:
+        if lead.propiedad["id"] is None:
             lead.fuente = "viewphone"
 
         telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
@@ -192,7 +191,7 @@ class Inmuebles24(Portal):
         PARAMS["url"] = busqueda_url
         res = self.request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
 
-        if res == None:
+        if res is None:
             self.logger.error("No se pudo obtener la informacion de busqueda para el lead: "+lead_id)
             return None
         try:
@@ -209,17 +208,20 @@ class Inmuebles24(Portal):
         self.logger.debug(f"Enviando mensaje a lead {id}")
         msg_url = f"{SITE_URL}leads-api/leads/{id}/messages"
 
-        print(message)
         data = {
                 "is_comment": False,
                 "message": message,
                 "message_attachments": []
                 }
+        print(data)
+        #is_comment=false&message=test&message_attachment=[]
 
-        PARAMS["url"] = msg_url
-        res = self.request.make(ZENROWS_API_URL, 'POST', params=PARAMS, json=data)
+        params = PARAMS.copy()
+        params["url"] = msg_url
+        #res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
+        res = requests.post(ZENROWS_API_URL, params=params, headers=self.request.headers, data=data)
 
-        if res != None and res.status_code >= 200 and res.status_code < 300:
+        if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Mensaje enviado correctamente a lead {id}")
         else:
             self.logger.error(f"Error enviando mensaje al lead {id}")
@@ -228,14 +230,15 @@ class Inmuebles24(Portal):
         status = "READ"
         status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={id}"
 
-        PARAMS["url"] = status_url
-        PARAMS["autoparse"] = False
-        res = self.request.make(ZENROWS_API_URL, 'POST', params=PARAMS)
+        params = PARAMS.copy()
+        params["url"] = status_url
+        params["autoparse"] = False
+        res = self.request.make(ZENROWS_API_URL, 'POST', params=params)
 
-        if res != None and res.status_code >= 200 and res.status_code < 300:
+        if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Se marco a lead {id} como {status}")
         else:
-            if res != None:
+            if res is not None:
                 self.logger.error(res.content)
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {id} como {status}")

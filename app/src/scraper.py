@@ -44,13 +44,11 @@ class Scraper():
     def _action(self, ad, spin_msg: str | None) -> list[str]:
         if spin_msg is not None:
             msg = generate_post_message(ad, spin_msg)
-            self.send_message(msg, ad)
+            ad["publisher"]["phone"] = self.send_message(msg, ad)
             ad["message"] = msg.replace('\n', '')
         else:
             ad["message"] = ""
 
-        if ad.get("phone") == "" or ad.get("phone") is None:
-            ad["phone"] = self.view_phone(ad)
         return self.sheet.map_lead(ad, self.headers)
 
     def main(self, spin_msg: str | None, param: str | dict):
@@ -69,7 +67,11 @@ class Scraper():
 
             for ad in page:
                 phone = ad["publisher"]["phone"]
-                if ad["phone"] == SENDER_PHONE:
+                if phone == "" or phone is None:
+                    ad["publisher"]["phone"] = self.view_phone(ad)
+                    phone = ad["publisher"]["phone"]
+
+                if phone == SENDER_PHONE:
                     self.logger.debug("Propiedad de Rebora encontrada")
                     continue
 
