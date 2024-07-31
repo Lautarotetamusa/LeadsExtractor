@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/pipedrive"
@@ -29,7 +30,7 @@ func main(){
 	if err != nil {
 		panic("Error loading .env file")
 	}
-	db := store.ConnectDB()
+	db := store.ConnectDB(context.Background())
     s := store.NewStore(db, logger) 
 
     pipedriveConfig := pipedrive.Config{
