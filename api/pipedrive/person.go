@@ -15,7 +15,7 @@ type Person struct{
     Name    string `json:"name"`
     Phone   []PersonChannel `json:"phone"`
     Email   []PersonChannel `json:"email"`
-    Owner   *User           `json:"owner_id"`
+    // Owner   *User           `json:"owner_id"`
 }
 
 type FieldOption struct{
