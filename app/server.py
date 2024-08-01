@@ -55,7 +55,7 @@ def recive_ivr_call():
 
     _, lead = api.new_communication(logger, lead)
 
-    return {}, 200
+    return lead.asesor, 200
 
 
 @app.route('/jotform', methods=['POST'])
