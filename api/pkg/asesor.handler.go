@@ -31,7 +31,7 @@ func (s *Server) GetOneAsesor(w http.ResponseWriter, r *http.Request) error {
 
 	asesor, err := s.Store.GetOneAsesor(phone)
 	if err != nil {
-		return err
+        return fmt.Errorf("no se encontro el asesor con telefono %s", phone)
 	}
 
 	dataResponse(w, asesor)

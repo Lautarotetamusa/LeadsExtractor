@@ -1,4 +1,5 @@
 // Con este script volcamos la forma en la que están asignados los leads en nuestra base de datos
+// Reasignar desde pipedrive hacia la BD
 package main
 
 import (
