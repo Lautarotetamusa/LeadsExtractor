@@ -44,22 +44,22 @@ func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB, fh *FlowHand
 func (s *Server) SetRoutes(router *mux.Router) {
 	router.Use(CORS)
 
-	router.HandleFunc("/asesor", HandleErrors(s.GetAllAsesores)).Methods("GET")
-	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET")
-	router.HandleFunc("/asesor", HandleErrors(s.InsertAsesor)).Methods("POST")
-	router.HandleFunc("/asesor/{phone}", HandleErrors(s.UpdateAsesor)).Methods("PUT")
-    router.HandleFunc("/asesor/{phone}/reasign", HandleErrors(s.Reasign)).Methods("PUT")
+	router.HandleFunc("/asesor", HandleErrors(s.GetAllAsesores)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/asesor", HandleErrors(s.InsertAsesor)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/asesor/{phone}", HandleErrors(s.UpdateAsesor)).Methods("PUT", "OPTIONS")
+    router.HandleFunc("/asesor/{phone}/reasign", HandleErrors(s.Reasign)).Methods("PUT", "OPTIONS")
 
-	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET")
-	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET")
-	router.HandleFunc("/lead", HandleErrors(s.Insert)).Methods("POST")
-	router.HandleFunc("/lead/{phone}", HandleErrors(s.Update)).Methods("PUT")
+	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/lead", HandleErrors(s.Insert)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/lead/{phone}", HandleErrors(s.Update)).Methods("PUT", "OPTIONS")
 
-	router.HandleFunc("/communication", HandleErrors(s.HandleNewCommunication)).Methods("POST")
+	router.HandleFunc("/communication", HandleErrors(s.HandleNewCommunication)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/communications", HandleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/broadcast", HandleErrors(s.NewBroadcast)).Methods("POST")
-	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST")
+	router.HandleFunc("/broadcast", HandleErrors(s.NewBroadcast)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST", "OPTIONS")
 }
 
 func (s *Server) Run(router *mux.Router) {
