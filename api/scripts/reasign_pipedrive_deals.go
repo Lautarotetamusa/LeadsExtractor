@@ -1,5 +1,3 @@
-// Reasignar desde la db, hacia pipedrive
-
 package main
 
 import (
@@ -43,14 +41,34 @@ func main(){
         os.Exit(1)
     }
 
-    for _, user := range users{
-        fmt.Printf("%#v", user)
+    // Lista de users (Asesores) para los cuales no tenenmos que reasignar
+    blackList := map[string]any{
+        "brenda.diaz@rebora.com.mx": true,
+        "hernan.guerrero@rebora.com.mx": true,
+    }
 
-        persons, err := pipe.GetUserPersons(&user)
+    // Vamos a reasignar todas las personas a este user (Hernan)
+    newOwnerId := uint32(21828798)
+
+    for _, user := range users{
+        if _, ok := blackList[user.Email]; ok {
+            continue
+        }
+        logger.Debug("Buscando deals de usuario", "userId", user.Id, "name", user.Name)
+
+        deals, err := pipe.GetUserDeals(&user)
         if err != nil {
             logger.Error(err.Error())
             os.Exit(1)
         }
-        fmt.Println(len(persons))
+        logger.Debug("Deals encontrados", "cantidad", len(deals))
+
+        for _, deal := range deals {
+            if _, err := pipe.ReasignDeal(deal.Id, newOwnerId); err != nil {
+                logger.Error(fmt.Sprintf("error actualizando deal %d, \n err=%s", deal.Id, err.Error()))
+            }else{
+                logger.Info(fmt.Sprintf("deal %d actualizado correctamente", deal.Id))
+            }
+        }
     }
 }

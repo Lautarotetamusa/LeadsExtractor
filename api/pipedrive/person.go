@@ -117,6 +117,24 @@ func (p *Pipedrive) GetPersonByNumber(number string) (*Person, error){
     return &data.Items[0].Item, nil
 }
 
+// Solamente se puede actualizar el owner_id si el id del nuevo usuario tiene los permisos necesarios
+// Los permisos se pueden ver en: https://api.pipedrive.com/v1/users/{user_id}/permissions
+// Para poder cambiar el owner de una persona tiene que tener el permiso: can_modify_owner_for_people
+func (p *Pipedrive) UpdatePersonOwner(personId uint32, newOwnerId uint32) error {
+    payload := map[string]any {
+        "owner_id": newOwnerId,
+    }
+    url := fmt.Sprintf("persons/%d", personId)
+
+    err := p.makeRequest("PUT", url, payload, nil)
+
+    if err != nil{
+        return err
+    }
+
+    return nil
+}
+
 func (p *Pipedrive) getField(id string) (*FieldOption, error){
     var field *FieldOption
 

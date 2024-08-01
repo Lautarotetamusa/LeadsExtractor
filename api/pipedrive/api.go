@@ -58,6 +58,23 @@ type Response struct{
     Data    any     `json:"data"`
 }
 
+type Pagination struct {
+    Start   int                 `json:"start"`
+    Limit	int                 `json:"limit"`
+    MoreItemsInCollection bool  `json:"more_items_in_collection"`
+    NextStart int               `json:"next_start"` 
+}
+
+type AdditionalData struct {
+    Pagination *Pagination `json:"pagination"`
+}
+
+type PaginatedResponse struct {
+    Success bool                    `json:"success"`
+    Data            []any           `json:"data"`
+    AdditionalData  *AdditionalData `json:"additional_data"`
+}
+
 func NewPipedrive(c Config, l *slog.Logger) *Pipedrive{
     client := fmt.Sprintf("%s:%s", c.ClientId, c.ClientSecret) 
     p := Pipedrive{
@@ -258,6 +275,45 @@ func (p *Pipedrive) makeRequest(method string, path string, payload any, data an
     }
     return nil
 }
+
+func (p *Pipedrive) getPaginatedData(url string, data *[]any) error {
+    moreItems := true
+    start := 0
+
+    for moreItems {
+        p.logger.Debug("getting page", "page", start)
+        url := baseUrl + fmt.Sprintf("%s&start=%d", url, start)
+
+        p.refreshToken()
+        req, err := http.NewRequest("GET", url, nil)
+        if err != nil {
+            return  err
+        }
+
+        req.Header.Add("Accept", "application/json")
+        req.Header.Add("Content-Type", "application/json") 
+        req.Header.Add("x-api-token", p.apiToken)
+
+        res, err := p.client.Do(req)
+        if err != nil {
+            return err
+        }
+        defer res.Body.Close()
+
+        var response PaginatedResponse
+        if err = json.NewDecoder(res.Body).Decode(&response); err != nil{
+            return err
+        }
+
+        moreItems = response.AdditionalData.Pagination.MoreItemsInCollection
+        start = response.AdditionalData.Pagination.NextStart
+
+        *data = append(response.Data, data)
+    }
+
+    return nil
+}
+
 
 func (p *Pipedrive) tokenApiCall(payload map[string]string) *Token{
     data := url.Values{}
