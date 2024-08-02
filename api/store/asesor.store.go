@@ -55,8 +55,17 @@ func (s *Store) GetAsesorFromEmail(email string) (*models.Asesor, error) {
 }
 
 func (s *Store) InsertAsesor(asesor *models.Asesor) error {
-	query := "INSERT INTO Asesor (name, phone, active) VALUES (:name, :phone, :active)"
+	query := `INSERT INTO Asesor (name, phone, email, active) 
+    VALUES (:name, :phone, :email, :active)`
 	if _, err := s.db.NamedExec(query, asesor); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Store) DeleteAsesor(a *models.Asesor) error {
+    query := "DELETE FROM Asesor WHERE phone = :phone"
+	if _, err := s.db.NamedExec(query, a); err != nil {
 		return err
 	}
 	return nil

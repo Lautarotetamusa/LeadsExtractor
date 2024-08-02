@@ -38,6 +38,25 @@ func (s *Server) GetOneAsesor(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func (s *Server) DeleteAsesor(w http.ResponseWriter, r *http.Request) error {
+    phone := mux.Vars(r)["phone"]
+	asesor, err := s.Store.GetOneAsesor(phone)
+	if err != nil {
+        return fmt.Errorf("no se encontro el asesor con telefono %s", phone)
+	}
+
+    if err := s.Store.DeleteAsesor(asesor); err != nil {
+		return err
+	}
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(SuccessResponse{
+        Success: true,
+        Message: "Asesor eliminado con exito",
+    })
+	return nil
+}
+
 func (s *Server) InsertAsesor(w http.ResponseWriter, r *http.Request) error {
 	var asesor models.Asesor
     defer r.Body.Close()
