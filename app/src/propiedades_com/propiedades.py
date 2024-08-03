@@ -6,16 +6,14 @@ from typing import Generator
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.numbers import parse_number
 from src.portal import Mode, Portal
 from src.lead import Lead
 
-#mis propiedades: https://propiedades.com/api/v3/property/MyProperties
-#En este archivo tenemos todas las propieades previamente extraidas
+# mis propiedades: https://propiedades.com/api/v3/property/MyProperties
+# En este archivo tenemos todas las propieades previamente extraidas
 with open("src/propiedades_com/properties.json") as f:
     PROPS = json.load(f)
 
@@ -23,8 +21,8 @@ DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 
-#Lista de estados posibles de un lead
-#Los tomamos de la pagina
+
+# Lista de estados posibles de un lead
 class Status(IntEnum):
     NUEVO = 1
     CONTACTADO = 2
@@ -52,30 +50,31 @@ class Propiedades(Portal):
         end = False
         url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
 
-        while (not end) and (first == True or page != None):
+        while (not end) and (first or page is not None):
             res = self.request.make(url)
             if res is None:
                 break
             data = res.json()["leads"]
-            
+
             page = data["page"]["next_page"]
             url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
             total = data["page"]["items"]
-            
+
             if first:
                 self.logger.debug(f"total: {total}")
                 first = False
 
-            if mode == Mode.NEW: #Si el modo es NEW Buscamos solamente los leads sin leer
+            # Si el modo es NEW Buscamos solamente los leads sin leer
+            if mode == Mode.NEW:
                 leads = []
                 for lead in data["properties"]:
                     if lead["status"] != Status.NUEVO:
                         self.logger.debug("Se encontro un lead ya contactado, paramos")
-                        end = True #Cuando encontramos un lead conctado paramos
+                        end = True
                         break
                     leads.append(lead)
                 yield leads
-            else: #SI el modo es ALL vamos a traernos todos los leads
+            else:  # SI el modo es ALL vamos a traernos todos los leads
                 yield data["properties"]
 
     def get_lead_info(self, raw_lead: dict) -> Lead:
@@ -86,20 +85,19 @@ class Propiedades(Portal):
             "lead_id": str(raw_lead["id"]),
             "nombre": raw_lead.get("name", ""),
             "email": raw_lead.get("email", ""),
+            "telefono": raw_lead.get("phone"),
         })
-        telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
-        if not telefono:
-            telefono = parse_number(self.logger, raw_lead.get("phone", ""))
-        lead.telefono = telefono or lead.telefono
 
         prop = self.get_lead_property(str(raw_lead["property_id"]))
 
-        if prop is None: # Si no tiene propiedad lo marcamos como cerrado
+        # Si no tiene propiedad lo marcamos como cerrado
+        if prop is None:
             self.make_contacted(raw_lead["id"], Status.CERRADA)
             return lead
 
         prop["address"] = raw_lead["address"]
-        if prop["titulo"] == "": prop["titulo"] = prop["address"]
+        if prop["titulo"] == "":
+            prop["titulo"] = prop["address"]
         lead.propiedad = prop
 
         return lead
@@ -122,7 +120,7 @@ class Propiedades(Portal):
 
     def make_contacted(self, id: str, status=Status.CONTACTADO):
         self.logger.debug(f"Marcando como {status.name} al lead {id}")
-        
+
         url = f"{API_URL}/prod/leads/status"
 
         req = {
@@ -140,9 +138,10 @@ class Propiedades(Portal):
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"
         options = Options()
-        options.add_argument(f"--user-data-dir={session}") #Session
-        options.add_argument(f"--headless") #Session
-        options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
+        options.add_argument(f"--user-data-dir={session}")
+        options.add_argument("--headless")
+        # Necesario para correrlo como root dentro del container
+        options.add_argument("--no-sandbox")
 
         driver = webdriver.Chrome(options=options)
 
@@ -150,7 +149,7 @@ class Propiedades(Portal):
         try:
             driver.get(login_url)
 
-            #Esperar que cargue la pagina
+            # Esperar que cargue la pagina
             WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//input[@data-gtm='text_field_email']")))
 
             username_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_email']")

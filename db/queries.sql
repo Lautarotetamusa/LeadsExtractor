@@ -213,3 +213,78 @@ where phone="5213313291761";
 update Asesor
 set active=false
 where phone="5213322563353";
+
+
+/* update phones to E.164 */
+insert into Leads (name, phone, asesor)
+values ("wppTest", "5493415854220", "+5493415854220");
+
+select * from Leads
+where phone not like "+%";
+
+update Leads 
+set phone = concat("+", phone)
+where phone not like "+%";
+
+
+select L1.name, L1.phone, L2.phone,
+IF(L1.email is NULL, L2.email, L1.email) as email,
+IF(L1.cotizacion is NULL, L2.cotizacion, L1.cotizacion) as cotizacion,
+L1.asesor
+from Leads L1
+inner join Leads L2
+    on  L1.phone like "+%"
+    and L2.phone not like "+%"
+    and L1.phone = concat("+", L2.phone);
+
+UPDATE Leads L1
+INNER JOIN Leads L2
+    ON L1.phone LIKE '+%' 
+    AND L2.phone NOT LIKE '+%' 
+    AND L1.phone = CONCAT('+', L2.phone)
+SET 
+    L1.email = IF(L1.email IS NULL, L2.email, L1.email),
+    L1.cotizacion = IF(L1.cotizacion IS NULL, L2.cotizacion, L1.cotizacion),
+    L1.asesor = L2.asesor;
+
+
+select L.phone, L2.phone from Communication C
+INNER JOIN Leads L
+    ON C.lead_phone = L.phone
+inner join Leads L2
+    on L.phone not LIKE '+%'
+    and L2.phone like "+%"
+    and L2.phone = CONCAT("+", L.phone);
+
+UPDATE Communication C
+INNER JOIN Leads L
+    ON C.lead_phone = L.phone
+INNER JOIN Leads L2
+    ON L.phone NOT LIKE '+%'
+    AND L2.phone LIKE '+%'
+    AND L2.phone = CONCAT('+', L.phone)
+SET C.lead_phone = L2.phone;
+
+delete L2
+FROM Leads L1
+INNER JOIN Leads L2
+    ON L1.phone = CONCAT('+', L2.phone)
+    AND L1.phone LIKE '+%'
+    AND L2.phone NOT LIKE '+%';
+
+select * from Communication where lead_phone not like "+%";
+
+select * from Leads where phone not like "+%";
+
+/* Actualizar los telefonos de todos los leads, aunque no estenrepetidos */
+SET FOREIGN_KEY_CHECKS = 0;
+UPDATE Communication C
+INNER JOIN Leads L
+    ON C.lead_phone = L.phone
+SET C.lead_phone = CONCAT('+', C.lead_phone)
+WHERE L.phone NOT LIKE '+%';
+
+UPDATE Leads
+SET phone = CONCAT('+', phone)
+WHERE phone NOT LIKE '+%';
+SET FOREIGN_KEY_CHECKS = 1;

@@ -1,4 +1,3 @@
-from time import gmtime, strftime
 from datetime import datetime
 import json
 import os
@@ -7,7 +6,6 @@ import uuid
 
 import requests
 
-from src.numbers import parse_number
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -58,11 +56,11 @@ class Lamudi(Portal):
             url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
         else:
             url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity"
-        self.logger.debug(f"Extrayendo leads")
+        self.logger.debug("Extrayendo leads")
 
         res = self.request.make(url, 'GET')
         if res is None:
-           exit(1) 
+            exit(1)
         data = res.json()["data"]
 
         total = data["totalFilteredRows"]
@@ -109,9 +107,10 @@ class Lamudi(Portal):
                 "id": p['id'],
                 "link": f"https://www.lamudi.com.mx/detalle/{p['id']}",
                 "precio": str(p["price"]["amount"]),
-                "ubicacion": p["address"], # Direccion completa
+                "ubicacion": p["address"],  # Direccion completa
                 "tipo": p["propertyType"],
-                "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else "" #Solamente el municipio, lo usamos para generar el mensaje
+                # Solamente el municipio, lo usamos para generar el mensaje
+                "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else ""
             })
 
         return formatted_props
@@ -122,21 +121,17 @@ class Lamudi(Portal):
             "lead_id": raw_lead["id"],
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["lastActivity"], "%Y-%m-%dT%H:%M:%SZ").strftime(DATE_FORMAT),
-            "nombre": raw_lead["name"],
+            "nombre": raw_lead.get("name"),
             "link": f"https://proppit.com/leads/{raw_lead['id']}",
-            "email": raw_lead['email'],
+            "email": raw_lead.get("email"),
             "propiedad": self.get_lead_property(raw_lead["id"])[0],
+            "telefono": raw_lead.get("phone")
         })
-
-        telefono = parse_number(self.logger, raw_lead.get("phone", ""), None)
-        if not telefono:
-            telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
-        lead.telefono = telefono or lead.telefono
         return lead
 
     def send_message(self, id, message):
         self.logger.debug(f"Enviando mensaje a lead {id}")
-        #Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
+        # Tenemos que pasarle un id del mensaje, lo generamos nosotros con uuid()
         msg_id = str(uuid.uuid4())
         msg_url = f"{API_URL}/leads/{id}/notes/{msg_id}"
 

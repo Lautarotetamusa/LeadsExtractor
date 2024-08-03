@@ -27,7 +27,7 @@ PARAMS = {
 
 def extract_busqueda_info(data: dict | None) -> dict:
     if data is None:
-        return {} 
+        return {}
 
     features = data.get("property_features", {})
     lead_info = data.get("lead_info", {})
@@ -136,13 +136,14 @@ class Inmuebles24(Portal):
             if mode == Mode.NEW: # Obtenemos todos los leads sin leer de este pagina
                 leads = []
                 for lead in data["result"]:
-                    if lead["statuses"][0] == "READ": # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
+                    # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
+                    if lead["statuses"][0] == "READ":
                         self.logger.debug("Se encontro un lead con status READ, deteniendo")
                         finish = True
                         break
-                    leads.append(lead) 
-                yield leads 
-            else: # Obtenemos todos los leads
+                    leads.append(lead)
+                yield leads
+            else:  # Obtenemos todos los leads
                 yield data["result"]
 
     def get_lead_info(self, raw_lead):
@@ -155,12 +156,13 @@ class Inmuebles24(Portal):
         lead = Lead()
         lead.set_args({
             "lead_id": raw_lead_id,
-            "contact_id": contact_id, 
+            "contact_id": contact_id,
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["last_lead_date"], "%Y-%m-%dT%H:%M:%S.%f+00:00").strftime(DATE_FORMAT),
             "nombre": raw_lead.get("lead_user", {}).get("name"),
             "link": f"{SITE_URL}panel/interesados/{contact_id}",
             "email": raw_lead.get("lead_user", {}).get("email"),
+            "telefono": raw_lead.get("phone")
             })
         lead.set_busquedas(busqueda)
         lead.set_propiedad({
@@ -174,11 +176,6 @@ class Inmuebles24(Portal):
         # Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
         if lead.propiedad["id"] is None:
             lead.fuente = "viewphone"
-
-        telefono = parse_number(self.logger, raw_lead.get("phone", ""), "MX")
-        if not telefono:
-            telefono = parse_number(self.logger, raw_lead.get("phone", ""))
-        lead.telefono = telefono or lead.telefono
 
         return lead
 
@@ -202,7 +199,11 @@ class Inmuebles24(Portal):
             return None
 
     def send_message_condition(self, lead) -> bool:
-        return "last_message" not in lead or (lead.get("last_message", {}).get("to") == self.request.headers["idUsuario"])
+        # si no hay last_message es porque no le enviaste nd
+        is_last_message = "last_message" in lead
+        message_to = lead.get("last_message", {}).get("to")
+        is_user = message_to == self.request.headers["idUsuario"]
+        return not is_last_message or is_user
 
     def send_message(self, id: str,  message: str):
         self.logger.debug(f"Enviando mensaje a lead {id}")
@@ -213,12 +214,10 @@ class Inmuebles24(Portal):
                 "message": message,
                 "message_attachments": []
                 }
-        print(data)
-        #is_comment=false&message=test&message_attachment=[]
 
         params = PARAMS.copy()
         params["url"] = msg_url
-        #res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
+        # res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
         res = requests.post(ZENROWS_API_URL, params=params, headers=self.request.headers, data=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:

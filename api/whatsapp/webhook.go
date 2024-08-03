@@ -163,7 +163,8 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Fecha: "",
         Nombre: value.Contacts[0].Profile.Name,
         Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", value.Contacts[0].WaID),
-        Telefono: value.Contacts[0].WaID,
+        // Lo ponemos en formato E.164
+        Telefono: "+"+value.Contacts[0].WaID,
         Email: models.NullString{String: ""},
         Cotizacion: "",
         Asesor: models.Asesor{},
