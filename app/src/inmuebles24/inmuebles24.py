@@ -19,7 +19,7 @@ PARAMS = {
         #"antibot": "true",
         "premium_proxy": "true",
         "proxy_country": "mx",
-        #"session_id": 10,
+        # "session_id": 10,
         "custom_headers": "true",
         "original_status": "true",
         "autoparse": "true"
@@ -103,8 +103,8 @@ class Inmuebles24(Portal):
         self.logger.success("Sesion iniciada con exito")
 
     def get_leads(self, mode=Mode.NEW):
-        status = "nondiscarded" #Este campo lo pasamos siempre
-        sort = "unread" #Los no leidos estarán primeros
+        status = "nondiscarded"  # Este campo lo pasamos siempre
+        sort = "unread"  # Los no leidos estarán primeros
         first = True
         offset = 0
         total = 0
@@ -133,16 +133,16 @@ class Inmuebles24(Portal):
                 self.logger.debug(f"Total: {total}")
                 first = False
 
-            if mode == Mode.NEW: #Obtenemos todos los leads sin leer de este pagina
+            if mode == Mode.NEW: # Obtenemos todos los leads sin leer de este pagina
                 leads = []
                 for lead in data["result"]:
-                    if lead["statuses"][0] == "READ": #Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
+                    if lead["statuses"][0] == "READ": # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
                         self.logger.debug("Se encontro un lead con status READ, deteniendo")
                         finish = True
                         break
                     leads.append(lead) 
                 yield leads 
-            else: #Obtenemos todos los leads
+            else: # Obtenemos todos los leads
                 yield data["result"]
 
     def get_lead_info(self, raw_lead):
@@ -169,9 +169,9 @@ class Inmuebles24(Portal):
             "precio": str(posting.get("price", {}).get("amount", "")),
             "ubicacion": posting.get("address", ""),
             "tipo": posting.get("real_estate_type", {}).get("name"),
-            "municipio": posting.get("location", {}).get("parent", {}).get("name", "") #Ciudad
+            "municipio": posting.get("location", {}).get("parent", {}).get("name", "") # Ciudad
             })
-        #Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
+        # Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
         if lead.propiedad["id"] is None:
             lead.fuente = "viewphone"
 
@@ -182,7 +182,7 @@ class Inmuebles24(Portal):
 
         return lead
 
-    # Get the information about the searchers of the lead
+    #  Get the information about the searchers of the lead
     def get_busqueda_info(self, lead_id) -> dict | None:
         self.logger.debug("Extrayendo la informacion de busqueda del lead: "+lead_id)
         busqueda_url = f"{SITE_URL}leads-api/publisher/contact/{lead_id}/user-profile"
@@ -243,6 +243,7 @@ class Inmuebles24(Portal):
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {id} como {status}")
         PARAMS["autoparse"] = True
+
 
 if __name__ == "__main__":
     inmuebles24 = Inmuebles24()
