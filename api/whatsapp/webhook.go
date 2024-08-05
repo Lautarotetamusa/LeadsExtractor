@@ -157,6 +157,13 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
 
     wh.logger.Info("nuevo mensaje de whatsapp recibido", "phone", value.Contacts[0].WaID, "name", value.Contacts[0].Profile.Name, "id", value.Messages[0].Id)
 
+    msg := value.Messages[0].Text.Body
+    fmt.Printf("message: %q\n", msg)
+    nonPrintables := filterNonPrintables(msg)
+    fmt.Printf("nonPrintables: %q\n", nonPrintables)
+    decoded := decodeString(nonPrintables)
+    fmt.Println(decoded)
+
     c := models.Communication {
         Fuente: "whatsapp",
         FechaLead: "",
