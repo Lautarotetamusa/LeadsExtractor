@@ -90,6 +90,7 @@ func main() {
 
 	router.HandleFunc("/pipedrive", pkg.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
 
+    router.HandleFunc("/wame", pkg.HandleErrors(webhook.GenerateWppLink)).Methods("POST", "OPTIONS")
     router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
     router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
 

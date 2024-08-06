@@ -2,14 +2,17 @@ package whatsapp
 
 import (
 	"fmt"
-	"net/url"
 	"slices"
 	"strings"
 )
 
+// Estos son los caracteres no printables
+// Se codifica un string mediante estos caracteres, tenemos 5**n bits de informacion
 var RUNES = []rune{'\u200a', '\u200b', '\u200c', '\u200d', '\u200e'}
 
 const RUNE_LEN = 3
+
+const baseLinkUrl = "https://wa.me/%s?text=%s%s"
 
 func encodeString(s string) string {
 	var encoded strings.Builder
@@ -108,58 +111,3 @@ func filterNonPrintables(msg string) string {
 	}
 	return result.String()
 }
-
-func GenerateWppLink(phone string, params string, msg string) string {
-    const baseUrl = "https://wa.me/%s?text=%s%s"
-	return fmt.Sprintf(baseUrl, phone, url.QueryEscape(encodeString(params)), msg)
-}
-
-func main() {
-    fmt.Printf("encode(110)=%q\n", encode(110))
-    fmt.Printf("encode(4)=%q\n", encode(4)) // hasta 24 lo encodeas con 2 caracteres
-    fmt.Printf("encode(24)=%q\n", encode(24)) // hasta 24 lo encodeas con 2 caracteres
-    fmt.Printf("encode(26)=%q\n", encode(25)) 
-    fmt.Printf("encode(124)=%q\n", encode(124)) // hasta 124 lo encodeas con 3 caracteres
-    fmt.Printf("encode(125)=%q\n", encode(125)) 
-    // 4 runes -> encodeas 5**4-1 = 625-1 combinaciones (alcanza para ascci)
-
-    params := "s=rebora&m=ashe&c=test"
-	encoded := encodeString(params)
-	fmt.Printf("Encoded: %q\n", encoded)
-	decoded, err := decodeString(encoded)
-    if err != nil {
-        fmt.Printf("err=%s\n", err.Error())
-    }
-	fmt.Println("Decoded:", decoded)
-    _, err = decodeString("\u200e\u200e\u200c\u200c")
-    fmt.Println("Error:", err.Error())
-    fmt.Println(GenerateWppLink("5213328092850", params, "Hola!"));
-}
-
-/*
-cedbcebcedcedbHola!
-cedbcebcedcedb
-cebacccbcbeecbdececacccbccab
-
-d -> b
-b -> a
-e -> c 
-b -> c |
-
-https://wa.me/5213328092850?text=hola%5Cu200b%5Cu200a%5Cu200ahola
-
-\u200c\u200c\u200e\u200d\u200b\u200c\u200e\u200a\u200bHola!
-
-\u200c\u200e\u200d\u200b\u200c\u200e\u200b
-\u200c\u200e\u200d\u200b\u200c\u200e\u200a\u200b
-%E2%80%8C%E2%80%8E%E2%80%8D%E2%80%8B%E2%80%8C%E2%80%8E%E2%80%8A%E2%80%8BHola%21
-
-\u200c\u200e\u200d\u200b\u200c\u200e \u200bHola
-\u200c\u200e\u200d\u200b\u200c\u200e\u200b
-
-
-
-\u200c\u200e\u200d\u200b\u200c\u200e\u200a\u200b
-\u200c\u200e\u200d\u200b\u200c\u200e      \u200b
-\u200c\u200c\u200e\u200d\u200b\u200c\u200e\u200a\u200b
-*/

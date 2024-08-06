@@ -21,6 +21,12 @@ type NotificationPayload struct {
     Entries     []Entry  `json:"entry"`
 }
 
+type NewLinkPayload struct {
+    To      string            `json:"to"`
+    Msg     string            `json:"msg"`
+    Params  map[string]string `json:"params"` 
+}
+
 type Entry struct {
     ID      string   `json:"id"`
     Changes []Change `json:"changes"`
@@ -86,6 +92,25 @@ func NewWebhook(token string, l *slog.Logger) *Webhook{
         logger: l.With("module", "webhook"),
         token: token,
     }
+}
+
+func (wh *Webhook) GenerateWppLink(w http.ResponseWriter, r *http.Request) error {
+    defer r.Body.Close()
+    var payload NewLinkPayload
+    if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+        wh.logger.Error("error parseando el payload", "err", err.Error())
+        return err
+    }
+
+    params := url.Values{}
+    for k, v := range payload.Params {
+        params.Add(k, v)
+    }
+
+    encodedParams := url.QueryEscape(encodeString(params.Encode()))
+    link := fmt.Sprintf(baseLinkUrl, payload.To, encodedParams, payload.Msg)
+    w.Write([]byte(link))
+    return nil
 }
 
 func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) error {
