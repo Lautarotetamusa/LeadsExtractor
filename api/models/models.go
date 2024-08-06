@@ -143,6 +143,6 @@ type Communication struct {
 	Asesor     Asesor    `json:"asesor"`
 	Propiedad  Propiedad `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
-    Utm        Utm       
+    Utm        Utm       `json:"utm"` 
     IsNew      bool      `json:"is_new" db:"new_lead"`
 }
