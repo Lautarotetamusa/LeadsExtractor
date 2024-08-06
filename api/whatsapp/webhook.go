@@ -198,7 +198,6 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Medium:     models.NullString{String: params.Get("m"), Valid: true}, 
         Campaign:   models.NullString{String: params.Get("c"), Valid: true}, 
     }
-    fmt.Printf("%#v\n", utm)
 
     c := models.Communication {
         Fuente: "whatsapp",

@@ -127,7 +127,6 @@ func (p *Pipedrive) GetUsers() ([]User, error){
 }
 
 func (p *Pipedrive) GetUserByEmail(email string) (*User, error){
-    fmt.Printf("|%s|\n", email);
     var users []User
     url := fmt.Sprintf("users/find?term=%s&search_by_email=1", email)
 
