@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"leadsextractor/models"
 	"strings"
 	"time"
@@ -132,13 +133,18 @@ func (q *Query) buildPagination(params *QueryParam) {
 }
 
 func (s *Store) InsertCommunication(c *models.Communication, source *models.Source) error {
-	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
-    VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
+	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, utm_source, utm_medium, utm_campaign, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
+    VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :utm_source, :utm_medium, :utm_campaign, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
+    fmt.Printf("%#v\n", c.Utm)
+
     _, err := s.db.NamedExec(query, map[string]interface{}{
 		"lead_phone":  c.Telefono,
 		"source_id":   source.Id,
 		"new_lead":    c.IsNew,
-		"lead_date":   c.FechaLead,
+        "lead_date":   c.FechaLead,  
+        "utm_source":  c.Utm.Source,
+        "utm_medium":  c.Utm.Medium,
+        "utm_campaign":c.Utm.Campaign,
 		"url":         c.Link,
 		"zones":       c.Busquedas.Zonas,
 		"mt2_terrain": c.Busquedas.TotalArea,

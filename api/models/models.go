@@ -122,6 +122,12 @@ type Busquedas struct {
     Recamaras        NullString `json:"recamaras" db:"rooms"`
 }
 
+type Utm struct {
+    Source      NullString   `json:"utm_source" db:"utm_source"`
+    Medium      NullString   `json:"utm_medium" db:"utm_medium"`
+    Campaign    NullString   `json:"utm_campaign" db:"utm_campaign"`
+}
+
 //Este es el objecto que recibimos del python script
 type Communication struct {
     Fuente     string    `json:"fuente" db:"fuente"`
@@ -137,5 +143,6 @@ type Communication struct {
 	Asesor     Asesor    `json:"asesor"`
 	Propiedad  Propiedad `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
+    Utm        Utm       
     IsNew      bool      `json:"is_new" db:"new_lead"`
 }

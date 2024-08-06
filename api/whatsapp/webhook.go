@@ -6,6 +6,7 @@ import (
 	"leadsextractor/models"
 	"log/slog"
 	"net/http"
+	"net/url"
 )
 
 type Webhook struct {
@@ -95,8 +96,8 @@ func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) e
         return err
     }
 
-    for i, _ := range payload.Entries {
-        wh.entries <- payload.Entries[i]
+    for _, e := range payload.Entries {
+        wh.entries <- e
     }
 
     w.WriteHeader(http.StatusOK)
@@ -152,17 +153,27 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         for _, e := range value.Errors {
             wh.logger.Error(e.Message, "code", e.Code, "title", e.Title)
         }
-        return nil, fmt.Errorf("%s - %s", value.Errors[0].Code, value.Errors[0].Message)
+        return nil, fmt.Errorf("%d - %s", value.Errors[0].Code, value.Errors[0].Message)
     }
 
     wh.logger.Info("nuevo mensaje de whatsapp recibido", "phone", value.Contacts[0].WaID, "name", value.Contacts[0].Profile.Name, "id", value.Messages[0].Id)
 
     msg := value.Messages[0].Text.Body
-    fmt.Printf("message: %q\n", msg)
     nonPrintables := filterNonPrintables(msg)
-    fmt.Printf("nonPrintables: %q\n", nonPrintables)
-    decoded := decodeString(nonPrintables)
-    fmt.Println(decoded)
+    decoded, err := decodeString(nonPrintables)
+    if err != nil {
+        wh.logger.Error("Error decoding non printables", "err", err.Error())
+    }
+    params, err := url.ParseQuery(decoded)
+    if err != nil {
+        wh.logger.Error("Error decoding params in url", "err", err.Error())
+    }
+    utm := models.Utm{
+        Source:     models.NullString{String: params.Get("s"), Valid: true}, 
+        Medium:     models.NullString{String: params.Get("m"), Valid: true}, 
+        Campaign:   models.NullString{String: params.Get("c"), Valid: true}, 
+    }
+    fmt.Printf("%#v\n", utm)
 
     c := models.Communication {
         Fuente: "whatsapp",
@@ -170,6 +181,7 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Fecha: "",
         Nombre: value.Contacts[0].Profile.Name,
         Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", value.Contacts[0].WaID),
+        Utm: utm,
         // Lo ponemos en formato E.164
         Telefono: "+"+value.Contacts[0].WaID,
         Email: models.NullString{String: ""},

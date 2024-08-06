@@ -3,10 +3,11 @@ package whatsapp
 import (
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 )
 
-var NON_PRINTABLES = []string{"\u200a", "\u200b", "\u200c", "\u200d", "\u200e"}
+var RUNES = []rune{'\u200a', '\u200b', '\u200c', '\u200d', '\u200e'}
 
 const RUNE_LEN = 3
 
@@ -27,40 +28,45 @@ func encodeString(s string) string {
 }
 
 // Decodifica una cadena de caracteres no imprimibles a una cadena de caracteres imprimibles.
-func decodeString(s string) string {
+func decodeString(s string) (string, error) {
 	var decoded strings.Builder
 	i := 0
 
 	for i < len(s) {
 		// Decodifica el prefijo para obtener la longitud del carácter codificado
+        if (i+RUNE_LEN > len(s)){
+            return "", fmt.Errorf("decoded string out of index")
+        }
+
 		lengthStr := s[i : i+RUNE_LEN]
 		length := decode(lengthStr)
-		i+=RUNE_LEN
-        fmt.Println(length)
-
 		if length == -1 {
-			break
+            return "", fmt.Errorf("error decoding runes %q", lengthStr)
 		}
+		i += RUNE_LEN
 
         strLen := (length+1)*RUNE_LEN
+        if (i+strLen > len(s)){
+            return "", fmt.Errorf("decoded string out of index")
+        }
 		encodedChar := s[i : i+strLen]
 		decodedChar := decode(encodedChar)
-        fmt.Printf("%d:%d | %q = %q\n", i, i+strLen, encodedChar, decodedChar)
-		if decodedChar != -1 {
-			decoded.WriteRune(rune(decodedChar))
+		if decodedChar == -1 {
+            return "", fmt.Errorf("error decoding runes %q", encodedChar)
 		}
+		decoded.WriteRune(rune(decodedChar))
 		i += strLen
 	}
 
-	return decoded.String()
+	return decoded.String(), nil
 }
 
 func encode(num int) string {
-	base := len(NON_PRINTABLES)
+	base := len(RUNES)
 	var output strings.Builder
 
 	for num > 0 {
-		output.WriteString(NON_PRINTABLES[num%base])
+		output.WriteString(string(RUNES[num%base]))
 		num /= base
 	}
 
@@ -73,13 +79,13 @@ func encode(num int) string {
 }
 
 func decode(s string) int {
-	base := len(NON_PRINTABLES)
+	base := len(RUNES)
 	output := 0
 
 	for _, char := range s {
 		idx := -1
-		for j, np := range NON_PRINTABLES {
-			if np == string(char) {
+		for j, np := range RUNES {
+			if np == char {
 				idx = j
 				break
 			}
@@ -96,9 +102,9 @@ func decode(s string) int {
 func filterNonPrintables(msg string) string {
 	var result strings.Builder
 	for _, char := range msg {
-		if strings.ContainsRune(strings.Join(NON_PRINTABLES, ""), char) {
+        if slices.Contains(RUNES, char) {
 			result.WriteRune(char)
-		}
+        }
 	}
 	return result.String()
 }
@@ -117,11 +123,16 @@ func main() {
     fmt.Printf("encode(125)=%q\n", encode(125)) 
     // 4 runes -> encodeas 5**4-1 = 625-1 combinaciones (alcanza para ascci)
 
-    params := "test=rebora1&panel=ashe"
+    params := "s=rebora&m=ashe&c=test"
 	encoded := encodeString(params)
 	fmt.Printf("Encoded: %q\n", encoded)
-	decoded := decodeString(encoded)
+	decoded, err := decodeString(encoded)
+    if err != nil {
+        fmt.Printf("err=%s\n", err.Error())
+    }
 	fmt.Println("Decoded:", decoded)
+    _, err = decodeString("\u200e\u200e\u200c\u200c")
+    fmt.Println("Error:", err.Error())
     fmt.Println(GenerateWppLink("5213328092850", params, "Hola!"));
 }
 
