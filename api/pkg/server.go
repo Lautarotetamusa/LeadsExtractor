@@ -63,7 +63,7 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST", "OPTIONS")
 
     //Metrics
-	router.HandleFunc("/metrics/new_leads", HandleErrors(s.HandleGetNewLeadsMetric)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/metrics", HandleErrors(s.HandleMetrics)).Methods("GET", "OPTIONS")
 }
 
 func (s *Server) Run(router *mux.Router) {
