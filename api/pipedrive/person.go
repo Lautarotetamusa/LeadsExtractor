@@ -53,7 +53,7 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         "owner_id": ownerId,
         "visible_to": "3", //visible para todos
         "phone": PersonChannel{
-            Value: c.Telefono,
+            Value: c.Telefono.String(),
             Primary: true,
         },
         customFields["fuente"]: fuenteOptions[c.Fuente],

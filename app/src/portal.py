@@ -9,7 +9,6 @@ from src.make_requests import Request
 from src.logger import Logger
 from src.message import format_msg
 import src.api as api
-from src.numbers import parse_number
 
 from enum import IntEnum
 
@@ -79,17 +78,6 @@ class Portal():
     def login(self):
         pass
 
-    def parse_phone(self, phone: str) -> str:
-        telefono = parse_number(self.logger, phone, None)
-        if not telefono:
-            telefono = parse_number(self.logger, phone, "MX")
-        if telefono is not None and len(telefono) > 0 and telefono[0] == "+":
-            telefono.replace("+", "")
-        if phone is not None and len(phone) > 0 and phone[0] == "+":
-            phone.replace("+", "")
-
-        return telefono or phone
-
     def main(self):
         for page in self.get_leads(Mode.NEW):
             for lead_res in page:
@@ -99,8 +87,6 @@ class Portal():
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
                     self.make_contacted(lead_res[self.contact_id_field])
                     continue
-
-                lead.telefono = self.parse_phone(lead.telefono)
 
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead is None:
@@ -135,7 +121,6 @@ class Portal():
                 if lead.telefono is None or lead.telefono == "":
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
                     continue
-                lead.telefono = self.parse_phone(lead.telefono)
 
                 is_new, lead = api.new_communication(self.logger, lead)
                 self.logger.debug(count)
@@ -164,7 +149,6 @@ class Portal():
                 if lead.telefono is None or lead.telefono == "":
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
                     continue
-                lead.telefono = self.parse_phone(lead.telefono)
 
                 api.new_communication(self.logger, lead)
                 lead.print()

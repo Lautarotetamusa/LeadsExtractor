@@ -6,7 +6,6 @@ import requests
 
 from src.portal import Mode, Portal
 from src.lead import Lead
-from src.numbers import parse_number 
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"

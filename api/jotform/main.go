@@ -111,7 +111,7 @@ func (j *Jotform) SubmitForm(c *models.Communication, f *Form) error {
         "emailCliente": email,
         "escribaUna": c.Asesor.Name,
         "email123": c.Asesor.Email,
-        "numeroDe[full]": c.Asesor.Phone,
+        "numeroDe[full]": c.Asesor.Phone.String(),
         "pagoInicial": "2,500,000",
         "pagoInicial118": "25%",
         "aCuantos": "16+meses",

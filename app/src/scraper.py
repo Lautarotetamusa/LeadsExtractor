@@ -75,12 +75,13 @@ class Scraper():
                     self.logger.debug("Propiedad de Rebora encontrada")
                     continue
 
-                if phone in occurences:
-                    occurences[phone] += 1
+                id = ad["id"]
+                if id in occurences:
+                    occurences[id] += 1
                 else:
-                    occurences[phone] = 0
+                    occurences[id] = 0
 
-                if occurences[phone] > max_messages:
+                if occurences[id] > max_messages:
                     self.logger.debug(f"Maxima cantidad de mensajes enviados para {phone}")
                     continue
 

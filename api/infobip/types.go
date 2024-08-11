@@ -1,6 +1,7 @@
 package infobip
 
 import (
+	"leadsextractor/numbers"
 	"log/slog"
 	"net/http"
 )
@@ -34,7 +35,7 @@ type SendTemplatesPayload struct{
 }
 
 type PhoneContact struct{
-    Number string `json:"number"`
+    Number numbers.PhoneNumber `json:"number"`
 }
 type EmailContact struct{
     Address string `json:"address,omitempty"`

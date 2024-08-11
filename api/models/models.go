@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"leadsextractor/numbers"
 	"reflect"
 )
 
@@ -137,7 +138,7 @@ type Communication struct {
     Fecha      string    `json:"fecha" db:"created_at"`
     Nombre     string    `json:"nombre" db:"name"`
     Link       string    `json:"link" db:"url"`
-    Telefono   string    `json:"telefono" db:"phone"`
+    Telefono   numbers.PhoneNumber    `json:"telefono" db:"phone"`
     Email      NullString `json:"email" db:"email"`
 	Cotizacion string    `json:"cotizacion"`
 	Asesor     Asesor    `json:"asesor"`

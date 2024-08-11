@@ -2,7 +2,9 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"leadsextractor/models"
+	"leadsextractor/numbers"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -20,9 +22,12 @@ func (s *Server) GetAll(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) GetOne(w http.ResponseWriter, r *http.Request) error {
-	phone := mux.Vars(r)["phone"]
+	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
+    if err != nil {
+        return fmt.Errorf("el numero %s no es un telefono valido", phone)
+    }
 
-	lead, err := s.Store.GetOne(phone)
+	lead, err := s.Store.GetOne(*phone)
 	if err != nil {
 		return err
 	}
@@ -53,7 +58,10 @@ func (s *Server) Insert(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *Server) Update(w http.ResponseWriter, r *http.Request) error {
-	phone := mux.Vars(r)["phone"]
+	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
+    if err != nil {
+        return fmt.Errorf("el numero %s no es un telefono valido", phone.String())
+    }
 
 	var updateLead models.UpdateLead
 	if err := json.NewDecoder(r.Body).Decode(&updateLead); err != nil {
@@ -61,7 +69,7 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	lead := models.Lead{
-		Phone: phone,
+		Phone: *phone,
 		Name:  updateLead.Name,
 		Email: updateLead.Email,
 	}
@@ -71,7 +79,7 @@ func (s *Server) Update(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-    if err := s.Store.Update(&lead, phone); err != nil {
+    if err := s.Store.Update(&lead, *phone); err != nil {
 		return err
 	}
 

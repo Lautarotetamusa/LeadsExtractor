@@ -86,7 +86,7 @@ func (s *Server) Reasign(w http.ResponseWriter, r *http.Request) error {
     }
     asesorReasignado.Active = false
 
-    if err = s.Store.UpdateAsesor(asesorReasignado.Phone, asesorReasignado); err != nil {
+    if err = s.Store.UpdateAsesor(asesorReasignado); err != nil {
         return fmt.Errorf("no fue posible actualizar al asesor")
     }
 
@@ -131,7 +131,7 @@ func (s *Server) UpdateAsesor(w http.ResponseWriter, r *http.Request) error {
 
     updateFields(asesor, updateAsesor)
 
-    if err := s.Store.UpdateAsesor(phone, asesor); err != nil {
+    if err := s.Store.UpdateAsesor(asesor); err != nil {
 		return err
 	}
 

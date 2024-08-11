@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
+	"leadsextractor/numbers"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -198,6 +199,11 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Medium:     models.NullString{String: params.Get("m"), Valid: true}, 
         Campaign:   models.NullString{String: params.Get("c"), Valid: true}, 
     }
+    
+    phone, err := numbers.NewPhoneNumber(value.Contacts[0].WaID)
+    if err != nil {
+        return nil, fmt.Errorf("Error parsing whatsapp number: %s", value.Contacts[0].WaID)
+    }
 
     c := models.Communication {
         Fuente: "whatsapp",
@@ -206,8 +212,7 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Nombre: value.Contacts[0].Profile.Name,
         Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", value.Contacts[0].WaID),
         Utm: utm,
-        // Lo ponemos en formato E.164
-        Telefono: "+"+value.Contacts[0].WaID,
+        Telefono: *phone,
         Email: models.NullString{String: ""},
         Cotizacion: "",
         Asesor: models.Asesor{},

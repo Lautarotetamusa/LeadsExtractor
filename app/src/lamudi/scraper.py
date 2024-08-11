@@ -176,18 +176,21 @@ class LamudiScraper(Scraper):
 
 
 if __name__ == "__main__":
-    url = "https://www.lamudi.com.mx/jalisco/guadalajara/casa/for-sale/?minPrice=10000000"
-    msg = """Hola! {nombre}, como estás? 
-Veo que tienes publicaciones en {ubicacion} y nosotros tenemos casas en Pre-venta para tu cartera de clientes en esa misma zona y zonas cercanas. Me interesa hacer una alianza con {nombre}.
+    url = "https://www.lamudi.com.mx/jalisco/zapopan/terreno/for-sale/?minPrice=3500000"
+    url = "https://www.lamudi.com.mx/jalisco/tlajomulco-de-zuniga/terreno/for-sale/?minPrice=3500000"
+    url = "https://www.lamudi.com.mx/jalisco/guadalajara/terreno/for-sale/?minPrice=3500000"
 
-Soy Gerente comercial de Rebora Arquitectos y ofrecemos el 2.5% a la firma de contrato de anticipo (A diferencia de una propiedad terminada que es 50% al inicio y 50% a la escritura). Por favor visita: rebora.com.mx/socios-comerciales/ o dejo mi numero de WhatsApp: 33 2809 2850.
+    msg = """¡Hola! {nombre}, ¿cómo estás?
 
-Beneficios de nuestro programa de socios comerciales:
+He visto que tienes publicaciones de terrenos en {ubicacion} y nosotros construimos casas de lujo que podrían interesar a tu cartera de clientes en esa zona y áreas cercanas. Me gustaría explorar una alianza contigo .
 
-•⁠  ⁠Aumenta en un 50% tus ingresos anuales, al mostrarles a tus clientes la casa que están buscando.
-•⁠  ⁠Diversifica tus ingresos con tu cartera actual de clientes.
-•⁠  ⁠Cierra tu primera operación tan rápido como en un mes.
+Soy  Gerente Comercial de Rebora Arquitectos. Ofrecemos un 2.5% a la firma de contrato de anticipo (a diferencia de una propiedad terminada, que es 50% al inicio y 50% a la escritura). Para más detalles, por favor visita rebora.com.mx/socios-comerciales/ o contáctame por WhatsApp: 33 2809 2850.
 
-•⁠  ⁠Marcelo Michel"""
+Sabemos que esta alianza puede tener grandes beneficios para ti, tu cliente y nosotros , durante el mes de Julio y Agosto te obsequiamos una bolsa Louis Vuitton (3 modelos a escoger) o un iPhone 15 Pro Max de 1 TB por cada contrato cerrado.
+
+¿Cómo lo ves? ¿Qué día podemos agendar una cita?
+
+Saludos, Gerencia Comercial"""
+
     scraper = LamudiScraper()
     scraper.main(msg, url)

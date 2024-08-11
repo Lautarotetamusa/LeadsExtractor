@@ -12,11 +12,6 @@ class Lead():
         self.message = ""
         self.estado = ""
         self.cotizacion = ""
-        self.asesor = {
-            "name": "",
-            "phone": "",
-            "email": "",
-        }
         self.propiedad = {
             "id": "",
             "titulo": "",

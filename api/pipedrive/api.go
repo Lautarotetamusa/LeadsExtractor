@@ -119,7 +119,7 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
     }
     p.logger.Debug(fmt.Sprintf("Asesor: %v", asesor))
 
-    person, err := p.GetPersonByNumber(c.Telefono)
+    person, err := p.GetPersonByNumber(c.Telefono.String())
     if err != nil{
         p.logger.Warn("No se encontro al asesor", "err", err)
         p.logger.Debug("Creando asesor en PipeDrive")

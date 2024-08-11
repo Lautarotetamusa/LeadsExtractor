@@ -122,7 +122,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
             }
 
             msg := pkg.FormatMsg(param.Text, c)
-            wpp.SendMessage(c.Telefono, msg)
+            wpp.SendMessage(c.Telefono.String(), msg)
             return nil
         },
         reflect.TypeOf(flow.SendWppTextParam{}),
@@ -138,7 +138,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
             for i := range payload.Components {
                 payload.Components[i].ParseParameters(c)
             }
-            wpp.SendTemplate(c.Telefono, *payload)
+            wpp.SendTemplate(c.Telefono.String(), *payload)
             return nil
         },
         reflect.TypeOf(whatsapp.TemplatePayload{}), 
@@ -153,9 +153,9 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
             fmt.Printf("%v\n", payload)
             if payload.Image != nil && payload.Video == nil {
-                wpp.SendImage(c.Telefono, payload.Image.Id)
+                wpp.SendImage(c.Telefono.String(), payload.Image.Id)
             }else if payload.Video != nil && payload.Image == nil {
-                wpp.SendVideo(c.Telefono, payload.Video.Id)
+                wpp.SendVideo(c.Telefono.String(), payload.Video.Id)
             }else{
                 return fmt.Errorf("parameters 'image' or 'video' not found in wpp.media")
             }
@@ -192,7 +192,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
             }
 
             wpp.Send(whatsapp.NewDocumentPayload(
-                c.Telefono,
+                c.Telefono.String(),
                 c.Cotizacion,
                 caption,
                 fmt.Sprintf("Cotizacion para %s", c.Nombre),
@@ -204,7 +204,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.send_message_asesor", 
 		func(c *models.Communication, params interface{}) error {
-            wpp.SendMsgAsesor(c.Asesor.Phone, c, c.IsNew)
+            wpp.SendMsgAsesor(c.Asesor.Phone.String(), c, c.IsNew)
             return nil
         },
         nil,
@@ -212,7 +212,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.send_image", 
 		func(c *models.Communication, params interface{}) error {
-            wpp.SendImage(c.Telefono, os.Getenv("WHATSAPP_IMAGE_ID"))
+            wpp.SendImage(c.Telefono.String(), os.Getenv("WHATSAPP_IMAGE_ID"))
             return nil
         },
         nil,
@@ -220,7 +220,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.send_video", 
 		func(c *models.Communication, params interface{}) error {
-            wpp.SendVideo(c.Telefono, os.Getenv("WHATSAPP_VIDEO_ID"))
+            wpp.SendVideo(c.Telefono.String(), os.Getenv("WHATSAPP_VIDEO_ID"))
             return nil
         },
         nil,
@@ -228,7 +228,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
 
     flow.DefineAction("wpp.send_response", 
             func(c *models.Communication, params interface{}) error {
-            wpp.SendResponse(c.Telefono, &c.Asesor)
+            wpp.SendResponse(c.Telefono.String(), &c.Asesor)
             return nil
         },
         nil,
@@ -243,7 +243,7 @@ func defineActions(wpp *whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, in
                     Text: c.Nombre,
                 }},
             }}
-            wpp.Send(whatsapp.NewTemplatePayload(c.Telefono, "broadcast_1", components))
+            wpp.Send(whatsapp.NewTemplatePayload(c.Telefono.String(), "broadcast_1", components))
             return nil
         },
         nil,

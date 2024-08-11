@@ -229,7 +229,7 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 	params := []string{
 		c.Nombre,
 		c.Fuente,
-		c.Telefono,
+		c.Telefono.String(),
         c.Email.String,
 		c.FechaLead,
 		c.Link,

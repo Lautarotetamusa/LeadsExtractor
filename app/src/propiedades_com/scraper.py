@@ -49,10 +49,11 @@ class PropiedadesScraper(Scraper):
             "lead_source": "1",
         }
 
-        res = requests.post(URL_SEND, json=data)
-        if not res.ok:
+        res = self.request.make(URL_SEND, 'POST', json=data)
+        if res is None or not res.ok:
             self.logger.error("Error enviando el mensaje")
-            self.logger.error(res.text)
+            return
+            #self.logger.error(res.text)
         data = res.json()
         if "success" in data:
             self.logger.success(f"Mensaje enviado con exito")
@@ -133,13 +134,26 @@ class PropiedadesScraper(Scraper):
                 self.logger.debug(f"Total pages: {last_page}")
     
             posts = self.extract_posts(soup)
+            print(len(posts))
             page += 1
 
             yield posts
 
 if __name__ == "__main__":
-    msg = "hola"
     url = "https://propiedades.com/guadalajara-centro-guadalajara/residencial-renta"
+    url = "https://propiedades.com/zapopan/terrenos-comerciales-venta?pagina=1#remates=2&precio-min=3500000"
+
+    msg = """¡Hola! {nombre}, ¿cómo estás?
+
+He visto que tienes publicaciones de terrenos en {ubicacion} y nosotros construimos casas de lujo que podrían interesar a tu cartera de clientes en esa zona y áreas cercanas. Me gustaría explorar una alianza contigo .
+
+Soy  Gerente Comercial de Rebora Arquitectos. Ofrecemos un 2.5% a la firma de contrato de anticipo (a diferencia de una propiedad terminada, que es 50% al inicio y 50% a la escritura). Para más detalles, por favor visita rebora.com.mx/socios-comerciales/ o contáctame por WhatsApp: 33 2809 2850.
+
+Sabemos que esta alianza puede tener grandes beneficios para ti, tu cliente y nosotros , durante el mes de Julio y Agosto te obsequiamos una bolsa Louis Vuitton (3 modelos a escoger) o un iPhone 15 Pro Max de 1 TB por cada contrato cerrado.
+
+¿Cómo lo ves? ¿Qué día podemos agendar una cita?
+
+Saludos, Gerencia Comercial"""
 
     scraper = PropiedadesScraper()
     scraper.main(msg, url)

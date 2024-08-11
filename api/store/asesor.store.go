@@ -71,7 +71,7 @@ func (s *Store) DeleteAsesor(a *models.Asesor) error {
 	return nil
 }
 
-func (s *Store) UpdateAsesor(phone string, asesor *models.Asesor) error {
+func (s *Store) UpdateAsesor(asesor *models.Asesor) error {
 	query := `
     UPDATE Asesor 
     SET name=:name, 

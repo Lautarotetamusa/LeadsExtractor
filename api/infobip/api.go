@@ -100,7 +100,7 @@ func Communication2Infobip(c *models.Communication) *InfobipLead{
             Contacted: false,
             Fuente: c.Fuente,
             AsesorName: c.Asesor.Name,
-            AsesorPhone: c.Asesor.Phone,
+            AsesorPhone: c.Asesor.Phone.String(),
             FechaLead: c.FechaLead,
         },
         ContactInformation: contactInformation,
