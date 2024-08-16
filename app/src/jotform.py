@@ -17,6 +17,64 @@ assert FORM_ID != "" and FORM_ID != None, "JOTFORM_FORM_ID is not in enviroment"
 API_URL = "https://api.jotform.com"
 PDF_URL = "https://www.jotform.com/pdf-submission/{submissionID}"
 
+headers = {
+      'Origin': 'https://www.jotform.com',
+      'Referer': 'https://www.jotform.com/tables/242244461116044',
+      'Cookie': '_gj=f61b1aa461bf9b4097b50d92eeaedf345f17fd4a; hblid=idwBHlnuFAtmmILH0v5z60SC12AOKoCK; olfsk=olfsk9475756384112493; FORM_last_folder=allForms; g_state={"i_p":1724073586229,"i_l":3}; SHEET_last_folder=sheets; guest=guest_e5687c44184f0a37; JOTFORM_SESSION=5b169e0f-247f-b44d-3962-00657606; userReferer=https%3A%2F%2Fwww.jotform.com%2F; JF_SESSION_USERNAME=Diego_torres; last_edited_v4_form=242244461116044; DOCUMENT_last_folder=documents; limitAlignment=left_alt; wcsid=tYMhRbpYz3vdg7VA0v5z60SCKKA1B2C1; _oklv=1723802295242%2CtYMhRbpYz3vdg7VA0v5z60SCKKA1B2C1; _okdetect=%7B%22token%22%3A%2217238016935230%22%2C%22proto%22%3A%22about%3A%22%2C%22host%22%3A%22%22%7D; navLang=en-US; _okbk=cd5%3Davailable%2Ccd4%3Dtrue%2Cvi5%3D0%2Cvi4%3D1723801693894%2Cvi3%3Dactive%2Cvi2%3Dfalse%2Cvi1%3Dfalse%2Ccd8%3Dchat%2Ccd6%3D0%2Ccd3%3Dfalse%2Ccd2%3D0%2Ccd1%3D0%2C; _ok=4728-686-10-5570'
+}
+
+def get_img_data(img_url: str) -> bytes | None:
+    res = requests.get(img_url)
+    if not res.ok:
+        return None
+
+    return res.content
+
+# TODO: Esto solo sirve para este formulario
+# TODO: Podría procesar multiples imagenes en una peticion
+def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, img_name):
+    url = f"https://www.jotform.com/API/sheets/{form_id}/form/{form_id}/submission/{submission_id}/files?from=sheets"
+    payload = {
+        'submissionID': submission_id, 
+        'qid': qid
+    }
+    files = [
+      ('uploadedFile[]',(f"{img_name}.jpg", img_data, 'image/jpeg'))
+    ]
+
+    res = requests.post(url, headers=headers, data=payload, files=files)
+    if not res.ok:
+        return None
+
+    data = res.json()
+    return data
+
+def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor) -> dict | None:
+    url = f"https://api.jotform.com/form/{form_id}/submissions?apiKey={API_KEY}"
+    data = {
+            "10": data["title"],
+            "11": data["price"],
+            "12": data["type"],
+            "13": asesor["name"],
+            "14": asesor["phone"],
+            "15": asesor["email"], 
+            "17": data["building_size"],
+            "18": data["size"],
+            "19": data["antiguedad"],
+            "20": data["url"],
+            "21": data["currency"],
+            "22": data["location"]["zone"]
+    }
+
+    res = requests.post(url, json=data)
+
+    if res.ok:
+        logger.success('Solicitud exitosa')
+        data = res.json()
+        return data
+    else:
+        logger.error('Error en la solicitud:' + res.text)
+        return None
 
 def generate_url(logger: Logger, lead: Lead) -> tuple[str, str | None]:
     if lead.asesor['email'] is None or lead.asesor['email'] == "":
@@ -81,6 +139,21 @@ def generate_url(logger: Logger, lead: Lead) -> tuple[str, str | None]:
     url = urllib.parse.urljoin(url, '?' + urllib.parse.urlencode(params))
     return url, None
 
+def generate_pdf(form_id: str, submission_id: str):
+    url = "https://www.jotform.com/API/sheets/generatePDF"
+    params = {
+        "formid": form_id,
+        "submissionid":submission_id,
+        #"reportid": ,
+        #"sheetID": ,
+    }
+    
+    res = requests.get(url, params=params, headers=headers)
+    if res.ok:
+        data = res.json()
+        return data
+    else:
+        return None
 
 # Devuelve un link al PDF creado
 def new_submission(logger: Logger, lead: Lead) -> [str, str | None]:
@@ -159,7 +232,6 @@ def get_questions_form(logger: Logger, form_id: str = FORM_ID):
     if res.ok:
         logger.success('Solicitud exitosa')
         data = res.json()
-        print(data)
         return data
     else:
         logger.error('Error en la solicitud:' + res.text)

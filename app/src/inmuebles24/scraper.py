@@ -8,13 +8,18 @@ import string
 import random
 import json
 import os
+import urllib.parse
 
 from time import gmtime, strftime
+from pypdf import PdfMerger
+
+import requests
 
 from src.logger import Logger
 from src.sheets import Sheet
 from src.message import generate_post_message
 from src.make_requests import ApiRequest
+import src.jotform as jotform
 
 SITE = "https://www.inmuebles24.com"
 VIEW_URL = f"{SITE}/rp-api/leads/view"
@@ -105,70 +110,61 @@ def get_publisher(post: dict, msg=""):
 
     return publisher
 
-def extract_post_data(data):
-    posts = []
-    for p in data:
-        publisher  = p.get("publisher", {})
-        if publisher == {}:
-            logger.error("No se encontro informacion del 'publisher'")
-        location  = p.get("postingLocation", {}).get("location", {})
-        if location == {}:
-            logger.error("El post no tiene 'location'")
-        price_data = p.get("priceOperationTypes", [{}])[0].get("prices", [{}])[0]
-        if price_data == {}:
-            logger.error("El post no tiene 'price_data'")
+def extract_post_data(p: dict) -> dict:
+    publisher  = p.get("publisher", {})
+    if publisher == {}:
+        logger.error("No se encontro informacion del 'publisher'")
+    location  = p.get("postingLocation", {}).get("location", {})
+    if location == {}:
+        logger.error("El post no tiene 'location'")
+    price_data = p.get("priceOperationTypes", [{}])[0].get("prices", [{}])[0]
+    if price_data == {}:
+        logger.error("El post no tiene 'price_data'")
 
-        post = {
-            "fuente": "INMUEBLES24",
-            "id":           p.get("postingId", ""),
-            "extraction_date": strftime(DATE_FORMAT, gmtime()),
-            "message_date": strftime(DATE_FORMAT, gmtime()),
-            "title":        p.get("title", ""),
-            "price":        price_data.get("formattedAmount", ""),
-            "currency":     price_data.get("currency"),
-            "type":         p.get("realEstateType", {}).get("name", ""),
-            "url":          SITE + p.get("url", ""),
-            "bedrooms": "",
-            "bathrooms": "",
-            "building_size": "",
-            "location":     {
-                "full":       "",
-                "zone":       location.get("name", ""),
-                "city":       location.get("parent", {}).get("name", ""),
-                "province":   location.get("parent", {}).get("parent", {}).get("name", ""),
-            },
-            "publisher":    {
-                "id":           publisher.get("publisherId", ""),
-                "name":         publisher.get("name", ""),
-                "whatsapp":     p.get("whatsApp", ""),
-                "phone": "",
-                "cellPhone": ""
-            }
+    post = {
+        "fuente": "INMUEBLES24",
+        "id":           p.get("postingId", ""),
+        "extraction_date": strftime(DATE_FORMAT, gmtime()),
+        "message_date": strftime(DATE_FORMAT, gmtime()),
+        "title":        p.get("title", ""),
+        "price":        price_data.get("formattedAmount", ""),
+        "currency":     price_data.get("currency"),
+        "type":         p.get("realEstateType", {}).get("name", ""),
+        "url":          SITE + p.get("url", ""),
+        "location":     {
+            "full":       "",
+            "zone":       location.get("name", ""),
+            "city":       location.get("parent", {}).get("name", ""),
+            "province":   location.get("parent", {}).get("parent", {}).get("name", ""),
+        },
+        "publisher":    {
+            "id":           publisher.get("publisherId", ""),
+            "name":         publisher.get("name", ""),
+            "whatsapp":     p.get("whatsApp", ""),
+            "phone": "",
+            "cellPhone": ""
         }
+    }
 
-        #features
-        features_keys = [
-            ("size", "CFT100"),
-            ("building_size", "CFT101"),
-            ("bedrooms", "CFT2"),
-            ("bathrooms", "CFT3"),
-            ("garage", "CFT7"),
-            ("antiguedad", "CFT5")]
+    #features
+    features_keys = [
+        ("size", "CFT100"),
+        ("building_size", "CFT101"),
+        ("bedrooms", "CFT2"),
+        ("bathrooms", "CFT3"),
+        ("garage", "CFT7"),
+        ("antiguedad", "CFT5")]
 
-        mainFeatures = p["mainFeatures"]
-        for feature, key in features_keys:
-            if key in mainFeatures:
-                post[feature] = mainFeatures[key]["value"]
-        #-------
-        posts.append(post)
-    return posts
+    mainFeatures = p["mainFeatures"]
+    for feature, key in features_keys:
+        if key in mainFeatures:
+            post[feature] = mainFeatures[key]["value"]
+        else:
+            post[feature] = ""
+    return post
 
 #Get the all the postings in one search
-#Esta es la funcion main enrealidad, pero recibe los filters y no la url
 def get_postings(filters: dict, spin_msg: str):
-    sheet = Sheet(logger, 'scraper_mapping.json')
-    sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
-    
     last_page = False
     page = 1
     total = 0
@@ -178,32 +174,17 @@ def get_postings(filters: dict, spin_msg: str):
         data = request.make(LIST_URL, 'POST', json=filters).json()
 
         #Scrape the data from the JSON
-        posts = extract_post_data(data.get("listPostings", []))
+        posts = []
+        for post_data in data.get("listPostings", []):
+            posts.append(extract_post_data(post_data))
         if len(posts) == 0:
             logger.error("No se encontro ningun post")
             logger.error(data)
             last_page = True
 
-        row_ads = [] #La lista que se guarda en el google sheets
         total += len(posts)
         for post in posts:
-            msg = generate_post_message(post, spin_msg)
-            post["message"] = msg.replace('\n', '')
-            #La funciona get_publisher envia el mensaje si se lo pasamos
-            publisher = get_publisher(post, msg)
-
-            if publisher != None:
-                post["publisher"]["phone"] = publisher.get("phone", "")
-                post["publisher"]["cellPhone"] = publisher.get("cellPhone", "")
-
-            logger.debug(post)
-            
-            #Guardamos los leads como filas para el sheets
-            row_ad = sheet.map_lead(post, sheets_headers)
-            row_ads.append(row_ad)
-
-        #Save the lead in the sheet
-        sheet.write(row_ads, "Extracciones!A2")
+            yield post
         page += 1
         filters["pagina"] = page
         last_page = data["paging"]["lastPage"]
@@ -247,67 +228,146 @@ def get_filters(url):
     finally:
         driver.quit()
 
+def extract_images(post_data: dict):
+    pictures = post_data.get("visiblePictures", {}).get("pictures", [])
+    if len(pictures) == 0:
+        print("No se encontraron imagenes para la publicacion")
+
+    images_urls = []
+    for picture_data in pictures:
+        images_urls.append(picture_data.get("url730x532", "")) 
+
+    return images_urls
+
+def extract_ubication_image(post_data: dict) -> str | None:
+    location_data = post_data.get("postingLocation", {}).get("postingGeolocation", {})
+    if location_data == None:
+        print("No se encontro un mapa para la propiedad")
+        return None
+
+    url_str = location_data.get("urlStaticMap")
+    if url_str == None:
+        print("No se encontro un mapa para la propiedad")
+        return None
+
+    # Las urls comienzan con //. lo sacamos
+    url_str = url_str[2:]
+    url_str = "https://" + url_str
+
+    url = urllib.parse.urlparse(url_str)
+    query = urllib.parse.parse_qs(url.query)
+
+    geo = location_data.get("geolocation")
+    if geo == None:
+        print("No se encontro informacion de la geolocalizacion para la propiedad")
+        return None
+    #markers=19.363745800000000,-99.279810700000000
+    query["markers"] = [f"{geo.get('latitude')},{geo.get('longitude')}"]
+    query.pop("signature") # Generamos una nueva par aque google acepte la peticion
+
+    url = url._replace(query=urllib.parse.urlencode(query, doseq=True))
+    return url.geturl()
+
 def main(filters: dict, spin_msg):
     print(type(filters))
-    get_postings(filters, spin_msg)
 
+    sheet = Sheet(logger, 'scraper_mapping.json')
+    sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
+    
+    row_ads = [] #La lista que se guarda en el google sheets
+    for post in get_postings(filters, spin_msg):
+        msg = generate_post_message(post, spin_msg)
+        post["message"] = msg.replace('\n', '')
+        publisher = get_publisher(post, msg)
+
+        if publisher != None:
+            post["publisher"]["phone"] = publisher.get("phone", "")
+            post["publisher"]["cellPhone"] = publisher.get("cellPhone", "")
+        
+        row_ad = sheet.map_lead(post, sheets_headers)
+        row_ads.append(row_ad)
+
+    sheet.write(row_ads, "Extracciones!A2")
+
+def combine_pdfs(pdfs: list[str], file_name):
+    merger = PdfMerger()
+
+    for pdf in pdfs:
+        merger.append(pdf)
+
+    merger.write(file_name)
+    merger.close()
+
+# Genera cotizaciones en pdf para los postings en la lista
+def cotizacion(asesor: dict, res):
+    posts_count = 0
+    max_posts = 3
+    form_id = "242244461116044"  # TODO: No hardcodear
+    pdfs = []
+
+    for post in res.get("listPostings", []):
+        if posts_count >= max_posts:
+            break
+        post_data = extract_post_data(post) 
+
+        images_urls = extract_images(post)
+        map_url = extract_ubication_image(post)
+        if map_url == None:
+            logger.error("No fue posible las imagenes de la propiedad")
+            continue
+
+        res = jotform.submit_cotizacion_form(logger, form_id, post_data, asesor)
+        if res == None:
+            logger.error("No fue posible subir la cotizacion a jotform")
+            continue
+
+        submission_id = res["content"]["submissionID"]
+        map_img_data = jotform.get_img_data(map_url)
+        if map_img_data == None:
+            logger.error("Imposible obtener la imagen: "+ map_url)
+            continue
+
+        # 4 es el qid del campo map img
+        res = jotform.upload_image(form_id, submission_id, "4", map_img_data, "map")
+        for image_url in images_urls:
+            logger.debug("Uploading: " + image_url)
+            img_data = jotform.get_img_data(image_url)
+            if img_data == None:
+                logger.error("Imposible de obtener la imagen: "+ image_url)
+                continue
+            logger.success("Imagen subida correctamente: ")
+
+            # 9 es el qid del campo de las imagenes
+            res = jotform.upload_image(form_id, submission_id, "9", img_data, "property")
+
+        logger.debug("Generating PDF")
+        res = jotform.generate_pdf(form_id, submission_id)
+        if res != None:
+            logger.success("PDF Generado con exito")
+            logger.success(res.get("content"))
+            res = requests.get(res.get("content"))
+
+            pdf_path = f"./src/inmuebles24/pdfs/${submission_id}.pdf" 
+
+            with open(pdf_path, 'wb') as f:
+                f.write(res.content)
+
+            pdfs.append(pdf_path)
+
+        else:
+            logger.error("No se pudo generar el PDF")
+        posts_count += 1
+
+    combine_pdfs(pdfs, "/app/pdfs/result.pdf")
 
 if __name__ == "__main__":
-    spin_msg = "hola"
-    filters = {
-            "ambientesmaximo": 0,
-            "ambientesminimo": 0,
-            "amenidades": "",
-            "antiguedad": None,
-            "areaComun": "",
-            "areaPrivativa": "",
-            "auctions": None,
-            "banks": "",
-            "banos": None,
-            "caracteristicasprop": None,
-            "city": "779,778",
-            "comodidades": "",
-            "condominio": "",
-            "coordenates": None,
-            "direccion": None,
-            "disposicion": None,
-            "etapaDeDesarrollo": "",
-            "excludePostingContacted": "",
-            "expensasmaximo": None,
-            "expensasminimo": None,
-            "garages": None,
-            "general": "",
-            "grupoTipoDeMultimedia": "",
-            "habitacionesmaximo": 0,
-            "habitacionesminimo": 0,
-            "idInmobiliaria": None,
-            "idunidaddemedida": 1,
-            "metroscuadradomax": None,
-            "metroscuadradomin": None,
-            "moneda": 10,
-            "multipleRets": "",
-            "outside": "",
-            "pagina": 2,
-            "places": "",
-            "polygonApplied": None,
-            "preciomax": None,
-            "preciomin": "10000000",
-            "province": None,
-            "publicacion": None,
-            "q": None,
-            "roomType": "",
-            "searchbykeyword": "",
-            "services": "",
-            "sort": "relevance",
-            "subtipoDePropiedad": None,
-            "subZone": None,
-            "superficieCubierta": 1,
-            "tipoAnunciante": "ALL",
-            "tipoDeOperacion": "1",
-            "tipoDePropiedad": "1,101,12",
-            "valueZone": None,
-            "withoutguarantor": None,
-            "zone": None
-        }
+    res = []
+    max_posts = 6
 
-    get_postings(filters, spin_msg)
+    asesor = {
+        "name": "Brenda Irene Diaz Castillo",
+        "phone": "3313420733",
+        "email": "brenda.diaz@rebora.com.mx"
+    }
+
+    cotizacion(asesor, res)

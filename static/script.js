@@ -1,5 +1,4 @@
-const HOST = "http://localhost/app";
-const PORT = 80;
+const HOST = "http://localhost:8081";
 
 window.onload = function(){
 	var portalSelector = document.getElementById("portalSelector");
@@ -78,7 +77,7 @@ function execute_script() {
 	console.log("URL o Filtros:", url);
 
 	// Enviar los datos al servidor mediante la API Fetch
-	fetch(`${HOST}:${PORT}/execute`, {
+	fetch(`${HOST}/execute`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'

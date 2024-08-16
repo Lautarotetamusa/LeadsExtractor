@@ -288,3 +288,86 @@ UPDATE Leads
 SET phone = CONCAT('+', phone)
 WHERE phone NOT LIKE '+%';
 SET FOREIGN_KEY_CHECKS = 1;
+
+/*Leads por día
+Esta query no pone en 0 los días que no tienen nada*/
+SELECT 
+    DATE(C.created_at) AS date,
+    COUNT(C.id) AS new_leads_count
+FROM 
+    Communication C
+WHERE 
+    C.new_lead = TRUE
+GROUP BY 
+    DATE(C.created_at)
+ORDER BY 
+    DATE(C.created_at);
+
+/* agregar el 1 y el 9 dsp de +52 y +54 */
+select L.phone, L2.phone from Communication C
+INNER JOIN Leads L
+    ON C.lead_phone = L.phone
+inner join Leads L2
+    on L.phone not LIKE '+521%'
+    and L2.phone like "+52%"
+    and L2.phone = CONCAT("+", L.phone);
+
+SELECT 
+    name, 
+    phone,
+    CASE
+            WHEN phone LIKE '+54%' THEN CONCAT('+549', SUBSTRING(phone, 4))
+            WHEN phone LIKE '+52%' THEN CONCAT('+521', SUBSTRING(phone, 4))
+            ELSE phone
+    END AS normalized_phone
+FROM Leads
+WHERE 
+    phone LIKE '+54%' AND SUBSTRING(phone, 4, 1) != '9' OR 
+    phone LIKE '+52%' AND SUBSTRING(phone, 4, 1) != '1';
+
+select lead_phone, phone, SUBSTRING(phone, 1, 3) as xd
+FROM Communication
+inner join Leads
+    ON SUBSTRING(phone, 5) = SUBSTRING(lead_phone, 4)
+    AND SUBSTRING(phone, 1, 3) = SUBSTRING(lead_phone, 1, 3)
+    AND phone <> lead_phone;
+
+UPDATE Communication
+inner join Leads
+    ON SUBSTRING(phone, 5) = SUBSTRING(lead_phone, 4)
+    AND SUBSTRING(phone, 1, 3) = SUBSTRING(lead_phone, 1, 3)
+    AND phone <> lead_phone
+SET lead_phone = phone;
+
+
+select L1.phone, L2.phone
+from Leads L1
+inner join Leads L2
+    ON SUBSTRING(L1.phone, 5) = SUBSTRING(L2.phone, 4)
+    AND SUBSTRING(L1.phone, 1, 3) = SUBSTRING(L2.phone, 1, 3)
+    AND L1.phone <> L2.phone;
+
+delete L2
+from Leads L1
+inner join Leads L2
+    ON SUBSTRING(L1.phone, 5) = SUBSTRING(L2.phone, 4)
+    AND SUBSTRING(L1.phone, 1, 3) = SUBSTRING(L2.phone, 1, 3)
+    AND L1.phone <> L2.phone;
+
+SET FOREIGN_KEY_CHECKS = 0;
+UPDATE Communication C
+INNER JOIN Leads L
+    ON C.lead_phone = L.phone
+SET C.lead_phone = CONCAT('+', C.lead_phone)
+WHERE L.phone NOT LIKE '+%';
+UPDATE Leads
+SET phone = (
+    CASE 
+        WHEN phone LIKE '+54%' AND SUBSTRING(phone, 4, 1) != '9' THEN
+            CONCAT("+549", SUBSTRING(phone, 4))
+        WHEN phone LIKE '+52%' AND SUBSTRING(phone, 4, 1) != '1' THEN
+            CONCAT("+521", SUBSTRING(phone, 4))
+        ELSE phone -- Mantiene el número de teléfono sin cambios si no coincide con ninguna condición
+    END
+);
+SET FOREIGN_KEY_CHECKS = 1;
