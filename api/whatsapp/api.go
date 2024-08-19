@@ -237,6 +237,9 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		c.Propiedad.Precio.String,
 		c.Propiedad.Ubicacion.String,
 		c.Propiedad.Link.String,
+        c.Busquedas.Presupuesto,
+        c.Busquedas.TotalArea.String,
+        c.Busquedas.CoveredArea.String,
 	}
 
 	parameters := make([]Parameter, len(params))

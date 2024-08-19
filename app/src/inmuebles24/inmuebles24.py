@@ -162,16 +162,18 @@ class Inmuebles24(Portal):
             "link": f"{SITE_URL}panel/interesados/{contact_id}",
             "email": raw_lead.get("lead_user", {}).get("email"),
             "telefono": raw_lead.get("phone")
-            })
+        })
         lead.set_busquedas(busqueda)
+        posting_id = posting.get("id", None)
         lead.set_propiedad({
             "id": posting.get("id", None),
             "titulo": posting.get("title", ""),
+            "link": f"https://www.inmuebles24.com/propiedades/-{posting_id}.html",
             "precio": str(posting.get("price", {}).get("amount", "")),
             "ubicacion": posting.get("address", ""),
             "tipo": posting.get("real_estate_type", {}).get("name"),
             "municipio": posting.get("location", {}).get("parent", {}).get("name", "") # Ciudad
-            })
+        })
         # Algunos leads pueden ver nuestro telefono sin necesariamente venir por una propiedad
         if lead.propiedad["id"] is None:
             lead.fuente = "viewphone"
