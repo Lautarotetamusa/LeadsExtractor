@@ -64,6 +64,9 @@ func (s *Server) SetRoutes(router *mux.Router) {
 
     //Metrics
 	router.HandleFunc("/metrics", HandleErrors(s.HandleMetrics)).Methods("GET", "OPTIONS")
+
+    // Recive IVR
+    router.HandleFunc("/ivr", HandleErrors(s.reciveIVR)).Methods("GET", "OPTIONS")
 }
 
 func (s *Server) Run(router *mux.Router) {
