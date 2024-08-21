@@ -19,6 +19,10 @@ class Lead():
             "precio": "",
             "ubicacion": "",
             "tipo": "",
+            "bedrooms": "",
+            "bathrooms": "",
+            "total_area": "",
+            "covered_area": ""
         }
         self.busquedas = {
             "zonas": "",

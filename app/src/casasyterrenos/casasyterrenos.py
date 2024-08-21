@@ -71,18 +71,17 @@ class CasasYTerrenos(Portal):
         lead.set_args({
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
-            "asesor_name": "",
             "lead_id":  str(raw_lead["id"]),
             "nombre":  raw_lead.get("name"),
             "link": "",
             "email":  raw_lead.get("email"),
-            "telefono": raw_lead.get("phone")
+            "telefono": raw_lead.get("phone", "")
         })
         lead.set_propiedad({
-            "id":  str(raw_lead["property_id"]),
-            "titulo":  raw_lead["property_title"],
+            "id":  str(raw_lead.get("property_id", "")),
+            "titulo":  raw_lead.get("property_title", ""),
             "link": f"{PROPERTY_URL}/{raw_lead['property_id']}",
-            "tipo":  raw_lead["property_type"],
+            "tipo":  raw_lead.get("property_type", ""),
         })
 
         return lead

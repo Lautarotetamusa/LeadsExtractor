@@ -32,20 +32,20 @@ def extract_busqueda_info(data: dict | None) -> dict:
     lead_info = data.get("lead_info", {})
 
     busqueda = {
-            "zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data.get("searched_locations", {}) else "",
-            "tipo": lead_info.get("search_type", {}).get("type", ""),
-            "presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
-            "cantidad_anuncios": lead_info.get("views", None),
-            "contactos": lead_info.get("contacts", None),
-            "inicio_busqueda": lead_info.get("started_search_days", None)
-            }
+        "zonas": ','.join([i["name"] for i in data["searched_locations"]["streets"]]) if "streets" in data.get("searched_locations", {}) else "",
+        "tipo": lead_info.get("search_type", {}).get("type", ""),
+        "presupuesto": f"{lead_info.get('price', {}).get('min', '')}, {lead_info.get('price', {}).get('max', '')}",
+        "cantidad_anuncios": lead_info.get("views", None),
+        "contactos": lead_info.get("contacts", None),
+        "inicio_busqueda": lead_info.get("started_search_days", None)
+    }
 
     range_props = {
-            "total_area": "total_area_xm2",
-            "covered_area": "covered_area_xm2",
-            "banios": "baths",
-            "recamaras": "bedrooms",
-            }
+        "total_area": "total_area_xm2",
+        "covered_area": "covered_area_xm2",
+        "banios": "baths",
+        "recamaras": "bedrooms",
+    }
     for prop in range_props:
         try:
             value = features[range_props[prop]]

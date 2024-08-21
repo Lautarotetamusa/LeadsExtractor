@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify, Response, send_from_directory
-from time import gmtime, strftime
 from flask_cors import CORS
 import threading
 import os
@@ -7,8 +6,6 @@ import uuid
 
 from src.logger import Logger
 from src.lead import Lead
-from src.numbers import parse_number
-import src.api as api
 import src.jotform as jotform
 
 # Scrapers
@@ -31,40 +28,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
-
-@app.route('/asesor', methods=['GET'])
-def recive_ivr_call():
-    args = request.args.to_dict()
-    phone = args.get("msidsn", None)
-    fuente = args.get("fuente", None)
-
-    if not phone or not fuente:
-        logger.error("Falta algun campo en la peticion")
-        return {
-            "error": "Falta algun campo en la peticion desde infobip (msidsn, fuente, name)"
-        }, 400
-    logger.debug("msidsn: "+str(phone))
-
-    lead = Lead()
-    fecha = strftime(DATE_FORMAT, gmtime())
-    lead.set_args({
-        "nombre": phone,
-        "fuente": "ivr",
-        "fecha_lead": fecha,
-        "fecha": fecha
-    })
-
-    telefono = parse_number(logger, phone, "MX")
-    if not telefono:
-        # Si el numero no es mexicano va a llegar con un 52 adelante igual por ejemplo 525493415854220
-        phone = phone[2::]  # Removemos el '52'
-        telefono = parse_number(logger, "+"+phone)
-    lead.telefono = telefono or lead.telefono
-
-    _, lead = api.new_communication(logger, lead)
-
-    return lead.asesor, 200
-
 
 @app.route('/jotform', methods=['POST'])
 def generate_pdf():
@@ -122,7 +85,7 @@ def cotizacion():
     data = request.get_json()
 
     portal = data.get('portal')
-    posts = data.get('posts')
+    posts  = data.get('posts')
     asesor = data.get('asesor')
 
     if portal not in SCRAPERS:

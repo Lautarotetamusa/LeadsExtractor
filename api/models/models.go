@@ -109,6 +109,12 @@ type Propiedad struct {
     Precio    NullString `json:"precio" db:"price"`
     Ubicacion NullString `json:"ubicacion" db:"ubication"`
     Tipo      NullString `json:"tipo" db:"tipo"`
+
+    //Campos nuevos agregados para pipedrive (no los guardamos en la DB)
+    Bedrooms		string	`json:"bedrooms"`
+    Bathrooms		string	`json:"bathrooms"`
+    TotalArea		string	`json:"total_area"`
+    CoveredArea    string	`json:"covered_area"`
 }
 
 type Busquedas struct {

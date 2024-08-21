@@ -6,9 +6,11 @@ import (
 	"leadsextractor/models"
 	"leadsextractor/numbers"
 	"net/http"
+	"strings"
 )
 
 func (s *Server) reciveIVR(w http.ResponseWriter, r *http.Request) error {
+    s.logger.Debug("IVR recived")
     msidsn := r.URL.Query().Get("msidsn")
     if msidsn == "" {
         s.logger.Error("Recive IVR without msidsn field")
@@ -37,6 +39,10 @@ func (s *Server) reciveIVR(w http.ResponseWriter, r *http.Request) error {
     if err := s.NewCommunication(&c); err != nil {
         return err
     }
+
+    // Parseamos el numero para que el IVR lo pueda conectar
+    // TODO: Cambiar el tipo de dato de PhoneNumber 
+    c.Asesor.Phone = numbers.PhoneNumber(strings.Replace(c.Asesor.Phone.String(), "+", "", 1))
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(c.Asesor)

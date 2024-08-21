@@ -112,10 +112,14 @@ class Propiedades(Portal):
             "id": str(data["id"]),
             "titulo": data["short_address"],
             "link": data["url"],
-            "precio": str(data["price"]),
-            "ubicacion": data["address"],
-            "tipo": data["type_children_string"],
-            "municipio": data["municipality"]
+            "precio": str(data.get("price", "")),
+            "ubicacion": data.get("address", ""),
+            "tipo": data.get("type_children_string", ""),
+            "municipio": data["municipality"],
+            "bedrooms": data.get("bedrooms", ""),
+            "bathrooms": data.get("bathrooms", ""),
+            "total_area": data.get("size_m2", ""),
+            "covered_area": ""
         }
 
     def make_contacted(self, id: str, status=Status.CONTACTADO):

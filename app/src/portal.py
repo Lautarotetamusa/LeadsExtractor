@@ -88,10 +88,10 @@ class Portal():
                     self.make_contacted(lead_res[self.contact_id_field])
                     continue
 
+                lead.print()
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead is None:
                     continue
-                lead.print()
 
                 if is_new:
                     portal_msg = bienvenida_1 + ' ' + format_msg(lead, bienvenida_2)
@@ -150,8 +150,8 @@ class Portal():
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
                     continue
 
-                api.new_communication(self.logger, lead)
                 lead.print()
+                api.new_communication(self.logger, lead)
                 self.logger.debug(count)
 
             return

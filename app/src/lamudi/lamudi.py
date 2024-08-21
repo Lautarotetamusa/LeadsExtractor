@@ -89,28 +89,24 @@ class Lamudi(Portal):
         property_url = f"{API_URL}/leads/{lead_id}/properties"
         res = self.request.make(property_url)
         if res is None:
-            return [{
-                "titulo": "",
-                "id": "",
-                "link": "",
-                "precio": "",
-                "ubicacion": "",
-                "tipo": "",
-                "municipio": ""
-            }]
-        props = res.json().get("data")
+            return {}
+        props = res.json().get("data", [])
 
         formatted_props = []
         for p in props:
             formatted_props.append({
-                "titulo": p["title"],
-                "id": p['id'],
+                "titulo": p.get("title", ""),
+                "id": p.get("id", ""),
                 "link": f"https://www.lamudi.com.mx/detalle/{p['id']}",
-                "precio": str(p["price"]["amount"]),
-                "ubicacion": p["address"],  # Direccion completa
-                "tipo": p["propertyType"],
+                "precio": str(p.get("price", {}).get("amount", "")),
+                "ubicacion": p.get("address", ""),  # Direccion completa
+                "tipo": p.get("propertyType", ""),
                 # Solamente el municipio, lo usamos para generar el mensaje
-                "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else ""
+                "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else "",
+                "bedrooms": str(p.get("bedrooms", "")),
+                "bathrooms": str(p.get("bathrooms", "")),
+                "total_area": str(p.get("florArea", "")),
+                "covered_area": str(p.get("plotArea", [{}])[0].get("value", ""))
             })
 
         return formatted_props
@@ -124,9 +120,10 @@ class Lamudi(Portal):
             "nombre": raw_lead.get("name"),
             "link": f"https://proppit.com/leads/{raw_lead['id']}",
             "email": raw_lead.get("email"),
-            "propiedad": self.get_lead_property(raw_lead["id"])[0],
             "telefono": raw_lead.get("phone")
         })
+
+        lead.set_propiedad(self.get_lead_property(raw_lead["id"])[0])
         return lead
 
     def send_message(self, id, message):
