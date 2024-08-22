@@ -161,6 +161,7 @@ def execute_cotizacion_urls(asesor, urls, task_id):
         posts = []
         for url in urls:
             posts.append(inmuebles24.get_post_data(url))
+        print(posts)
         inmuebles24.cotizacion(asesor, posts)
         tasks[task_id] = 'completed'
     except Exception as e:

@@ -171,10 +171,13 @@ def sanitaze_str(text: str) -> str:
 # Extraer los datos de la propiedad através del link a la propiedad directamente
 def get_post_data(url: str):
     request.api_params['js_render'] = 'true'
+    # Lo agregamos para poder opbtener la imagen con la ubicacion
+    request.api_params["js_instructions"] =  """[{"wait":1000},{"scroll_y":400}]"""
     res = request.make(url, "GET") 
     if res is None:
         return
     del request.api_params['js_render']
+    del request.api_params['js_instructions']
     soup = BeautifulSoup(res.text, "html.parser")
 
     images = []
@@ -182,7 +185,9 @@ def get_post_data(url: str):
     for img in images_containers:
         images.append(img["src"])
 
-    map_image = soup.find("img", id="static-map")
+    map_url = soup.find("img", class_="static-map")["src"]
+    map_url = map_url[2:]
+    map_url = "https://" + map_url
 
     post = {
         "extraction_date": strftime(DATE_FORMAT, gmtime()),
@@ -202,7 +207,7 @@ def get_post_data(url: str):
             "province":   "",
         },
         "images_urls": images,
-        "map_url": map_image["src"]
+        "map_url": map_url
     }
     return post
 
@@ -359,13 +364,15 @@ def cotizacion(asesor: dict, posts: list[dict]):
             continue
 
         submission_id = res["content"]["submissionID"]
+        logger.debug("Obteniendo imagen: " + map_url)
         map_img_data = jotform.get_img_data(map_url)
         if map_img_data == None:
             logger.error("Imposible obtener la imagen: "+ map_url)
             continue
-
         # 4 es el qid del campo map img
         res = jotform.upload_image(form_id, submission_id, "4", map_img_data, "map")
+
+
         for image_url in images_urls:
             logger.debug("Uploading: " + image_url)
             img_data = jotform.get_img_data(image_url)
