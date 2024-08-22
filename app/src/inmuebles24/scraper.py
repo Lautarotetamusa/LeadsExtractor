@@ -4,6 +4,8 @@ if __name__ == "__main__":
     sys.path.append('.')
     load_dotenv()
 
+from bs4 import BeautifulSoup
+
 import string
 import random
 import json
@@ -163,7 +165,48 @@ def extract_post_data(p: dict) -> dict:
             post[feature] = ""
     return post
 
-#Get the all the postings in one search
+def sanitaze_str(text: str) -> str:
+    return text.strip().replace("\n", "").replace("\t", "")
+
+# Extraer los datos de la propiedad através del link a la propiedad directamente
+def get_post_data(url: str):
+    request.api_params['js_render'] = 'true'
+    res = request.make(url, "GET") 
+    if res is None:
+        return
+    del request.api_params['js_render']
+    soup = BeautifulSoup(res.text, "html.parser")
+
+    images = []
+    images_containers = soup.find("div", id="new-gallery-portal").find_all("img")
+    for img in images_containers:
+        images.append(img["src"])
+
+    map_image = soup.find("img", id="static-map")
+
+    post = {
+        "extraction_date": strftime(DATE_FORMAT, gmtime()),
+        "message_date": strftime(DATE_FORMAT, gmtime()),
+        "title":        sanitaze_str(soup.find("h1", class_="title-property").text),
+        "price":        sanitaze_str(soup.find("div", class_="price-value").find("span").find("span").text.strip()),
+        "currency":     "",
+        "antiguedad":   sanitaze_str(soup.find("i", class_="icon-antiguedad").nextSibling.text.strip()),
+        "size":         sanitaze_str(soup.find("i", class_="icon-stotal").nextSibling.text.strip()),
+        "building_size": sanitaze_str(soup.find("i", class_="icon-scubierta").nextSibling.text.strip()), 
+        "type":         "",
+        "url":          url,
+        "location":     {
+            "full":       "",
+            "zone":       sanitaze_str(soup.find("section", id="map-section").find("h4").text),
+            "city":       "",
+            "province":   "",
+        },
+        "images_urls": images,
+        "map_url": map_image["src"]
+    }
+    return post
+
+# Get the all the postings in one search
 def get_postings(filters: dict, spin_msg: str):
     last_page = False
     page = 1
@@ -269,8 +312,6 @@ def extract_ubication_image(post_data: dict) -> str | None:
     return url.geturl()
 
 def main(filters: dict, spin_msg):
-    print(type(filters))
-
     sheet = Sheet(logger, 'scraper_mapping.json')
     sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
     
@@ -299,24 +340,20 @@ def combine_pdfs(pdfs: list[str], file_name):
     merger.close()
 
 # Genera cotizaciones en pdf para los postings en la lista
-def cotizacion(asesor: dict, res):
+def cotizacion(asesor: dict, posts: list[dict]):
     posts_count = 0
     max_posts = 3
     form_id = "242244461116044"  # TODO: No hardcodear
     pdfs = []
 
-    for post in res.get("listPostings", []):
+    for post in posts:
         if posts_count >= max_posts:
             break
-        post_data = extract_post_data(post) 
 
-        images_urls = extract_images(post)
-        map_url = extract_ubication_image(post)
-        if map_url == None:
-            logger.error("No fue posible las imagenes de la propiedad")
-            continue
+        map_url = post["map_url"]
+        images_urls = post["images_urls"]
 
-        res = jotform.submit_cotizacion_form(logger, form_id, post_data, asesor)
+        res = jotform.submit_cotizacion_form(logger, form_id, post, asesor)
         if res == None:
             logger.error("No fue posible subir la cotizacion a jotform")
             continue
@@ -342,7 +379,7 @@ def cotizacion(asesor: dict, res):
 
         logger.debug("Generating PDF")
         res = jotform.generate_pdf(form_id, submission_id)
-        if res != None:
+        if res != None and res.get("content", "") != "":
             logger.success("PDF Generado con exito")
             logger.success(res.get("content"))
             res = requests.get(res.get("content"))
@@ -356,9 +393,26 @@ def cotizacion(asesor: dict, res):
 
         else:
             logger.error("No se pudo generar el PDF")
+            logger.error(res)
         posts_count += 1
 
     combine_pdfs(pdfs, "/app/pdfs/result.pdf")
+
+def posts_from_list(res) -> list[dict]:
+    posts = []
+    for post in res.get("listPostings", []):
+        #print(json.dumps(post, indent=4))
+        post_data = extract_post_data(post) 
+
+        post_data["images_urls"] = extract_images(post)
+        post_data["map_url"] = extract_ubication_image(post)
+
+        if post_data["map_url"] is None:
+            logger.error("No fue posible las imagenes de la propiedad")
+            continue
+
+        posts.append(post_data)
+    return posts
 
 if __name__ == "__main__":
     res = []
@@ -370,4 +424,7 @@ if __name__ == "__main__":
         "email": "brenda.diaz@rebora.com.mx"
     }
 
-    cotizacion(asesor, res)
+    #cotizacion(asesor, res)
+    url = "https://www.inmuebles24.com/propiedades/clasificado/alclapin-departamento-a-la-renta-en-el-country-club-60428488.html"
+    post = get_post_data(url)
+    print(json.dumps(post, indent=4))

@@ -17,10 +17,13 @@ assert FORM_ID != "" and FORM_ID != None, "JOTFORM_FORM_ID is not in enviroment"
 API_URL = "https://api.jotform.com"
 PDF_URL = "https://www.jotform.com/pdf-submission/{submissionID}"
 
+# TODO: Renovar token 
+cookies = os.getenv("JOTFORM_COOKIE")
+
 headers = {
       'Origin': 'https://www.jotform.com',
       'Referer': 'https://www.jotform.com/tables/242244461116044',
-      'Cookie': '_gj=f61b1aa461bf9b4097b50d92eeaedf345f17fd4a; hblid=idwBHlnuFAtmmILH0v5z60SC12AOKoCK; olfsk=olfsk9475756384112493; FORM_last_folder=allForms; g_state={"i_p":1724073586229,"i_l":3}; SHEET_last_folder=sheets; guest=guest_e5687c44184f0a37; JOTFORM_SESSION=5b169e0f-247f-b44d-3962-00657606; userReferer=https%3A%2F%2Fwww.jotform.com%2F; JF_SESSION_USERNAME=Diego_torres; last_edited_v4_form=242244461116044; DOCUMENT_last_folder=documents; limitAlignment=left_alt; wcsid=tYMhRbpYz3vdg7VA0v5z60SCKKA1B2C1; _oklv=1723802295242%2CtYMhRbpYz3vdg7VA0v5z60SCKKA1B2C1; _okdetect=%7B%22token%22%3A%2217238016935230%22%2C%22proto%22%3A%22about%3A%22%2C%22host%22%3A%22%22%7D; navLang=en-US; _okbk=cd5%3Davailable%2Ccd4%3Dtrue%2Cvi5%3D0%2Cvi4%3D1723801693894%2Cvi3%3Dactive%2Cvi2%3Dfalse%2Cvi1%3Dfalse%2Ccd8%3Dchat%2Ccd6%3D0%2Ccd3%3Dfalse%2Ccd2%3D0%2Ccd1%3D0%2C; _ok=4728-686-10-5570'
+      'Cookie': cookies
 }
 
 def get_img_data(img_url: str) -> bytes | None:
