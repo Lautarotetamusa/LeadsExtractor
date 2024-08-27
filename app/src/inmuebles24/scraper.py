@@ -4,7 +4,7 @@ if __name__ == "__main__":
     sys.path.append('.')
     load_dotenv()
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 import string
 import random
@@ -169,15 +169,15 @@ def sanitaze_str(text: str) -> str:
     return text.strip().replace("\n", "").replace("\t", "")
 
 # Extraer los datos de la propiedad através del link a la propiedad directamente
-def get_post_data(url: str):
+def get_post_data(url: str) -> dict | None:
     request.api_params['js_render'] = 'true'
     # Lo agregamos para poder opbtener la imagen con la ubicacion
     request.api_params["js_instructions"] =  """[{"wait":1000},{"scroll_y":400}]"""
     res = request.make(url, "GET") 
-    if res is None:
-        return
     del request.api_params['js_render']
     del request.api_params['js_instructions']
+    if res is None:
+        return
     soup = BeautifulSoup(res.text, "html.parser")
 
     images = []
@@ -185,9 +185,17 @@ def get_post_data(url: str):
     for img in images_containers:
         images.append(img["src"])
 
-    map_url = soup.find("img", class_="static-map")["src"]
-    map_url = map_url[2:]
-    map_url = "https://" + map_url
+    map_url = ""
+    map_container = soup.find("img", class_="static-map")
+    if type(map_container) is Tag:
+        map_url = map_container["src"][2:]
+        map_url = "https://" + map_url
+
+    attrs = {
+        "antiguedad":   "icon-antiguedad",
+        "size":         "icon-stotal",
+        "building_size": "icon-scubierta",
+    }
 
     post = {
         "extraction_date": strftime(DATE_FORMAT, gmtime()),
@@ -195,9 +203,6 @@ def get_post_data(url: str):
         "title":        sanitaze_str(soup.find("h1", class_="title-property").text),
         "price":        sanitaze_str(soup.find("div", class_="price-value").find("span").find("span").text.strip()),
         "currency":     "",
-        "antiguedad":   sanitaze_str(soup.find("i", class_="icon-antiguedad").nextSibling.text.strip()),
-        "size":         sanitaze_str(soup.find("i", class_="icon-stotal").nextSibling.text.strip()),
-        "building_size": sanitaze_str(soup.find("i", class_="icon-scubierta").nextSibling.text.strip()), 
         "type":         "",
         "url":          url,
         "location":     {
@@ -209,6 +214,17 @@ def get_post_data(url: str):
         "images_urls": images,
         "map_url": map_url
     }
+
+    for key in attrs:
+        container = soup.find("i", class_=attrs[key])
+        if type(container) is not Tag:
+            continue
+
+        if container.nextSibling is None:
+            continue
+
+        post[key] = sanitaze_str(container.nextSibling.text.strip())
+
     return post
 
 # Get the all the postings in one search

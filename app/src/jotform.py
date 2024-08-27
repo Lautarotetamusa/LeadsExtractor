@@ -59,18 +59,18 @@ def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, im
 def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor) -> dict | None:
     url = f"https://api.jotform.com/form/{form_id}/submissions?apiKey={API_KEY}"
     data = {
-            "10": data["title"],
-            "26": data["price"],
-            "12": data["type"],
-            "13": asesor["name"],
-            "61": asesor["phone"],
-            "15": asesor["email"], 
-            "17": data["building_size"],
-            "18": data["size"],
-            "19": data["antiguedad"],
-            "20": data["url"],
-            "21": data["currency"],
-            "22": data["location"]["zone"]
+            "10": data.get("title", ""),
+            "26": data.get("price", ""),
+            "12": data.get("type", ""),
+            "13": asesor.get("name", ""),
+            "61": asesor.get("phone", ""),
+            "15": asesor.get("email", ""), 
+            "17": data.get("building_size", ""),
+            "18": data.get("size", ""),
+            "19": data.get("antiguedad", ""),
+            "20": data.get("url", ""),
+            "21": data.get("currency", ""),
+            "22": data.get("location", {}).get("zone", "")
     }
 
     res = requests.post(url, json=data)
