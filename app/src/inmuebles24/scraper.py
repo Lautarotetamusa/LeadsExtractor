@@ -289,12 +289,13 @@ def extract_images(post_data: dict):
 
 def extract_ubication_image(post_data: dict) -> str | None:
     location_data = post_data.get("postingLocation", {}).get("postingGeolocation", {})
-    if location_data == None:
+    print("ld", location_data)
+    if location_data is None:
         print("No se encontro un mapa para la propiedad")
         return None
 
     url_str = location_data.get("urlStaticMap")
-    if url_str == None:
+    if url_str is None:
         print("No se encontro un mapa para la propiedad")
         return None
 
@@ -346,43 +347,50 @@ def combine_pdfs(pdfs: list[str], file_name):
 
 # Genera cotizaciones en pdf para los postings en la lista
 def cotizacion(asesor: dict, posts: list[dict]):
-    posts_count = 0
-    max_posts = 3
     form_id = "242244461116044"  # TODO: No hardcodear
     pdfs = []
+    max_images = 3
 
     for post in posts:
-        if posts_count >= max_posts:
-            break
-
         map_url = post["map_url"]
         images_urls = post["images_urls"]
 
         res = jotform.submit_cotizacion_form(logger, form_id, post, asesor)
-        if res == None:
+        if res is None:
             logger.error("No fue posible subir la cotizacion a jotform")
             continue
 
         submission_id = res["content"]["submissionID"]
         logger.debug("Obteniendo imagen: " + map_url)
         map_img_data = jotform.get_img_data(map_url)
-        if map_img_data == None:
+        if map_img_data is None:
             logger.error("Imposible obtener la imagen: "+ map_url)
             continue
-        # 4 es el qid del campo map img
-        res = jotform.upload_image(form_id, submission_id, "4", map_img_data, "map")
 
+        # 70 es el qid del campo map img
+        err = jotform.upload_image(form_id, submission_id, "70", map_img_data, "map")
+        if err is None:
+            logger.success("Imagen ubicacion subida correctamente")
+        else: 
+            logger.error("No fue posible subir la imagen de la ubicacion" + str(err))
 
+        img_count = 0
         for image_url in images_urls:
+            if img_count >= max_images:
+                break
+            img_count += 1
             logger.debug("Uploading: " + image_url)
             img_data = jotform.get_img_data(image_url)
-            if img_data == None:
+            if img_data is None:
                 logger.error("Imposible de obtener la imagen: "+ image_url)
                 continue
-            logger.success("Imagen subida correctamente: ")
 
-            # 9 es el qid del campo de las imagenes
-            res = jotform.upload_image(form_id, submission_id, "9", img_data, "property")
+            # 41 es el qid del campo de las imagenes
+            err = jotform.upload_image(form_id, submission_id, "41", img_data, "property")
+            if err is None:
+                logger.success("Imagen subida correctamente")
+            else: 
+                logger.error("No fue posible subir la imagen: " + str(err))
 
         logger.debug("Generating PDF")
         res = jotform.generate_pdf(form_id, submission_id)
@@ -401,13 +409,17 @@ def cotizacion(asesor: dict, posts: list[dict]):
         else:
             logger.error("No se pudo generar el PDF")
             logger.error(res)
-        posts_count += 1
 
     combine_pdfs(pdfs, "/app/pdfs/result.pdf")
 
 def posts_from_list(res) -> list[dict]:
+    posts_count = 0
+    max_posts = 3
     posts = []
     for post in res.get("listPostings", []):
+        if posts_count >= max_posts:
+            break
+        posts_count += 1
         #print(json.dumps(post, indent=4))
         post_data = extract_post_data(post) 
 
@@ -415,7 +427,7 @@ def posts_from_list(res) -> list[dict]:
         post_data["map_url"] = extract_ubication_image(post)
 
         if post_data["map_url"] is None:
-            logger.error("No fue posible las imagenes de la propiedad")
+            logger.error("No fue obtener la imagen del mapa")
             continue
 
         posts.append(post_data)

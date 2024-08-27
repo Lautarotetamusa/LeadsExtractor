@@ -35,7 +35,7 @@ def get_img_data(img_url: str) -> bytes | None:
 
 # TODO: Esto solo sirve para este formulario
 # TODO: Podría procesar multiples imagenes en una peticion
-def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, img_name):
+def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, img_name) -> str | None:
     url = f"https://www.jotform.com/API/sheets/{form_id}/form/{form_id}/submission/{submission_id}/files?from=sheets"
     payload = {
         'submissionID': submission_id, 
@@ -47,19 +47,23 @@ def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, im
 
     res = requests.post(url, headers=headers, data=payload, files=files)
     if not res.ok:
-        return None
+        return "Request error"
 
+    # Devuelve codigo 200 con responseCode != 200 xD
     data = res.json()
-    return data
+    if data.get("responseCode", 200) != 200:
+        return data
 
+# Obtener las lista de preguntas del form:
+# https://api.jotform.com/form/242244461116044/questions?apiKey=
 def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor) -> dict | None:
     url = f"https://api.jotform.com/form/{form_id}/submissions?apiKey={API_KEY}"
     data = {
             "10": data["title"],
-            "11": data["price"],
+            "26": data["price"],
             "12": data["type"],
             "13": asesor["name"],
-            "14": asesor["phone"],
+            "61": asesor["phone"],
             "15": asesor["email"], 
             "17": data["building_size"],
             "18": data["size"],
