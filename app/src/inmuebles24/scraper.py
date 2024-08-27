@@ -378,17 +378,16 @@ def cotizacion(asesor: dict, posts: list[dict]):
 
         submission_id = res["content"]["submissionID"]
         logger.debug("Obteniendo imagen: " + map_url)
-        map_img_data = jotform.get_img_data(map_url)
-        if map_img_data is None:
+        res = requests.get(map_url)
+        if res is None or not res.ok:
             logger.error("Imposible obtener la imagen: "+ map_url)
-            continue
-
-        # 70 es el qid del campo map img
-        err = jotform.upload_image(form_id, submission_id, "70", map_img_data, "map")
-        if err is None:
-            logger.success("Imagen ubicacion subida correctamente")
-        else: 
-            logger.error("No fue posible subir la imagen de la ubicacion" + str(err))
+        else:
+            # 70 es el qid del campo map img
+            err = jotform.upload_image(form_id, submission_id, "70", res.content, "map")
+            if err is None:
+                logger.success("Imagen ubicacion subida correctamente")
+            else: 
+                logger.error("No fue posible subir la imagen de la ubicacion" + str(err))
 
         img_count = 0
         for image_url in images_urls:
@@ -400,7 +399,6 @@ def cotizacion(asesor: dict, posts: list[dict]):
             if img_data is None:
                 logger.error("Imposible de obtener la imagen: "+ image_url)
                 continue
-
             # 41 es el qid del campo de las imagenes
             err = jotform.upload_image(form_id, submission_id, "41", img_data, "property")
             if err is None:

@@ -26,8 +26,39 @@ headers = {
       'Cookie': cookies
 }
 
+ZENROWS_API_URL = "https://api.zenrows.com/v1/"
+PARAMS = {
+    "apikey": os.getenv("ZENROWS_APIKEY"),
+    "url": "",
+    "js_render": "true",
+    "custom_headers": "true",
+    "original_status": "true",
+}
+
+
 def get_img_data(img_url: str) -> bytes | None:
-    res = requests.get(img_url)
+    headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Cookie": cookies,
+        "DNT": "1",
+        #"Host": "img10.naventcdn.com",
+        "Pragma": "no-cache",
+        "Priority": "u=0, i",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "cross-site",
+        "Sec-GPC": "1",
+        "TE": "trailers",
+        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:129.0) Gecko/20100101 Firefox/129.0"
+    }
+
+    PARAMS["url"] = img_url
+    res = requests.request("GET", ZENROWS_API_URL, params=PARAMS)
     if not res.ok:
         return None
 
