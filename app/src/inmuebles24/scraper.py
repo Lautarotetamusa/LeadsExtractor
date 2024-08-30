@@ -12,7 +12,7 @@ import json
 import os
 import urllib.parse
 
-from time import gmtime, strftime
+from time import gmtime, strftime, sleep
 from pypdf import PdfMerger
 
 import requests
@@ -169,10 +169,12 @@ def sanitaze_str(text: str) -> str:
     return text.strip().replace("\n", "").replace("\t", "")
 
 # Extraer los datos de la propiedad através del link a la propiedad directamente
+# TODO: 
+# Este link no anda: https://www.inmuebles24.com/propiedades/desarrollo/ememvein-ri-a-americas-143720777.html
 def get_post_data(url: str) -> dict | None:
     request.api_params['js_render'] = 'true'
     # Lo agregamos para poder opbtener la imagen con la ubicacion
-    request.api_params["js_instructions"] =  """[{"wait":1000},{"scroll_y":400}]"""
+    request.api_params["js_instructions"] =  """[{"wait":1500},{"scroll_y":400}]"""
     res = request.make(url, "GET") 
     del request.api_params['js_render']
     del request.api_params['js_instructions']
@@ -181,9 +183,17 @@ def get_post_data(url: str) -> dict | None:
     soup = BeautifulSoup(res.text, "html.parser")
 
     images = []
-    images_containers = soup.find("div", id="new-gallery-portal").find_all("img")
-    for img in images_containers:
-        images.append(img["src"])
+    max_images = 4
+    img_cout = 0
+    gallery = soup.find("div", id="new-gallery-portal")
+    if type(gallery) is Tag: 
+        for img in gallery.find_all("img"):
+            if img_cout >= max_images:
+                break
+            img_cout += 1
+            images.append(img["src"])
+    else:
+        logger.error("Canot find gallery div")
 
     map_url = ""
     map_container = soup.find("img", class_="static-map")
@@ -196,11 +206,16 @@ def get_post_data(url: str) -> dict | None:
         "size":         "icon-stotal",
         "building_size": "icon-scubierta",
     }
+    
+    title = " - "
+    title_cont = soup.find("h1", class_="title-property")
+    if title_cont is not None:
+        title = title_cont.text
 
     post = {
         "extraction_date": strftime(DATE_FORMAT, gmtime()),
         "message_date": strftime(DATE_FORMAT, gmtime()),
-        "title":        sanitaze_str(soup.find("h1", class_="title-property").text),
+        "title":        sanitaze_str(title),
         "price":        sanitaze_str(soup.find("div", class_="price-value").find("span").find("span").text.strip()),
         "currency":     "",
         "type":         "",
@@ -255,43 +270,6 @@ def get_postings(filters: dict, spin_msg: str):
 
     logger.success(f"Se encontraron {total} ads para la url")
 
-def get_filters(url):
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.chrome.options import Options
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-
-    options = Options()
-    #options.add_argument(f"--headless") #Session
-    options.add_argument("--no-sandbox") # Necesario para correrlo como root dentro del container
-    caps = DesiredCapabilities.CHROME.copy()
-    options.set_capability('goog:loggingPrefs', {'performance': 'ALL'})
-    driver = webdriver.Chrome(options=options)
-
-    logger.debug("Obteniendo filtros")
-    try:
-        driver.get(url)
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//a[@data-qa='PAGING_2']")))
-        next_page = driver.find_element("//a[@data-qa='PAGING_2']")
-        next_page.click()
-
-        browser_log = driver.get_log('performance') 
-        print(browser_log)
-
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//a[@data-qa='PAGING_1']")))
-        next_page = driver.find_element("//a[@data-qa='PAGING_1']")
-
-        browser_log = driver.get_log('performance') 
-        print(browser_log)
-    except Exception as e:
-        logger.error("Ocurrio un error obteniendo los filtros")
-        logger.error(str(e))
-    finally:
-        driver.quit()
-
 def extract_images(post_data: dict):
     pictures = post_data.get("visiblePictures", {}).get("pictures", [])
     if len(pictures) == 0:
@@ -305,7 +283,6 @@ def extract_images(post_data: dict):
 
 def extract_ubication_image(post_data: dict) -> str | None:
     location_data = post_data.get("postingLocation", {}).get("postingGeolocation", {})
-    print("ld", location_data)
     if location_data is None:
         print("No se encontro un mapa para la propiedad")
         return None
@@ -323,7 +300,7 @@ def extract_ubication_image(post_data: dict) -> str | None:
     query = urllib.parse.parse_qs(url.query)
 
     geo = location_data.get("geolocation")
-    if geo == None:
+    if geo is None:
         print("No se encontro informacion de la geolocalizacion para la propiedad")
         return None
     #markers=19.363745800000000,-99.279810700000000
@@ -361,54 +338,66 @@ def combine_pdfs(pdfs: list[str], file_name):
     merger.write(file_name)
     merger.close()
 
+def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[str]):
+    nro = 1
+    for url, qid in zip(urls, qids):
+        logger.debug("Obteniendo imagen: " + url)
+        img_data = None
+        if "maps" in url:
+            res = requests.get(url)
+            print("map res: ", res.status_code)
+            if res is None or not res.ok:
+                logger.error("Imposible obtener la imagen de ubicacion: "+ url)
+                logger.error(res.text)
+                img_data = None
+            else:
+                img_data = res.content
+        else:
+            img_data = jotform.get_img_data(url)
+        if img_data is None:
+            logger.error("Imposible obtener la imagen: "+ url)
+        else:
+            err = jotform.upload_image(form_id, submission_id, qid, img_data, f"{submission_id}_{qid}_{nro}")
+            if err is None:
+                logger.success("Imagen subida correctamente")
+            else: 
+                logger.error("No fue posible subir la image: " + str(err))
+
+            sleep(1.5)
+            nro += 1
+
 # Genera cotizaciones en pdf para los postings en la lista
 def cotizacion(asesor: dict, posts: list[dict]):
     form_id = "242244461116044"  # TODO: No hardcodear
     pdfs = []
-    max_images = 3
 
     for post in posts:
         map_url = post["map_url"]
         images_urls = post["images_urls"]
 
+        logger.debug("Uploading Cotizacion Form")
         res = jotform.submit_cotizacion_form(logger, form_id, post, asesor)
         if res is None:
             logger.error("No fue posible subir la cotizacion a jotform")
             continue
 
         submission_id = res["content"]["submissionID"]
-        logger.debug("Obteniendo imagen: " + map_url)
-        res = requests.get(map_url)
-        if res is None or not res.ok:
-            logger.error("Imposible obtener la imagen: "+ map_url)
-        else:
-            # 70 es el qid del campo map img
-            err = jotform.upload_image(form_id, submission_id, "70", res.content, "map")
-            if err is None:
-                logger.success("Imagen ubicacion subida correctamente")
-            else: 
-                logger.error("No fue posible subir la imagen de la ubicacion" + str(err))
+        images_qids = ["77", "44", "44", "44", "44"]
+        upload_images(form_id, submission_id, [map_url] + images_urls, images_qids)
 
-        img_count = 0
-        for image_url in images_urls:
-            if img_count >= max_images:
-                break
-            img_count += 1
-            logger.debug("Uploading: " + image_url)
-            img_data = jotform.get_img_data(image_url)
-            if img_data is None:
-                logger.error("Imposible de obtener la imagen: "+ image_url)
-                continue
-            # 41 es el qid del campo de las imagenes
-            err = jotform.upload_image(form_id, submission_id, "41", img_data, "property")
-            if err is None:
-                logger.success("Imagen subida correctamente")
-            else: 
-                logger.error("No fue posible subir la imagen: " + str(err))
+        res = jotform.obtain_pdf(form_id, submission_id)
+        if res is not None:
+            pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf" 
 
+            with open(pdf_path, 'wb') as f:
+                f.write(res)
+
+            pdfs.append(pdf_path)
+
+        """
         logger.debug("Generating PDF")
         res = jotform.generate_pdf(form_id, submission_id)
-        if res != None and res.get("content", "") != "":
+        if res is not None and res.get("content", "") != "":
             logger.success("PDF Generado con exito")
             logger.success(res.get("content"))
             res = requests.get(res.get("content"))
@@ -419,10 +408,10 @@ def cotizacion(asesor: dict, posts: list[dict]):
                 f.write(res.content)
 
             pdfs.append(pdf_path)
-
         else:
             logger.error("No se pudo generar el PDF")
             logger.error(res)
+        """
 
     combine_pdfs(pdfs, "/app/pdfs/result.pdf")
 

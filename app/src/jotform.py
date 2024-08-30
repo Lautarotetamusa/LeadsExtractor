@@ -96,12 +96,15 @@ def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor) -> dict |
             "13": asesor.get("name", ""),
             "61": asesor.get("phone", ""),
             "15": asesor.get("email", ""), 
-            "17": data.get("building_size", ""),
-            "18": data.get("size", ""),
+            "28": data.get("building_size", ""),
+            "27": data.get("size", ""),
             "19": data.get("antiguedad", ""),
             "20": data.get("url", ""),
             "21": data.get("currency", ""),
-            "22": data.get("location", {}).get("zone", "")
+            "22": data.get("location", {}).get("zone", ""),
+            "78": asesor["name"],
+            "79": asesor["phone"],
+            "81": asesor["email"]
     }
 
     res = requests.post(url, json=data)
@@ -192,6 +195,15 @@ def generate_pdf(form_id: str, submission_id: str):
         return data
     else:
         return None
+
+def obtain_pdf(form_id: str, submission_id: str):
+    url = f"https://www.jotform.com/server.php?action=getSubmissionPDF&sid={submission_id}&formID={form_id}"
+
+    res = requests.get(url)
+    if res.ok:
+        return res.content
+
+    return None
 
 # Devuelve un link al PDF creado
 def new_submission(logger: Logger, lead: Lead) -> [str, str | None]:
