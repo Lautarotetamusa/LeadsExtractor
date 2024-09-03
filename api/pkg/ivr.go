@@ -41,7 +41,7 @@ func (s *Server) reciveIVR(w http.ResponseWriter, r *http.Request) error {
 
     // Parseamos el numero para que el IVR lo pueda conectar
     // TODO: Cambiar el tipo de dato de PhoneNumber 
-    strPhone := strings.Replace(phone.String(), "+", "", 1)
+    strPhone := strings.Replace(c.Asesor.Phone.String(), "+", "", 1)
     strPhone = strings.Replace(strPhone, "521", "52", 1)
     strPhone = strings.Replace(strPhone, "549", "54", 1)
     c.Asesor.Phone = numbers.PhoneNumber(strPhone)
