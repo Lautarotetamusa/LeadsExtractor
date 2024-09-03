@@ -29,7 +29,6 @@ func (s *Server) reciveIVR(w http.ResponseWriter, r *http.Request) error {
             return err
         }
     }
-
     c := models.Communication{
         Fuente: "ivr",
         Nombre: phone.String(),
@@ -42,7 +41,10 @@ func (s *Server) reciveIVR(w http.ResponseWriter, r *http.Request) error {
 
     // Parseamos el numero para que el IVR lo pueda conectar
     // TODO: Cambiar el tipo de dato de PhoneNumber 
-    c.Asesor.Phone = numbers.PhoneNumber(strings.Replace(c.Asesor.Phone.String(), "+", "", 1))
+    strPhone := strings.Replace(phone.String(), "+", "", 1)
+    strPhone = strings.Replace(strPhone, "521", "52", 1)
+    strPhone = strings.Replace(strPhone, "549", "54", 1)
+    c.Asesor.Phone = numbers.PhoneNumber(strPhone)
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(c.Asesor)
