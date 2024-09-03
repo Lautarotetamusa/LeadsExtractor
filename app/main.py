@@ -43,7 +43,8 @@ TASKS = [
     "first_run",
     "main",
     "scraper",
-    "test"
+    "test",
+    "test_page"
 ]
 
 def USAGE():

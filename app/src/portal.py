@@ -155,3 +155,14 @@ class Portal():
                 self.logger.debug(count)
 
             return
+
+    # Testear si la paginacion esta funcionando bien
+    def test_page(self):
+        count = 0
+        max_pages = 4
+        for page in self.get_leads(Mode.NEW):
+            if count >= max_pages:
+                pass
+                # break
+
+            count += 1

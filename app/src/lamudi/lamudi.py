@@ -46,44 +46,33 @@ class Lamudi(Portal):
         self.logger.success("Sesion iniciada con exito")
 
     def get_leads(self, mode=Mode.NEW) -> Iterator[list[dict]]:
-        max = -1
         status = "new lead"
         page = 1
         limit = 25
-        cant = 0
+        total = 0
+        cant = -1
 
-        if mode == Mode.NEW:
-            url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
-        else:
-            url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity"
         self.logger.debug("Extrayendo leads")
 
-        res = self.request.make(url, 'GET')
-        if res is None:
-            exit(1)
-        data = res.json()["data"]
-
-        total = data["totalFilteredRows"]
-        self.logger.debug(f"total: {total}")
-
-        while (cant < total and (cant < max or max == -1)):
-            self.logger.debug(f"len: {cant}")
-            yield data["rows"]
-            cant += len(data["rows"])
-            page += 1
-
+        while cant != 0:
             if mode == Mode.NEW:
                 url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity&status={status}"
             else:
                 url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity"
-            self.logger.debug(url)
 
             res = self.request.make(url, 'GET')
             if res is None:
                 break
-            data = res.json()["data"]
 
-        self.logger.success(f"Se encontraron {cant} nuevos Leads")
+            data = res.json()["data"]
+            cant = len(data["rows"])
+            total += cant
+            page += 1
+            self.logger.debug(f"len: {cant}")
+
+            yield data["rows"]
+
+        self.logger.success(f"Se encontraron {total} nuevos Leads")
 
     def get_lead_property(self, lead_id):
         property_url = f"{API_URL}/leads/{lead_id}/properties"
