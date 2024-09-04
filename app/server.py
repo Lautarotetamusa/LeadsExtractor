@@ -90,23 +90,26 @@ def cotizacion():
     portal = data.get('portal')
     posts  = data.get('posts')
     asesor = data.get('asesor')
+    cliente = data.get('cliente')
 
     if portal not in SCRAPERS:
         return jsonify({'error': f"El portal {portal} no existe"}), 404
 
     if not all([portal, asesor, posts]):
-        return jsonify({'error': 'Se requieren campos portal, message y url_or_filters'}), 400
+        return jsonify({'error': 'Se requieren campos portal, "asesor", "posts", "cliente"'}), 400
 
     # Generar un ID único para la tarea
     task_id = str(uuid.uuid4())
-    tasks[task_id] = 'in_progress'
-    print(tasks)
+    tasks[task_id] = {
+        "status": "in_progress",
+        "task_id": task_id
+    }
 
     # Ejecutar el script en segundo plano usando threading
-    thread = threading.Thread(target=execute_cotizacion, args=(asesor, posts, task_id))
+    thread = threading.Thread(target=execute_cotizacion, args=(asesor, posts, cliente, task_id))
     thread.start()
 
-    return jsonify({'taskId': task_id})
+    return jsonify(tasks[task_id])
 
 @app.route('/cotizacion_urls', methods=['POST'])
 def cotizacion_with_urls():
@@ -115,58 +118,62 @@ def cotizacion_with_urls():
     portal = data.get('portal')
     asesor = data.get('asesor')
     urls = data.get('urls')
+    cliente = data.get('cliente')
 
     if portal not in SCRAPERS:
         return jsonify({'error': f"El portal {portal} no existe"}), 404
 
     if not all([portal, asesor, urls]):
-        return jsonify({'error': 'Se requieren campos portal, message y url_or_filters'}), 400
+        return jsonify({'error': 'Se requieren campos portal, "asesor", "urls", "cliente"'}), 400
 
     # Generar un ID único para la tarea
     task_id = str(uuid.uuid4())
-    tasks[task_id] = 'in_progress'
+    tasks[task_id] = {
+        "status": "in_progress",
+        "task_id": task_id
+    }
 
     # Ejecutar el script en segundo plano usando threading
-    thread = threading.Thread(target=execute_cotizacion_urls, args=(asesor, urls, task_id))
+    thread = threading.Thread(target=execute_cotizacion_urls, args=(asesor, urls, cliente, task_id))
     thread.start()
 
-    return jsonify({'taskId': task_id})
+    return jsonify(tasks[task_id])
 
 
 @app.route('/check-task/<task_id>', methods=['GET'])
 def check_task(task_id):
-    print(tasks)
     if task_id not in tasks:
-        return jsonify({'error': 'Tarea no encontrada'}), 404
+        return jsonify({"error": "Tarea no encontrada"}), 404
 
-    status = tasks.get(task_id)
-    if not status:
-        return jsonify({'error': 'Tarea no encontrada'}), 404
-    return jsonify({'status': status, 'pdf_url': 'download/result.pdf'})
+    task = tasks.get(task_id)
+    if not task:
+        return jsonify({"error": "Tarea no encontrada"}), 404
+
+    return jsonify(task)
 
 
-def execute_cotizacion(asesor, res, task_id):
+def execute_cotizacion(asesor, res, cliente, task_id):
     try:
         posts = inmuebles24.posts_from_list(res)
-        inmuebles24.cotizacion(asesor, posts)
-        tasks[task_id] = 'completed'
+        pdf_file_name = inmuebles24.cotizacion(asesor, cliente, posts)
+        tasks[task_id]["status"] = "completed"
+        tasks[task_id]["pdf_file_name"] = pdf_file_name
     except Exception as e:
-        tasks[task_id] = 'error'
+        tasks[task_id]["status"] = "error"
         print(e)
         print(f"Error generando la cotización: {str(e)}")
 
 
-def execute_cotizacion_urls(asesor, urls, task_id):
+def execute_cotizacion_urls(asesor, urls, cliente, task_id):
     try:
         posts = []
         for url in urls:
             posts.append(inmuebles24.get_post_data(url))
-        print(posts)
-        inmuebles24.cotizacion(asesor, posts)
-        tasks[task_id] = 'completed'
+        pdf_file_name = inmuebles24.cotizacion(asesor, cliente, posts)
+        tasks[task_id]["status"] = "completed"
+        tasks[task_id]["pdf_file_name"] = pdf_file_name
     except Exception as e:
-        tasks[task_id] = 'error'
-        print(e)
+        tasks[task_id]["status"] = "error"
         print(f"Error generando la cotización: {str(e)}")
 
 

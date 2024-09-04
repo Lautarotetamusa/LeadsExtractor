@@ -17,48 +17,15 @@ assert FORM_ID != "" and FORM_ID != None, "JOTFORM_FORM_ID is not in enviroment"
 API_URL = "https://api.jotform.com"
 PDF_URL = "https://www.jotform.com/pdf-submission/{submissionID}"
 
-# TODO: Renovar token 
 cookies = os.getenv("JOTFORM_COOKIE")
-
 headers = {
       'Origin': 'https://www.jotform.com',
       'Referer': 'https://www.jotform.com/tables/242244461116044',
-      'Cookie': cookies
+      'apiKey': os.getenv("JOTFORM_API_KEY")
 }
-
-ZENROWS_API_URL = "https://api.zenrows.com/v1/"
-PARAMS = {
-    "apikey": os.getenv("ZENROWS_APIKEY"),
-    "url": "",
-    "js_render": "true",
-    "custom_headers": "true",
-    "original_status": "true",
-}
-
 
 def get_img_data(img_url: str) -> bytes | None:
-    headers = {
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "Cookie": cookies,
-        "DNT": "1",
-        #"Host": "img10.naventcdn.com",
-        "Pragma": "no-cache",
-        "Priority": "u=0, i",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "cross-site",
-        "Sec-GPC": "1",
-        "TE": "trailers",
-        "Upgrade-Insecure-Requests": "1",
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:129.0) Gecko/20100101 Firefox/129.0"
-    }
-
-    PARAMS["url"] = img_url
-    res = requests.request("GET", ZENROWS_API_URL, params=PARAMS)
+    res = requests.get(img_url, headers=headers)
     if not res.ok:
         return None
 
@@ -87,12 +54,13 @@ def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, im
 
 # Obtener las lista de preguntas del form:
 # https://api.jotform.com/form/242244461116044/questions?apiKey=
-def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor) -> dict | None:
+def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: str) -> dict | None:
     url = f"https://api.jotform.com/form/{form_id}/submissions?apiKey={API_KEY}"
     data = {
             "10": data.get("title", ""),
             "26": data.get("price", ""),
             "12": data.get("type", ""),
+            "24": cliente,
             "13": asesor.get("name", ""),
             "61": asesor.get("phone", ""),
             "15": asesor.get("email", ""), 
@@ -104,7 +72,8 @@ def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor) -> dict |
             "22": data.get("location", {}).get("zone", ""),
             "78": asesor["name"],
             "79": asesor["phone"],
-            "81": asesor["email"]
+            "81": asesor["email"],
+            "82": data.get("id")
     }
 
     res = requests.post(url, json=data)

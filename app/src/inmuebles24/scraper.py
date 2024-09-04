@@ -4,6 +4,9 @@ if __name__ == "__main__":
     sys.path.append('.')
     load_dotenv()
 
+from datetime import date
+import datetime
+from multiprocessing.pool import ThreadPool
 from bs4 import BeautifulSoup, Tag
 
 import string
@@ -213,6 +216,7 @@ def get_post_data(url: str) -> dict | None:
         title = title_cont.text
 
     post = {
+        "id": sanitaze_str(soup.find("section", id="reactPublisherCodes").find_all("span")[1].next_sibling.text.strip()),
         "extraction_date": strftime(DATE_FORMAT, gmtime()),
         "message_date": strftime(DATE_FORMAT, gmtime()),
         "title":        sanitaze_str(title),
@@ -339,13 +343,15 @@ def combine_pdfs(pdfs: list[str], file_name):
     merger.close()
 
 def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[str]):
+    pool = ThreadPool(processes=20)
+
+    results = []
     nro = 1
     for url, qid in zip(urls, qids):
         logger.debug("Obteniendo imagen: " + url)
         img_data = None
         if "maps" in url:
             res = requests.get(url)
-            print("map res: ", res.status_code)
             if res is None or not res.ok:
                 logger.error("Imposible obtener la imagen de ubicacion: "+ url)
                 logger.error(res.text)
@@ -354,20 +360,27 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
                 img_data = res.content
         else:
             img_data = jotform.get_img_data(url)
+
         if img_data is None:
             logger.error("Imposible obtener la imagen: "+ url)
-        else:
-            err = jotform.upload_image(form_id, submission_id, qid, img_data, f"{submission_id}_{qid}_{nro}")
-            if err is None:
-                logger.success("Imagen subida correctamente")
-            else: 
-                logger.error("No fue posible subir la image: " + str(err))
+            continue
 
-            sleep(1.5)
-            nro += 1
+        r = pool.apply_async(
+                jotform.upload_image, 
+                args=(form_id, submission_id, qid, img_data, f"{submission_id}_{qid}_{nro}", )
+            )
+        results.append(r)
+        nro += 1
+
+    for r in results:
+        err = r.get()
+        if err is None:
+            logger.success("Imagen subida correctamente")
+        else: 
+            logger.error("No fue posible subir la image: " + str(err))
 
 # Genera cotizaciones en pdf para los postings en la lista
-def cotizacion(asesor: dict, posts: list[dict]):
+def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
     form_id = "242244461116044"  # TODO: No hardcodear
     pdfs = []
 
@@ -376,7 +389,7 @@ def cotizacion(asesor: dict, posts: list[dict]):
         images_urls = post["images_urls"]
 
         logger.debug("Uploading Cotizacion Form")
-        res = jotform.submit_cotizacion_form(logger, form_id, post, asesor)
+        res = jotform.submit_cotizacion_form(logger, form_id, post, asesor, cliente)
         if res is None:
             logger.error("No fue posible subir la cotizacion a jotform")
             continue
@@ -394,26 +407,10 @@ def cotizacion(asesor: dict, posts: list[dict]):
 
             pdfs.append(pdf_path)
 
-        """
-        logger.debug("Generating PDF")
-        res = jotform.generate_pdf(form_id, submission_id)
-        if res is not None and res.get("content", "") != "":
-            logger.success("PDF Generado con exito")
-            logger.success(res.get("content"))
-            res = requests.get(res.get("content"))
-
-            pdf_path = f"./src/inmuebles24/pdfs/${submission_id}.pdf" 
-
-            with open(pdf_path, 'wb') as f:
-                f.write(res.content)
-
-            pdfs.append(pdf_path)
-        else:
-            logger.error("No se pudo generar el PDF")
-            logger.error(res)
-        """
-
-    combine_pdfs(pdfs, "/app/pdfs/result.pdf")
+    str_date = datetime.datetime.today().strftime("%d-%m-%Y")
+    file_name = f"Propuesta terrenos {cliente} {str_date}.pdf"
+    combine_pdfs(pdfs, f"/app/pdfs/{file_name}")
+    return file_name
 
 def posts_from_list(res) -> list[dict]:
     posts_count = 0
@@ -450,3 +447,7 @@ if __name__ == "__main__":
     url = "https://www.inmuebles24.com/propiedades/clasificado/alclapin-departamento-a-la-renta-en-el-country-club-60428488.html"
     post = get_post_data(url)
     print(json.dumps(post, indent=4))
+
+
+    # Link REBORA
+    # https://wa.me/5213328092850?text=Me%20interesa%20este%20terreno%20(ID: {id_terreno})%20de%20la%20propuesta:%20(ID: {id})

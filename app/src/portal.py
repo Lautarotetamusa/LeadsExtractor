@@ -89,6 +89,8 @@ class Portal():
                     continue
 
                 lead.print()
+                #print(self.contact_id_field)
+                #self.make_contacted(lead_res[self.contact_id_field])
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead is None:
                     continue
@@ -101,9 +103,12 @@ class Portal():
                 # Mensaje del portal
                 if self.send_msg_field in lead_res:
                     self.send_message(lead_res[self.send_msg_field], portal_msg)
+                else:
+                    print(lead_res)
+                    print(self.send_msg_field)
+                    self.logger.warning("No se encontro campo para enviar mensaje")
                 lead.message = portal_msg.replace('\n', '')
 
-                self.make_contacted(lead_res[self.contact_id_field])
 
     def first_run(self):
         pool = ThreadPool(processes=20)

@@ -135,9 +135,10 @@ class Inmuebles24(Portal):
             if mode == Mode.NEW: # Obtenemos todos los leads sin leer de este pagina
                 leads = []
                 for lead in data["result"]:
+                    status = lead.get("contact_response_status", {}).get("name") 
+                    if status == "Contactado":
                     # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
-                    if lead["statuses"][0] == "READ":
-                        self.logger.debug("Se encontro un lead con status READ, deteniendo")
+                        self.logger.debug("Se encontro un lead con status 'Contactado', deteniendo")
                         finish = True
                         break
                     leads.append(lead)
@@ -206,15 +207,16 @@ class Inmuebles24(Portal):
         is_user = message_to == self.request.headers["idUsuario"]
         return not is_last_message or is_user
 
+    # Usa el lead_id
     def send_message(self, id: str,  message: str):
         self.logger.debug(f"Enviando mensaje a lead {id}")
         msg_url = f"{SITE_URL}leads-api/leads/{id}/messages"
 
         data = {
-                "is_comment": False,
-                "message": message,
-                "message_attachments": []
-                }
+            "is_comment": False,
+            "message": message,
+            "message_attachments": []
+        }
 
         params = PARAMS.copy()
         params["url"] = msg_url
@@ -227,6 +229,30 @@ class Inmuebles24(Portal):
             self.logger.error(f"Error enviando mensaje al lead {id}")
 
     def make_contacted(self, id: str):
+        status = "Contactado"
+        status_url = f"{SITE_URL}leads-api/publisher/contact/status/{id}"
+
+        self.logger.debug(f"Marcando a {id} como {status}")
+
+        params = PARAMS.copy()
+        params["url"] = status_url
+        # res = requests.post(status_url)
+        params["autoparse"] = False
+        data = { 
+            "lead_id": "466098104",
+            "lead_status_id": 2
+        }
+        res = requests.post(ZENROWS_API_URL, params=params, headers=self.request.headers, data=data)
+
+        if res is not None and res.status_code >= 200 and res.status_code < 300:
+            self.logger.success(f"Se marco a lead {id} como {status}")
+        else:
+            if res is not None:
+                self.logger.error(res.content)
+                self.logger.error(res.status_code)
+            self.logger.error(f"Error marcando al lead {id} como {status}")
+
+    def make_readed(self, id: str):
         status = "READ"
         status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={id}"
 
@@ -247,4 +273,5 @@ class Inmuebles24(Portal):
 
 if __name__ == "__main__":
     inmuebles24 = Inmuebles24()
-    inmuebles24.main()
+
+    inmuebles24.make_contacted("210139588")
