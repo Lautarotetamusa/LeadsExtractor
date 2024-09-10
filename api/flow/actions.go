@@ -64,7 +64,6 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
                 return fmt.Errorf("invalid parameters for wpp.media")
             }
 
-            fmt.Printf("%v\n", payload)
             if payload.Image != nil && payload.Video == nil {
                 wpp.SendImage(c.Telefono.String(), payload.Image.Id)
             }else if payload.Video != nil && payload.Image == nil {
@@ -79,7 +78,6 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
 
     DefineAction("wpp.cotizacion", 
         func(c *models.Communication, params interface{}) error {
-            fmt.Printf("%#v\n", c)
             if c.Cotizacion == "" {
                 url, err := jotformApi.GetPdf(c, form)
                 if err != nil {

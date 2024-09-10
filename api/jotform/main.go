@@ -7,6 +7,7 @@ import (
 	"io"
 	"leadsextractor/models"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,15 @@ type Jotform struct {
     apiKey  string    
     forms   []Form
     apiHost string
+}
+
+type SubmitResponse struct {
+    StatusCode      int     `json:"responseCode"`
+    Message         string  `json:"message"` 
+    Content         struct {
+        Url             string  `json:"URL"`
+        SubmissionId    string  `json:"submissionID"`
+    } `json:"content"`
 }
 
 func NewJotform(apiKey string, apiHost string) *Jotform {
@@ -78,9 +88,49 @@ func (j *Jotform) GetPdf(c *models.Communication, f *Form) (string, error) {
     return string(buf), nil
 }
 
-func (j *Jotform) SubmitForm(c *models.Communication, f *Form) error {
+func (j *Jotform) ObtainPdf(submissionId string, f *Form) (string, error) {
+	req, err := http.NewRequest(http.MethodGet, "https://www.jotform.com/API/sheets/generatePDF", nil)
+    
+    q := url.Values{}
+    q.Add("formid", f.id)
+    q.Add("submissionId", submissionId)
+    req.URL.RawQuery = q.Encode()
+
+    fmt.Println(req.URL.String())
+
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Content-Type", "application/json")
+    req.Header.Add("apiKey", j.apiKey)
+    req.Header.Add("Origin", "https://www.jotform.com")
+    req.Header.Add("Referer", fmt.Sprintf("https://www.jotform.com/tables/%s", f.id))
+
+    client := &http.Client{
+        Timeout: 30 * time.Second,
+    }
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("no se pudo realizar la peticion: %s", err)
+	}
+    
+	defer res.Body.Close()
+    buf, err := io.ReadAll(res.Body)
+    if err != nil {
+        return "", err
+    }
+
+    if res.StatusCode != http.StatusOK {
+        return "", fmt.Errorf("request not ok, status = %d", res.StatusCode)
+    }
+
+    fmt.Println(string(buf))
+    return "", nil
+}
+
+// Los campos calculables NO se rellenan
+func (j *Jotform) SubmitForm(c *models.Communication, f *Form) (*SubmitResponse, error) {
     if c.Asesor.Email == ""{
-        return fmt.Errorf("el asesor %s no tiene email asignado", c.Asesor.Name)
+        return nil, fmt.Errorf("el asesor %s no tiene email asignado", c.Asesor.Name)
     }
 
     if c.Busquedas.CoveredArea.String == "" || !c.Busquedas.CoveredArea.Valid {
@@ -128,26 +178,23 @@ func (j *Jotform) SubmitForm(c *models.Communication, f *Form) error {
         "tamanoDe87": "50", //Tamaño muro perimetral
     }
 
-    fmt.Printf("%v\n", params)
-
     url := fmt.Sprintf("https://api.jotform.com/form/%s/submissions", f.id)
-    res, err := j.sendRequest(url, params); 
+    var res SubmitResponse
+    err := j.sendRequest(url, params, &res); 
     if err != nil {
-        return err
+        return nil, err
     }
 
-    fmt.Printf("%v\n", res)
-
-    return nil
+    return &res, nil
 }
 
-func (j *Jotform) sendRequest(url string, payload map[string]string) (any, error) {
+func (j *Jotform) sendRequest(url string, payload map[string]string, response any) error {
 	jsonBody, _ := json.Marshal(payload)
 	bodyReader := bytes.NewReader(jsonBody)
 
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	req.Header.Add("Accept", "application/json")
@@ -160,16 +207,15 @@ func (j *Jotform) sendRequest(url string, payload map[string]string) (any, error
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("no se pudo realizar la peticion: %s", err)
+		return fmt.Errorf("no se pudo realizar la peticion: %s", err)
 	}
     
 	defer res.Body.Close()
-	var response any
     if err = json.NewDecoder(res.Body).Decode(&response); err != nil {
-        return nil, err
+        return err
     }
 
-	return response, nil
+	return nil
 }
 
 func parseProp(prop string) float32 {

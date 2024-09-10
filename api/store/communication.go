@@ -188,6 +188,24 @@ func (s *Store) GetCommunications(params *QueryParam) ([]models.Communication, e
     return communications, nil
 }
 
+func (s *Store) GetAllCommunications(params *QueryParam) ([]models.Communication, error) {
+    //Lo hago asi para que si no encuentra nada devuelva []
+    communications := make([]models.Communication, 0)
+
+    query := NewQuery(selectQuery + joinQuery)
+    query.buildWhere(params)
+
+    stmt, err := s.db.PrepareNamed(query.query)
+    if err != nil {
+        return nil, err
+    }
+    if err := stmt.Select(&communications, query.params); err != nil {
+        return nil, err
+    }
+
+    return communications, nil
+}
+
 func (s *Store) GetCommunicationsCount(params *QueryParam) (int, error) {
     var count int
     query := NewQuery(countQuery + joinQuery)

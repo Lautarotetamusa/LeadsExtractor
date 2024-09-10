@@ -45,8 +45,8 @@ type Rule struct {
 type Flow []Rule
 
 type FlowManager struct {
-    Main        uuid.UUID               `json:"main"`  //Es el uuid del flow que se ejecuta cuando llega una comuncacion
-    Flows       map[uuid.UUID]Flow      `json:"flows"` // 
+    Main        uuid.UUID           //Es el uuid del flow que se ejecuta cuando llega una comuncacion
+    Flows       map[uuid.UUID]Flow      
     filename    string
     logger      *slog.Logger
 }

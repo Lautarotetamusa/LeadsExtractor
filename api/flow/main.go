@@ -41,6 +41,10 @@ func (f *FlowManager) GetFlows() map[uuid.UUID]Flow {
     return f.Flows 
 }
 
+func (f *FlowManager) GetMain() uuid.UUID {
+    return f.Main 
+}
+
 func (f *FlowManager) GetFlow(uuid uuid.UUID) (*Flow, error){
     flow, ok := f.Flows[uuid] 
     if !ok{
@@ -65,18 +69,18 @@ func (f *FlowManager) SetMain(uuid uuid.UUID) error {
     return nil
 }
 
-func (f *FlowManager) AddFlow(flow *Flow) error {
+func (f *FlowManager) AddFlow(flow *Flow) (*uuid.UUID, error) {
     uuid, err := uuid.NewRandom()
     if err != nil {
-        return fmt.Errorf("no se pudo generar una uuid: %s", err)
+        return nil, fmt.Errorf("no se pudo generar una uuid: %s", err)
     }
 
     f.Flows[uuid] = *flow
     if err := f.Save(); err != nil {
-        return err
+        return nil, err
     }
     
-    return nil
+    return &uuid, nil
 }
 
 func (f *FlowManager) UpdateFlow(flow *Flow, uuid uuid.UUID) error {
