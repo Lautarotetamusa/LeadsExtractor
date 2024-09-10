@@ -37,6 +37,10 @@ func (f *FlowManager) Save() error {
     return nil
 }
 
+func (f *FlowManager) GetFlows() map[uuid.UUID]Flow {
+    return f.Flows 
+}
+
 func (f *FlowManager) GetFlow(uuid uuid.UUID) (*Flow, error){
     flow, ok := f.Flows[uuid] 
     if !ok{
@@ -124,8 +128,8 @@ func (f *FlowManager) runFlow(c *models.Communication, uuid uuid.UUID) {
     }
 
     for _, rule := range rules {
-        if rule.Condition.IsNew != c.IsNew {
-            continue 
+        if !rule.Condition.Matches(c) {
+            continue
         }
 
         for _, action := range rule.Actions{

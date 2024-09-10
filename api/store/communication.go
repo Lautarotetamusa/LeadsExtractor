@@ -7,16 +7,16 @@ import (
 )
 
 type QueryParam struct{
-    DateFrom    time.Time   `schema:"fecha_from" db:"dateFrom"`
-    DateTo      time.Time   `schema:"fecha_to" db:"dateTo"`
-    AsesorPhone string      `schema:"asesor_phone" db:"asesorPhone"`
-    AsesorName  string      `schema:"asesor_name" db:"asesorName"`
-    Fuente      string      `schema:"fuente" db:"fuente"`
-    Nombre      string      `schema:"nombre" db:"nombre"`
-    Telefono    string      `schema:"telefono" db:"telefono"`
-    IsNew       *bool       `schema:"is_new" db:"isNew"`
-    Page        int         `schema:"page" db:"page"`
-    PageSize    int         `schema:"page_size"`
+    DateFrom    time.Time   `schema:"fecha_from" json:"fecha_from,omitempty" db:"dateFrom"`
+    DateTo      time.Time   `schema:"fecha_to" json:"fecha_to,omitempty" db:"dateTo"`
+    AsesorPhone string      `schema:"asesor_phone" json:"asesor_phone,omitempty" db:"asesorPhone"`
+    AsesorName  string      `schema:"asesor_name" json:"asesor_name,omitempty" db:"asesorName"`
+    Fuente      string      `schema:"fuente" json:"fuente,omitempty" db:"fuente"`
+    Nombre      string      `schema:"nombre" json:"nombre,omitempty" db:"nombre"`
+    Telefono    string      `schema:"telefono" json:"telefono,omitempty" db:"telefono"`
+    IsNew       *bool       `schema:"is_new" json:"is_new,omitempty" db:"isNew"`
+    Page        int         `schema:"page" json:"page,omitempty" db:"page"`
+    PageSize    int         `schema:"page_size" json:"page_size,omitempty"`
 }
 
 type Query struct {
@@ -75,6 +75,16 @@ func NewQuery(baseQuery string) Query {
         query: baseQuery,
         params: map[string]interface{}{},
     }
+}
+
+// Validate that the communication matches the params
+func (p *QueryParam) Matches(c *models.Communication) bool {
+    return  (p.IsNew == nil     || *p.IsNew == c.IsNew) && 
+            (p.Telefono == ""   ||  p.Telefono == c.Telefono.String()) && 
+            (p.Fuente == ""     ||  p.Fuente == c.Fuente) && 
+            (p.AsesorPhone == "" || p.AsesorPhone == c.Asesor.Phone.String()) && 
+            (p.AsesorName == "" ||  p.AsesorName == c.Asesor.Name) &&  
+            (p.Nombre == ""     ||  p.Nombre == c.Nombre)
 }
 
 func (q *Query) buildWhere(params *QueryParam) {
@@ -194,3 +204,10 @@ func (s *Store) GetCommunicationsCount(params *QueryParam) (int, error) {
     return count, nil
 }
 
+func (s *Store) ExistsCommunication(params *QueryParam) bool {
+    count, err := s.GetCommunicationsCount(params)
+    if err != nil {
+        return false
+    }
+    return count > 0
+}

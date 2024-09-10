@@ -49,12 +49,12 @@ type DocumentPayload struct {
 
 type TemplatePayload struct {
 	Name       string        `json:"name"`
-	Language   Language     `json:"language"`
+    Language   Language     `json:"language"`
 	Components []Components `json:"components"`
 }
 
 type Parameter struct {
-    Type        string           `json:"type"`
+    Type        string           `json:"type" jsonschema:"enum=text"`
     Text        string           `json:"text,omitempty"`
 	Image       *MediaPayload    `json:"image,omitempty"`
 	Video       *MediaPayload    `json:"video,omitempty"`
@@ -62,12 +62,12 @@ type Parameter struct {
 }
 
 type Components struct {
-	Type       string       `json:"type"`
+    Type       string       `json:"type" jsonschema:"enum=body"`
 	Parameters []Parameter  `json:"parameters"`
 }
 
 type Language struct {
-	Code string `default:"es_MX" json:"code"`
+	Code string `default:"es_MX" json:"code" jsonschema:"enum=es_MX,enum=es"`
 }
 
 type Payload struct {

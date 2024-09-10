@@ -1,14 +1,11 @@
 package pkg
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"leadsextractor/flow"
-	"leadsextractor/models"
 	"leadsextractor/store"
 	"net/http"
-	"text/template"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -22,14 +19,35 @@ type FlowHandler struct {
     manager *flow.FlowManager
 }
 
+type FlowResponse struct {
+    IsMain  bool        `json:"is_main"`
+    Rules   []flow.Rule `json:"rules"`
+    Uuid    uuid.UUID   `json:"uuid"`
+}
+
 func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
     return &FlowHandler{
         manager: m,
     }
 }
+func (h *FlowHandler) GetConfig(w http.ResponseWriter, r *http.Request) error {
+    actions := h.manager.GetActions()
+    dataResponse(w, actions)
+    return nil
+}
 
 func (h *FlowHandler) GetFlows(w http.ResponseWriter, r *http.Request) error {
-    dataResponse(w, h.manager.Flows)
+    flows := h.manager.GetFlows()
+    res := make(map[uuid.UUID]FlowResponse)
+    for uuid, rules := range flows {
+        res[uuid] = FlowResponse{
+            IsMain: h.manager.Main == uuid,
+            Uuid: uuid,
+            Rules: rules,
+        }
+    }
+
+    dataResponse(w, res)
     return nil
 }
 
@@ -38,8 +56,13 @@ func (h *FlowHandler) GetMainFlow(w http.ResponseWriter, r *http.Request) error 
     if err != nil {
         return err
     }
+    res := FlowResponse{
+        IsMain: true,
+        Uuid: h.manager.Main,
+        Rules: *flow,
+    }
 
-    dataResponse(w, flow)
+    dataResponse(w, res)
     return nil
 }
 
@@ -52,8 +75,13 @@ func (h *FlowHandler) GetFlow(w http.ResponseWriter, r *http.Request) error {
     if err != nil {
         return err
     }
+    res := FlowResponse{
+        IsMain: h.manager.Main == *uuid,
+        Uuid: *uuid,
+        Rules: *flow,
+    }
 
-    dataResponse(w, flow)
+    dataResponse(w, res)
     return nil
 }
 
@@ -114,33 +142,6 @@ func (h *FlowHandler) SetFlowAsMain(w http.ResponseWriter, r *http.Request) erro
     return nil
 }
 
-func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
-    uuid, err := s.flowHandler.getUUIDFromBody(r)
-    if err != nil {
-        return err
-    }
-   
-    trueVal := true
-    params := store.QueryParam{
-        IsNew: &trueVal,
-    }
-	communications, err := s.Store.GetCommunications(&params)
-	if err != nil {
-        return err
-	}
-
-    go s.flowHandler.manager.Broadcast(communications, *uuid)
-
-	w.Header().Set("Content-Type", "application/json")
-	res := struct {
-		Success bool    `json:"success"`
-		Count   int     `json:"count"`
-	}{true, len(communications)}
-
-	json.NewEncoder(w).Encode(res)
-	return nil
-}
-
 func (h *FlowHandler) getUUIDFromBody(r *http.Request) (*uuid.UUID, error) {
     var body GetFlowPayload
 	defer r.Body.Close()
@@ -171,13 +172,29 @@ func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
     return &uuid, nil
 }
 
-
-func FormatMsg(tmpl string, c *models.Communication) string {
-    t := template.Must(template.New("txt").Parse(tmpl))
-    buf := &bytes.Buffer{}
-    if err := t.Execute(buf, c); err != nil {
-        return ""
+func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
+    uuid, err := s.flowHandler.getUUIDFromBody(r)
+    if err != nil {
+        return err
     }
-    return buf.String()
-}
+   
+    trueVal := true
+    params := store.QueryParam{
+        IsNew: &trueVal,
+    }
+	communications, err := s.Store.GetCommunications(&params)
+	if err != nil {
+        return err
+	}
 
+    go s.flowHandler.manager.Broadcast(communications, *uuid)
+
+	w.Header().Set("Content-Type", "application/json")
+	res := struct {
+		Success bool    `json:"success"`
+		Count   int     `json:"count"`
+	}{true, len(communications)}
+
+	json.NewEncoder(w).Encode(res)
+	return nil
+}

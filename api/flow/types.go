@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
+	"leadsextractor/store"
 	"leadsextractor/whatsapp"
 	"log/slog"
 	"reflect"
@@ -26,8 +27,8 @@ type SendWppTextParam struct {
 }
 
 type SendWppMedia struct {
-	Image   *whatsapp.MediaPayload    `json:"image,omitempty"`
-	Video   *whatsapp.MediaPayload    `json:"video,omitempty"`
+    Image   *whatsapp.MediaPayload    `json:"image,omitempty" jsonschema:"oneof_required=image"`
+    Video   *whatsapp.MediaPayload    `json:"video,omitempty" jsonschema:"oneof_required=video"`
 }
 
 type Action struct {
@@ -36,20 +37,16 @@ type Action struct {
     Params      interface{} `json:"params"`
 }
 
-type Condition struct {
-    IsNew   bool `json:"is_new"`
-}
-
 type Rule struct {
-    Condition   Condition `json:"condition"`
-    Actions     []Action  `json:"actions"`  
+    Condition   store.QueryParam    `json:"condition"`
+    Actions     []Action            `json:"actions"`  
 }
 
 type Flow []Rule
 
 type FlowManager struct {
-    Flows       map[uuid.UUID]Flow      `json:"flows"` // 
     Main        uuid.UUID               `json:"main"`  //Es el uuid del flow que se ejecuta cuando llega una comuncacion
+    Flows       map[uuid.UUID]Flow      `json:"flows"` // 
     filename    string
     logger      *slog.Logger
 }
