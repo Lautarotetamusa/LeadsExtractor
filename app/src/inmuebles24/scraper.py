@@ -7,6 +7,7 @@ if __name__ == "__main__":
 from datetime import date
 import datetime
 from multiprocessing.pool import ThreadPool
+from re import sub
 from bs4 import BeautifulSoup, Tag
 
 import string
@@ -436,7 +437,6 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
             logger.error("No fue posible subir la image: " + str(err))
 
 def cotizacion_post(post, form_id, asesor, cliente):
-    print("A")
     map_url = post["map_url"]
     images_urls = post["images_urls"]
 
@@ -444,20 +444,21 @@ def cotizacion_post(post, form_id, asesor, cliente):
     res = jotform.submit_cotizacion_form(logger, form_id, post, asesor, cliente)
     if res is None:
         logger.error("No fue posible subir la cotizacion a jotform")
-        return None
+        return None, None
 
     submission_id = res["content"]["submissionID"]
-    images_qids = ["77", "44", "44", "44", "44"]
+    images_qids = ["77", "44", "44", "44", "44"] # TODO: No hardcodear
     upload_images(form_id, submission_id, [map_url] + images_urls, images_qids)
 
     res = jotform.obtain_pdf(form_id, submission_id)
-    if res is not None:
-        pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf" 
+    if res is None:
+        return None, None
 
-        with open(pdf_path, 'wb') as f:
-            f.write(res)
+    pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf" 
+    with open(pdf_path, 'wb') as f:
+        f.write(res)
 
-        return pdf_path
+    return pdf_path, submission_id
 
 # Genera cotizaciones en pdf para los postings en la lista
 def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
@@ -470,13 +471,14 @@ def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
         r = pool.apply_async(cotizacion_post, args=(post, form_id, asesor, cliente, ))
         results.append(r)
 
+    submission_id = ""
     for r in results:
-        pdf_path = r.get()
+        pdf_path, submission_id = r.get()
         if pdf_path is not None:
             pdfs.append(pdf_path)
 
     str_date = datetime.datetime.today().strftime("%d-%m-%Y")
-    file_name = f"Propuesta terrenos {cliente} {str_date}.pdf"
+    file_name = f"Propuesta terrenos {cliente} {submission_id} {str_date}.pdf"
     combine_pdfs(pdfs, f"/app/pdfs/{file_name}")
     return file_name
 
