@@ -73,7 +73,10 @@ def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: 
             "78": asesor["name"],
             "79": asesor["phone"],
             "81": asesor["email"],
-            "82": data.get("id")
+            "82": data.get("id"),
+            "83": data.get("banios"),
+            "84": data.get("cocheras"),
+            "85": data.get("recamaras"),
     }
 
     res = requests.post(url, json=data)

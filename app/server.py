@@ -1,3 +1,4 @@
+from multiprocessing.pool import ThreadPool
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import threading
@@ -160,22 +161,31 @@ def execute_cotizacion(asesor, res, cliente, task_id):
         tasks[task_id]["pdf_file_name"] = pdf_file_name
     except Exception as e:
         tasks[task_id]["status"] = "error"
-        print(e)
+        tasks[task_id]["error"] = str(e)
         print(f"Error generando la cotización: {str(e)}")
 
 
 def execute_cotizacion_urls(asesor, urls, cliente, task_id):
     try:
         posts = []
+        pool = ThreadPool(processes=8)
+        results = []
         for url in urls:
-            posts.append(inmuebles24.get_post_data(url))
+            r = pool.apply_async(inmuebles24.get_post_data, args=(url, ))
+            results.append(r)
+
+        for r in results:
+            post = r.get()
+            if post is not None:
+                posts.append(post)
+
         pdf_file_name = inmuebles24.cotizacion(asesor, cliente, posts)
         tasks[task_id]["status"] = "completed"
         tasks[task_id]["pdf_file_name"] = pdf_file_name
     except Exception as e:
         tasks[task_id]["status"] = "error"
+        tasks[task_id]["error"] = str(e)
         print(f"Error generando la cotización: {str(e)}")
-
 
 def execute_scraper(portal: str, params: str | dict, spin_msg: str):
     assert portal in SCRAPERS, f"El portal {portal} no existe"

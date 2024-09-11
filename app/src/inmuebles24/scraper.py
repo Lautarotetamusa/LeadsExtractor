@@ -171,6 +171,14 @@ def extract_post_data(p: dict) -> dict:
 def sanitaze_str(text: str) -> str:
     return text.strip().replace("\n", "").replace("\t", "")
 
+
+def safe_find(soup: BeautifulSoup, name: str, **args):
+    tag = soup.find(name, **args)
+    if tag is None:
+        raise KeyError(str(**args))
+    
+    return tag
+
 # Extraer los datos de la propiedad através del link a la propiedad directamente
 # TODO: 
 # Este link no anda: https://www.inmuebles24.com/propiedades/desarrollo/ememvein-ri-a-americas-143720777.html
@@ -179,8 +187,10 @@ def get_post_data(url: str) -> dict | None:
     # Lo agregamos para poder opbtener la imagen con la ubicacion
     request.api_params["js_instructions"] =  """[{"wait":1500},{"scroll_y":400}]"""
     res = request.make(url, "GET") 
-    del request.api_params['js_render']
-    del request.api_params['js_instructions']
+    if 'js_render' in request.api_params:       # Como es mutlithreading aveces se bugeaba. TODO: fix
+        del request.api_params['js_render']
+    if 'js_instructions' in request.api_params: # Como es mutlithreading aveces se bugeaba. TODO: fix
+        del request.api_params['js_instructions']
     if res is None:
         return
     soup = BeautifulSoup(res.text, "html.parser")
@@ -196,7 +206,8 @@ def get_post_data(url: str) -> dict | None:
             img_cout += 1
             images.append(img["src"])
     else:
-        logger.error("Canot find gallery div")
+        logger.error("cannot find gallery div")
+        return
 
     map_url = ""
     map_container = soup.find("img", class_="static-map")
@@ -208,25 +219,68 @@ def get_post_data(url: str) -> dict | None:
         "antiguedad":   "icon-antiguedad",
         "size":         "icon-stotal",
         "building_size": "icon-scubierta",
+        "banios":       "icon-bano",
+        "cocheras":     "icon-cochera",
+        "recamaras":    "icon-dormitorio",
     }
     
     title = " - "
     title_cont = soup.find("h1", class_="title-property")
-    if title_cont is not None:
+    if type(title_cont) is Tag:
         title = title_cont.text
+    else:
+        logger.error("cannot find h1{title-property}")
+
+    id = " - "
+    id_tag = soup.find("section", id="reactPublisherCodes")
+    if type(id_tag) is Tag:
+        a1 = id_tag.find_all("span")
+        if len(a1) > 0:
+            id = a1[1].next_sibling.text.strip()
+        else: logger.error("cannot find section{reactPublisherCodes.span}")
+    else:
+        logger.error("cannot find section{reactPublisherCodes}")
+
+    price = " - "
+    price_tag = soup.find("div", class_="price-value")
+    if type(price_tag) is Tag:
+        a1 = price_tag.find("span")
+        if type(a1) is Tag:
+            a2 = a1.find("span")
+            if type(a2) is Tag:
+                price = a2.text.strip()
+            else:
+                logger.error("cannot find {price-value.span.span}")
+        else:
+            logger.error("cannot find {price-value.span}")
+    else:
+        logger.error("cannot find {price-value}")
+
+    zone = " - "
+    zone_tag = soup.find("section", id="map-section")
+    if type(zone_tag) is Tag:
+        a1 = zone_tag.find("h4")
+        if type(a1) is Tag:
+            zone = a1.text
+        else:
+            logger.error("cannot find section{map-section.h4}")
+            return
+    else:
+        logger.error("cannot find section{map-section}")
+        return
 
     post = {
-        "id": sanitaze_str(soup.find("section", id="reactPublisherCodes").find_all("span")[1].next_sibling.text.strip()),
+        "id": sanitaze_str(id),
         "extraction_date": strftime(DATE_FORMAT, gmtime()),
         "message_date": strftime(DATE_FORMAT, gmtime()),
         "title":        sanitaze_str(title),
-        "price":        sanitaze_str(soup.find("div", class_="price-value").find("span").find("span").text.strip()),
+        "price":        sanitaze_str(price),
         "currency":     "",
         "type":         "",
         "url":          url,
         "location":     {
             "full":       "",
-            "zone":       sanitaze_str(soup.find("section", id="map-section").find("h4").text),
+            "zone":       sanitaze_str(zone),
             "city":       "",
             "province":   "",
         },
@@ -243,6 +297,8 @@ def get_post_data(url: str) -> dict | None:
             continue
 
         post[key] = sanitaze_str(container.nextSibling.text.strip())
+        if key == "cocheras": 
+            post[key] += " cocheras"
 
     return post
 
@@ -379,32 +435,44 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
         else: 
             logger.error("No fue posible subir la image: " + str(err))
 
+def cotizacion_post(post, form_id, asesor, cliente):
+    print("A")
+    map_url = post["map_url"]
+    images_urls = post["images_urls"]
+
+    logger.debug("Uploading Cotizacion Form")
+    res = jotform.submit_cotizacion_form(logger, form_id, post, asesor, cliente)
+    if res is None:
+        logger.error("No fue posible subir la cotizacion a jotform")
+        return None
+
+    submission_id = res["content"]["submissionID"]
+    images_qids = ["77", "44", "44", "44", "44"]
+    upload_images(form_id, submission_id, [map_url] + images_urls, images_qids)
+
+    res = jotform.obtain_pdf(form_id, submission_id)
+    if res is not None:
+        pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf" 
+
+        with open(pdf_path, 'wb') as f:
+            f.write(res)
+
+        return pdf_path
+
 # Genera cotizaciones en pdf para los postings en la lista
 def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
     form_id = "242244461116044"  # TODO: No hardcodear
     pdfs = []
+    results = []
+    pool = ThreadPool(processes=8)
 
     for post in posts:
-        map_url = post["map_url"]
-        images_urls = post["images_urls"]
+        r = pool.apply_async(cotizacion_post, args=(post, form_id, asesor, cliente, ))
+        results.append(r)
 
-        logger.debug("Uploading Cotizacion Form")
-        res = jotform.submit_cotizacion_form(logger, form_id, post, asesor, cliente)
-        if res is None:
-            logger.error("No fue posible subir la cotizacion a jotform")
-            continue
-
-        submission_id = res["content"]["submissionID"]
-        images_qids = ["77", "44", "44", "44", "44"]
-        upload_images(form_id, submission_id, [map_url] + images_urls, images_qids)
-
-        res = jotform.obtain_pdf(form_id, submission_id)
-        if res is not None:
-            pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf" 
-
-            with open(pdf_path, 'wb') as f:
-                f.write(res)
-
+    for r in results:
+        pdf_path = r.get()
+        if pdf_path is not None:
             pdfs.append(pdf_path)
 
     str_date = datetime.datetime.today().strftime("%d-%m-%Y")
@@ -444,7 +512,7 @@ if __name__ == "__main__":
     }
 
     #cotizacion(asesor, res)
-    url = "https://www.inmuebles24.com/propiedades/clasificado/alclapin-departamento-a-la-renta-en-el-country-club-60428488.html"
+    url = "https://www.inmuebles24.com/propiedades/clasificado/alclcain-residencia-en-renta-en-colinas-de-san-javier-de-lujo-141920496.html"
     post = get_post_data(url)
     print(json.dumps(post, indent=4))
 
