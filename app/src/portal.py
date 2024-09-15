@@ -89,8 +89,6 @@ class Portal():
                     continue
 
                 lead.print()
-                #print(self.contact_id_field)
-                #self.make_contacted(lead_res[self.contact_id_field])
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead is None:
                     continue
@@ -104,9 +102,14 @@ class Portal():
                 if self.send_msg_field in lead_res:
                     self.send_message(lead_res[self.send_msg_field], portal_msg)
                 else:
-                    print(lead_res)
-                    print(self.send_msg_field)
                     self.logger.warning("No se encontro campo para enviar mensaje")
+
+                # Marcar como contactado
+                if self.contact_id_field in lead_res:
+                    self.make_contacted(lead_res[self.contact_id_field])
+                else:
+                    self.logger.warning("No se encontro campo para contactar")
+
                 lead.message = portal_msg.replace('\n', '')
 
 
