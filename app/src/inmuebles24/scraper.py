@@ -4,19 +4,18 @@ if __name__ == "__main__":
     sys.path.append('.')
     load_dotenv()
 
-from datetime import date
 import datetime
 from multiprocessing.pool import ThreadPool
-from re import sub
 from bs4 import BeautifulSoup, Tag
 
 import string
 import random
 import json
 import os
+import re
 import urllib.parse
 
-from time import gmtime, strftime, sleep
+from time import gmtime, strftime
 from pypdf import PdfMerger
 
 import requests
@@ -30,7 +29,7 @@ import src.jotform as jotform
 SITE = "https://www.inmuebles24.com"
 VIEW_URL = f"{SITE}/rp-api/leads/view"
 LIST_URL = f"{SITE}/rplis-api/postings"
-CONTACT_URL =  f"{SITE}/rp-api/leads/contact"
+CONTACT_URL = f"{SITE}/rp-api/leads/contact"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 DATE_FORMAT = "%d/%m/%Y"
 SENDER = {
@@ -48,7 +47,7 @@ logger = Logger("scraper inmuebles24.com")
 request = ApiRequest(logger, ZENROWS_API_URL, {
     "apikey": os.getenv("ZENROWS_APIKEY"),
     "url": "",
-    #"js_render": "true",
+    # "js_render": "true",
     "antibot": "true",
     "premium_proxy": "true",
     "proxy_country": "mx",
@@ -59,48 +58,39 @@ def get_publisher(post: dict, msg=""):
         "email": SENDER["email"],
         "name":  SENDER["name"],
         "phone": SENDER["phone"],
-        "page":"Listado",
+        "page": "Listado",
         "publisherId": post["publisher"]["id"],
         "postingId": post["id"]
     }
     cookies = {
-		"__cf_bm": "hoDyQ_mtImkdY5HD29Se6J2Aqv_Yz44dNM5FJh0n9SI-1710160201-1.0.1.1-tFEriZezq30JgcOPw135QgEzZV3.OXKocDieHa_VY14FKL1celv9Om5.o81Ae2WyJoWmW8rF3tXUxSP.t2oOKcxibwb7e98sqSGbfJ_Y_1k",
-		"_ga": "GA1.1.666477216.1710160203",
-		"_ga_8XFRKTEF9J": "GS1.1.1710160203.1.1.1710160222.41.0.0",
-		"_gcl_au": "1.1.894966547.1710160202",
-		"cf_clearance": "Q7RkPoggohxEnA5JIdYYfyYZyHUQ3uMC_im1hbjItzM-1710160201-1.0.1.1-YmcpkWwDvzKyb3a54VxdeB8VmSjpcb9OQZxLWbrumJ2vQ4NQDwrTeiaTWfXhPlpVTVrPJ9nWKKsy7Si_dSi7Pw",
-		"g_state": "{\"i_p\":1710167409819,\"i_l\":1}",
-		"JSESSIONID": "FCB57AE475324D4D0F664D11D17B678F",
-		"mousestats_si": "0e23e2327c539da7d990",
-		"mousestats_vi": "fe5d6cc48141971925a4",
-		"sessionId": "6898964a-b6d4-44fc-af0b-07306ebdf91a"
+        "sessionId": "6898964a-b6d4-44fc-af0b-07306ebdf91a"
     }
     headers = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0"
     }
 
     if msg == "":
-        #View the phone but not send message
+        # View the phone but not send message
         url = VIEW_URL
         logger.debug(f"Viendo telefono del publisher {post['publisher']['id']}")
     else:
         logger.debug(f"Enviando mensaje a publisher {post['publisher']['id']}")
         url = CONTACT_URL
 
-    #Send a message or get the phone
+    # Send a message or get the phone
     while True:
         if msg != "":
             detail_data["message"] = msg
 
         res = request.make(url, 'POST', json=detail_data, cookies=cookies, headers=headers)
-        if res == None: 
+        if res is None:
             logger.error("No se pudo enviar mensaje al post")
             return None
         logger.debug(res.json())
         data = res.json()[0]
 
         result = data.get("resultLeadOutput", {})
-        if result.get("code", 0) == 409: #El mensaje esta repetido
+        if result.get("code", 0) == 409:  # El mensaje esta repetido
             logger.debug("Mensaje repetido, reenviando")
             # Agregamos un string random al final del mensaje
             msg += "\n\n"+"".join(random.choice(string.digits) for _ in range(10))
@@ -108,7 +98,7 @@ def get_publisher(post: dict, msg=""):
 
         publisher = data.get("publisherOutput", {})
 
-        if "mailerror" in publisher: #The sender mail is wrong and server return a 500 code
+        if "mailerror" in publisher:  # The sender mail is wrong and server return a 500 code
             return None
 
         logger.success("Publisher contactado con exito")
@@ -172,40 +162,41 @@ def extract_post_data(p: dict) -> dict:
 def sanitaze_str(text: str) -> str:
     return text.strip().replace("\n", "").replace("\t", "")
 
-
 def safe_find(soup: BeautifulSoup, name: str, **args):
     tag = soup.find(name, **args)
     if tag is None:
         raise KeyError(str(**args))
-    
+
     return tag
 
 # Extraer los datos de la propiedad através del link a la propiedad directamente
-# TODO: 
 # Este link no anda: https://www.inmuebles24.com/propiedades/desarrollo/ememvein-ri-a-americas-143720777.html
 def get_post_data(url: str) -> dict | None:
     request.api_params['js_render'] = 'true'
     # Lo agregamos para poder opbtener la imagen con la ubicacion
-    request.api_params["js_instructions"] =  """[{"wait":1500},{"scroll_y":400}]"""
-    res = request.make(url, "GET") 
+    request.api_params["js_instructions"] = """[{"wait":1500},{"scroll_y":400}]"""
+    res = request.make(url, "GET")
     if 'js_render' in request.api_params:       # Como es mutlithreading aveces se bugeaba. TODO: fix
         del request.api_params['js_render']
-    if 'js_instructions' in request.api_params: # Como es mutlithreading aveces se bugeaba. TODO: fix
+    if 'js_instructions' in request.api_params:  # Como es mutlithreading aveces se bugeaba. TODO: fix
         del request.api_params['js_instructions']
     if res is None:
         return
     soup = BeautifulSoup(res.text, "html.parser")
 
     images = []
-    max_images = 4
-    img_cout = 0
+    MAX_IMAGES = 4
+    DEFAULT_DIMENSIONS = "360x266"
     gallery = soup.find("div", id="new-gallery-portal")
-    if type(gallery) is Tag: 
+    dimensions_regex = re.compile(r'\d+x\d+')
+    if type(gallery) is Tag:
         for img in gallery.find_all("img"):
-            if img_cout >= max_images:
+            if len(images) >= MAX_IMAGES:
                 break
-            img_cout += 1
-            images.append(img["src"])
+            # https://img10.naventcdn.com/avisos-va/vamx-pt10-ads/ad/1200x1200/ad4827e9-3c44-4558-b5f2-3e5a3de42f1c?isFirstImage=true
+            src = dimensions_regex.sub(DEFAULT_DIMENSIONS, img["src"])
+            print(src)
+            images.append(src)
     else:
         logger.error("cannot find gallery div")
         return
@@ -224,7 +215,7 @@ def get_post_data(url: str) -> dict | None:
         "cocheras":     "icon-cochera",
         "recamaras":    "icon-dormitorio",
     }
-    
+
     title = " - "
     title_cont = soup.find("h1", class_="title-property")
     if type(title_cont) is Tag:
@@ -238,7 +229,8 @@ def get_post_data(url: str) -> dict | None:
         a1 = id_tag.find_all("span")
         if len(a1) > 0:
             id = a1[1].next_sibling.text.strip()
-        else: logger.error("cannot find section{reactPublisherCodes.span}")
+        else:
+            logger.error("cannot find section{reactPublisherCodes.span}")
     else:
         logger.error("cannot find section{reactPublisherCodes}")
 
@@ -298,10 +290,11 @@ def get_post_data(url: str) -> dict | None:
             continue
 
         post[key] = sanitaze_str(container.nextSibling.text.strip())
-        if key == "cocheras": 
+        if key == "cocheras":
             post[key] += " cocheras"
 
     return post
+
 
 # Get the all the postings in one search
 def get_postings(filters: dict, spin_msg: str):
@@ -310,10 +303,10 @@ def get_postings(filters: dict, spin_msg: str):
     total = 0
 
     while not last_page:
-        logger.debug(f"Page nro {page}")        
+        logger.debug(f"Page nro {page}")
         data = request.make(LIST_URL, 'POST', json=filters).json()
 
-        #Scrape the data from the JSON
+        # Scrape the data from the JSON
         posts = []
         for post_data in data.get("listPostings", []):
             posts.append(extract_post_data(post_data))
@@ -331,6 +324,7 @@ def get_postings(filters: dict, spin_msg: str):
 
     logger.success(f"Se encontraron {total} ads para la url")
 
+
 def extract_images(post_data: dict):
     pictures = post_data.get("visiblePictures", {}).get("pictures", [])
     if len(pictures) == 0:
@@ -338,9 +332,10 @@ def extract_images(post_data: dict):
 
     images_urls = []
     for picture_data in pictures:
-        images_urls.append(picture_data.get("url730x532", "")) 
+        images_urls.append(picture_data.get("url730x532", ""))
 
     return images_urls
+
 
 def extract_ubication_image(post_data: dict) -> str | None:
     location_data = post_data.get("postingLocation", {}).get("postingGeolocation", {})
@@ -364,31 +359,33 @@ def extract_ubication_image(post_data: dict) -> str | None:
     if geo is None:
         print("No se encontro informacion de la geolocalizacion para la propiedad")
         return None
-    #markers=19.363745800000000,-99.279810700000000
+    # markers=19.363745800000000,-99.279810700000000
     query["markers"] = [f"{geo.get('latitude')},{geo.get('longitude')}"]
-    query.pop("signature") # Generamos una nueva par aque google acepte la peticion
+    query.pop("signature")  # Generamos una nueva par aque google acepte la peticion
 
     url = url._replace(query=urllib.parse.urlencode(query, doseq=True))
     return url.geturl()
 
+
 def main(filters: dict, spin_msg):
     sheet = Sheet(logger, 'scraper_mapping.json')
     sheets_headers = sheet.get("Extracciones!A1:Z1")[0]
-    
-    row_ads = [] #La lista que se guarda en el google sheets
+
+    row_ads = []  # La lista que se guarda en el google sheets
     for post in get_postings(filters, spin_msg):
         msg = generate_post_message(post, spin_msg)
         post["message"] = msg.replace('\n', '')
         publisher = get_publisher(post, msg)
 
-        if publisher != None:
+        if publisher is not None:
             post["publisher"]["phone"] = publisher.get("phone", "")
             post["publisher"]["cellPhone"] = publisher.get("cellPhone", "")
-        
+
         row_ad = sheet.map_lead(post, sheets_headers)
         row_ads.append(row_ad)
 
     sheet.write(row_ads, "Extracciones!A2")
+
 
 def combine_pdfs(pdfs: list[str], file_name):
     merger = PdfMerger()
@@ -398,6 +395,7 @@ def combine_pdfs(pdfs: list[str], file_name):
 
     merger.write(file_name)
     merger.close()
+
 
 def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[str]):
     pool = ThreadPool(processes=20)
@@ -423,7 +421,7 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
             continue
 
         r = pool.apply_async(
-                jotform.upload_image, 
+                jotform.upload_image,
                 args=(form_id, submission_id, qid, img_data, f"{submission_id}_{qid}_{nro}", )
             )
         results.append(r)
@@ -433,8 +431,9 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
         err = r.get()
         if err is None:
             logger.success("Imagen subida correctamente")
-        else: 
+        else:
             logger.error("No fue posible subir la image: " + str(err))
+
 
 def cotizacion_post(post, form_id, asesor, cliente):
     map_url = post["map_url"]
@@ -447,18 +446,19 @@ def cotizacion_post(post, form_id, asesor, cliente):
         return None, None
 
     submission_id = res["content"]["submissionID"]
-    images_qids = ["77", "44", "44", "44", "44"] # TODO: No hardcodear
+    images_qids = ["77", "44", "44", "44", "44"]  # TODO: No hardcodear
     upload_images(form_id, submission_id, [map_url] + images_urls, images_qids)
 
     res = jotform.obtain_pdf(form_id, submission_id)
     if res is None:
         return None, None
 
-    pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf" 
+    pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf"
     with open(pdf_path, 'wb') as f:
         f.write(res)
 
     return pdf_path, submission_id
+
 
 # Genera cotizaciones en pdf para los postings en la lista
 def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
@@ -482,6 +482,7 @@ def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
     combine_pdfs(pdfs, f"/app/pdfs/{file_name}")
     return file_name
 
+
 def posts_from_list(res) -> list[dict]:
     posts_count = 0
     max_posts = 3
@@ -490,8 +491,7 @@ def posts_from_list(res) -> list[dict]:
         if posts_count >= max_posts:
             break
         posts_count += 1
-        #print(json.dumps(post, indent=4))
-        post_data = extract_post_data(post) 
+        post_data = extract_post_data(post)
 
         post_data["images_urls"] = extract_images(post)
         post_data["map_url"] = extract_ubication_image(post)
@@ -513,11 +513,10 @@ if __name__ == "__main__":
         "email": "brenda.diaz@rebora.com.mx"
     }
 
-    #cotizacion(asesor, res)
+    # cotizacion(asesor, res)
     url = "https://www.inmuebles24.com/propiedades/clasificado/alclcain-residencia-en-renta-en-colinas-de-san-javier-de-lujo-141920496.html"
     post = get_post_data(url)
     print(json.dumps(post, indent=4))
-
 
     # Link REBORA
     # https://wa.me/5213328092850?text=Me%20interesa%20este%20terreno%20(ID: {id_terreno})%20de%20la%20propuesta:%20(ID: {id})
