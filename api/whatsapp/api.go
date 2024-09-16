@@ -54,11 +54,11 @@ type TemplatePayload struct {
 }
 
 type Parameter struct {
-    Type        string           `json:"type" jsonschema:"enum=text"`
-    Text        string           `json:"text,omitempty"`
-	Image       *MediaPayload    `json:"image,omitempty"`
-	Video       *MediaPayload    `json:"video,omitempty"`
-	Document    *DocumentPayload `json:"document,omitempty"`
+    Type        string           `json:"type" jsonschema:"enum=text,enum=image,enum=video,enum=document"`
+    Text        string           `json:"text,omitempty" jsonschema:"oneof_required=text"`
+	Image       *MediaPayload    `json:"image,omitempty" jsonschema:"oneof_required=image"`
+	Video       *MediaPayload    `json:"video,omitempty" jsonschema:"oneof_required=video"`
+	Document    *DocumentPayload `json:"document,omitempty" jsonschema:"oneof_required=document"`
 }
 
 type Components struct {

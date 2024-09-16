@@ -20,7 +20,7 @@ func (f *FlowManager) MustLoad() {
     defer file.Close()
 
     if err := json.NewDecoder(file).Decode(&f); err != nil {
-        panic(err.Error())
+        panic(fmt.Sprintf("cannot load actions.json: %s", err.Error()))
     }
 }
 
@@ -69,18 +69,19 @@ func (f *FlowManager) SetMain(uuid uuid.UUID) error {
     return nil
 }
 
-func (f *FlowManager) AddFlow(flow *Flow) (*uuid.UUID, error) {
+func (f *FlowManager) AddFlow(flow *Flow) error {
     uuid, err := uuid.NewRandom()
     if err != nil {
-        return nil, fmt.Errorf("no se pudo generar una uuid: %s", err)
+        return fmt.Errorf("no se pudo generar una uuid: %s", err)
     }
+    flow.Uuid = uuid
 
     f.Flows[uuid] = *flow
     if err := f.Save(); err != nil {
-        return nil, err
+        return err
     }
     
-    return &uuid, nil
+    return nil
 }
 
 func (f *FlowManager) UpdateFlow(flow *Flow, uuid uuid.UUID) error {
@@ -125,13 +126,13 @@ func (f *FlowManager) RunMainFlow(c *models.Communication) {
 }
 
 func (f *FlowManager) runFlow(c *models.Communication, uuid uuid.UUID) {
-    rules, ok := f.Flows[uuid] 
+    flow, ok := f.Flows[uuid] 
     if !ok{
         slog.Error(fmt.Sprintf("el flow con uuid %s no existe", uuid.String()))
         os.Exit(1)
     }
 
-    for _, rule := range rules {
+    for _, rule := range flow.Rules {
         if !rule.Condition.Matches(c) {
             continue
         }

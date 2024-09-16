@@ -95,11 +95,27 @@ func NewWebhook(token string, l *slog.Logger) *Webhook{
     }
 }
 
-func (wh *Webhook) GenerateWppLink(w http.ResponseWriter, r *http.Request) error {
+func GenerateEncodeMsg(w http.ResponseWriter, r *http.Request) error {
     defer r.Body.Close()
     var payload NewLinkPayload
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-        wh.logger.Error("error parseando el payload", "err", err.Error())
+        return err
+    }
+
+    params := url.Values{}
+    for k, v := range payload.Params {
+        params.Add(k, v)
+    }
+
+    encodedParams := encodeString(params.Encode())
+    w.Write([]byte(encodedParams))
+    return nil
+}
+
+func GenerateWppLink(w http.ResponseWriter, r *http.Request) error {
+    defer r.Body.Close()
+    var payload NewLinkPayload
+    if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
         return err
     }
 
