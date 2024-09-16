@@ -63,25 +63,25 @@ func (f *FlowManager) GetMainFlow() (*Flow, error){
 
 func (f *FlowManager) SetMain(uuid uuid.UUID) error {
     f.Main = uuid 
+
     if err := f.Save(); err != nil {
         return err
     }
     return nil
 }
 
-func (f *FlowManager) AddFlow(flow *Flow) error {
+func (f *FlowManager) AddFlow(flow *Flow) (*uuid.UUID, error) {
     uuid, err := uuid.NewRandom()
     if err != nil {
-        return fmt.Errorf("no se pudo generar una uuid: %s", err)
+        return nil, fmt.Errorf("no se pudo generar una uuid: %s", err)
     }
-    flow.Uuid = uuid
 
     f.Flows[uuid] = *flow
     if err := f.Save(); err != nil {
-        return err
+        return nil, err
     }
     
-    return nil
+    return &uuid, nil
 }
 
 func (f *FlowManager) UpdateFlow(flow *Flow, uuid uuid.UUID) error {

@@ -43,10 +43,8 @@ type Rule struct {
 }
 
 type Flow struct {
-    Rules   []Rule      `json:"rules"`
-    Name    string      `json:"name"`
-    Uuid    uuid.UUID   `json:"uuid"`
-    IsMain  bool        `json:"is_main"`
+    Rules   []Rule
+    Name    string
 }
 
 type FlowManager struct {

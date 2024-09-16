@@ -11,8 +11,24 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type GetFlowPayload struct {
+    Uuid uuid.NullUUID `json:"uuid"`
+}
+
+type NewBroadcastPayload struct {
+    Uuid        uuid.UUID           `json:"uuid"`
+    Condition   store.QueryParam    `json:"condition"`
+}
+
 type FlowHandler struct {
     manager *flow.FlowManager
+}
+
+type FlowResponse struct {
+    Name    string      `json:"name"`
+    IsMain  bool        `json:"is_main"`
+    Rules   []flow.Rule `json:"rules"`
+    Uuid    uuid.UUID   `json:"uuid"`
 }
 
 func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
@@ -20,7 +36,6 @@ func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
         manager: m,
     }
 }
-
 func (h *FlowHandler) GetConfig(w http.ResponseWriter, r *http.Request) error {
     actions := h.manager.GetActions()
     dataResponse(w, actions)
@@ -29,7 +44,7 @@ func (h *FlowHandler) GetConfig(w http.ResponseWriter, r *http.Request) error {
 
 func (h *FlowHandler) GetFlows(w http.ResponseWriter, r *http.Request) error {
     flows := h.manager.GetFlows()
-    dataResponse(w, flows)
+    dataResponse(w, h.parseFlows(flows))
     return nil
 }
 
@@ -39,17 +54,22 @@ func (h *FlowHandler) GetMainFlow(w http.ResponseWriter, r *http.Request) error 
         return err
     }
 
-    dataResponse(w, flow)
+    uuid := h.manager.GetMain()
+    dataResponse(w, h.parseFlow(flow, &uuid))
     return nil
 }
 
 func (h *FlowHandler) GetFlow(w http.ResponseWriter, r *http.Request) error {
-    flow, err := h.getFlowFromParam(r)
+    uuid, err := h.getUUIDFromParam(r)
+    if err != nil {
+        return err
+    }
+    flow, err := h.manager.GetFlow(*uuid)
     if err != nil {
         return err
     }
 
-    dataResponse(w, flow)
+    dataResponse(w, h.parseFlow(flow, uuid))
     return nil
 }
 
@@ -59,25 +79,25 @@ func (h *FlowHandler) NewFlow(w http.ResponseWriter, r *http.Request) error {
         return err
     }
 
-    err := h.manager.AddFlow(&f); 
+    uuid, err := h.manager.AddFlow(&f); 
     if err != nil {
         return err
     }
 
-    dataResponse(w, f)
+    dataResponse(w, h.parseFlow(&f, uuid))
     return nil
 }
 
 func (h *FlowHandler) DeleteFlow(w http.ResponseWriter, r *http.Request) error {
-    flow, err := h.getFlowFromParam(r)
+    uuid, err := h.getUUIDFromParam(r)
     if err != nil {
         return err
     }
-    if err := h.manager.DeleteFlow(flow.Uuid); err != nil {
+    if err := h.manager.DeleteFlow(*uuid); err != nil {
         return err
     }
 
-    dataResponse(w, h.manager.GetFlows())
+    dataResponse(w, h.parseFlows(h.manager.GetFlows()))
     return nil
 }
 
@@ -87,36 +107,34 @@ func (h *FlowHandler) UpdateFlow(w http.ResponseWriter, r *http.Request) error {
         return err
     }
 
-    flow, err := h.getFlowFromParam(r)
+    uuid, err := h.getUUIDFromParam(r)
     if err != nil {
         return err
     }
 
-    if err := h.manager.UpdateFlow(&f, flow.Uuid); err != nil {
+    if err := h.manager.UpdateFlow(&f, *uuid); err != nil {
         return err
     }
 
-    dataResponse(w, f)
+    flow, _ := h.manager.GetFlow(*uuid)
+    dataResponse(w, h.parseFlow(flow, uuid))
     return nil
 }
 
 func (h *FlowHandler) SetFlowAsMain(w http.ResponseWriter, r *http.Request) error {
-    flow, err := h.getFlowFromBody(r)
+    uuid, err := h.getUUIDFromBody(r)
     if err != nil {
         return err
     }
-    h.manager.SetMain(flow.Uuid)
+    h.manager.SetMain(*uuid)
+    flow, _ := h.manager.GetFlow(*uuid)
 
-    dataResponse(w, flow)
+    dataResponse(w, h.parseFlow(flow, uuid))
     return nil
 }
 
 func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
-    var body struct {
-        Uuid        uuid.UUID           `json:"uuid"`
-        Condition   store.QueryParam    `json:"condition"`
-    }
-
+    var body NewBroadcastPayload
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return err
@@ -139,25 +157,21 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *FlowHandler) getFlowFromBody(r *http.Request) (*flow.Flow, error) {
-    var body struct {
-        Uuid uuid.NullUUID `json:"uuid"`
-    }
-
+func (h *FlowHandler) getUUIDFromBody(r *http.Request) (*uuid.UUID, error) {
+    var body GetFlowPayload
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return nil, err
 	}
 
-    flow, err := h.manager.GetFlow(body.Uuid.UUID); 
-    if err != nil{
+    if _, err := h.manager.GetFlow(body.Uuid.UUID); err != nil{
         return nil, err
     }
 
-    return flow, nil
+    return &body.Uuid.UUID, nil
 }
 
-func (h *FlowHandler) getFlowFromParam(r *http.Request) (*flow.Flow, error) {
+func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
     uuidStr, exists := mux.Vars(r)["uuid"]
     if !exists {
         return nil, fmt.Errorf("se necesita pasar un uuid")
@@ -166,10 +180,26 @@ func (h *FlowHandler) getFlowFromParam(r *http.Request) (*flow.Flow, error) {
     if err != nil {
         return nil, err
     }
-    flow, err := h.manager.GetFlow(uuid); 
-    if err != nil{
+    if _, err := h.manager.GetFlow(uuid); err != nil{
         return nil, err
     }
 
-    return flow, nil
+    return &uuid, nil
+}
+
+func (h *FlowHandler) parseFlow(f *flow.Flow, uuid *uuid.UUID) *FlowResponse {
+    return &FlowResponse{
+        IsMain: h.manager.GetMain() == *uuid,
+        Uuid: *uuid,
+        Rules: f.Rules,
+        Name: f.Name,
+    }
+}
+
+func (h *FlowHandler) parseFlows(flows map[uuid.UUID]flow.Flow) map[uuid.UUID]FlowResponse {
+    res := make(map[uuid.UUID]FlowResponse)
+    for uuid, rules := range flows {
+        res[uuid] = *h.parseFlow(&rules, &uuid)
+    }
+    return res
 }
