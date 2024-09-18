@@ -441,15 +441,15 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
             logger.error("No fue posible subir la image: " + str(err))
 
 
-def cotizacion_post(post, form_id, asesor, cliente):
+def cotizacion_post(post, form_id, asesor, cliente, id_propuesta):
     map_url = post["map_url"]
     images_urls = post["images_urls"]
 
     logger.debug("Uploading Cotizacion Form")
-    res = jotform.submit_cotizacion_form(logger, form_id, post, asesor, cliente)
+    res = jotform.submit_cotizacion_form(logger, form_id, post, asesor, cliente, id_propuesta)
     if res is None:
         logger.error("No fue posible subir la cotizacion a jotform")
-        return None, None
+        return None
 
     submission_id = res["content"]["submissionID"]
     images_qids = ["77", "44", "44", "44", "44"]  # TODO: No hardcodear
@@ -457,13 +457,13 @@ def cotizacion_post(post, form_id, asesor, cliente):
 
     res = jotform.obtain_pdf(form_id, submission_id)
     if res is None:
-        return None, None
+        return None
 
     pdf_path = f"./src/inmuebles24/pdfs/{submission_id}.pdf"
     with open(pdf_path, 'wb') as f:
         f.write(res)
 
-    return pdf_path, submission_id
+    return pdf_path
 
 
 # Genera cotizaciones en pdf para los postings en la lista
@@ -473,18 +473,22 @@ def cotizacion(asesor: dict, cliente: str, posts: list[dict]):
     results = []
     pool = ThreadPool(processes=8)
 
-    for post in posts:
-        r = pool.apply_async(cotizacion_post, args=(post, form_id, asesor, cliente, ))
-        results.append(r)
+    id_cotizacion = ''.join(random.choices(string.ascii_letters, k=10))
 
-    submission_id = ""
+    orden = 1
+    for post in posts:
+        post["orden"] = orden
+        r = pool.apply_async(cotizacion_post, args=(post, form_id, asesor, cliente, id_cotizacion, ))
+        results.append(r)
+        orden += 1
+
     for r in results:
-        pdf_path, submission_id = r.get()
+        pdf_path = r.get()
         if pdf_path is not None:
             pdfs.append(pdf_path)
 
     str_date = datetime.datetime.today().strftime("%d-%m-%Y")
-    file_name = f"Propuesta terrenos {cliente} {submission_id} {str_date}.pdf"
+    file_name = f"Propuesta terrenos {cliente} {id_cotizacion} {str_date}.pdf"
     combine_pdfs(pdfs, f"/app/pdfs/{file_name}")
     return file_name
 
@@ -508,6 +512,7 @@ def posts_from_list(res) -> list[dict]:
 
         posts.append(post_data)
     return posts
+
 
 if __name__ == "__main__":
     res = []

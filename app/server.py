@@ -75,6 +75,7 @@ def ejecutar_script_route():
 
     return "Proceso en segundo plano iniciado."
 
+
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     # Verificar si el archivo existe en el directorio de carga
@@ -111,6 +112,7 @@ def cotizacion():
     thread.start()
 
     return jsonify(tasks[task_id])
+
 
 @app.route('/cotizacion_urls', methods=['POST'])
 def cotizacion_with_urls():
@@ -156,6 +158,7 @@ def check_task(task_id):
 def execute_cotizacion(asesor, res, cliente, task_id):
     try:
         posts = inmuebles24.posts_from_list(res)
+
         pdf_file_name = inmuebles24.cotizacion(asesor, cliente, posts)
         tasks[task_id]["status"] = "completed"
         tasks[task_id]["pdf_file_name"] = pdf_file_name
@@ -186,6 +189,7 @@ def execute_cotizacion_urls(asesor, urls, cliente, task_id):
         tasks[task_id]["status"] = "error"
         tasks[task_id]["error"] = str(e)
         print(f"Error generando la cotización: {str(e)}")
+
 
 def execute_scraper(portal: str, params: str | dict, spin_msg: str):
     assert portal in SCRAPERS, f"El portal {portal} no existe"

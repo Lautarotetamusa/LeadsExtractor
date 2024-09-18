@@ -76,7 +76,6 @@ class Request():
             if res.status_code in UNAUTHORIZED_CODES:
                 self.logger.error("El token de acceso expiro status="+str(res.status_code))
                 self.logger.debug(res.text)
-                self.login_method()
             else:
                 self.logger.error(f"Error request to: {url}")
                 self.logger.error(res.status_code)
@@ -84,4 +83,29 @@ class Request():
 
             tries += 1
 
+        # loggeamos y probamos 3 veces mas
+        if not res.ok:
+            self.login_method()
+            ok = False
+            max_tries = 3
+            tries = 0
+
+            while (tries <= max_tries) and not ok:
+                res: Response = METHODS[method](url, cookies=self.cookies, headers=self.headers, **kwargs)
+                ok = res.ok
+                self.logger.debug(f"{method} {url}")
+
+                if ok:
+                    return res
+
+                # Verifica el código de estado de la respuesta
+                if res.status_code in UNAUTHORIZED_CODES:
+                    self.logger.error("El token de acceso expiro status="+str(res.status_code))
+                    self.logger.debug(res.text)
+                else:
+                    self.logger.error(f"Error request to: {url}")
+                    self.logger.error(res.status_code)
+                    self.logger.error(res.text)
+
+                tries += 1
         return None

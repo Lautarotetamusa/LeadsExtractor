@@ -54,8 +54,9 @@ def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, im
 
 # Obtener las lista de preguntas del form:
 # https://api.jotform.com/form/242244461116044/questions?apiKey=
-def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: str) -> dict | None:
+def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: str, id_propuesta) -> dict | None:
     url = f"https://api.jotform.com/form/{form_id}/submissions?apiKey={API_KEY}"
+    print(data)
     data = {
             "10": data.get("title", ""),
             "26": data.get("price", ""),
@@ -63,7 +64,7 @@ def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: 
             "24": cliente,
             "13": asesor.get("name", ""),
             "61": asesor.get("phone", ""),
-            "15": asesor.get("email", ""), 
+            "15": asesor.get("email", ""),
             "28": data.get("building_size", ""),
             "27": data.get("size", ""),
             "19": data.get("antiguedad", ""),
@@ -77,6 +78,8 @@ def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: 
             "83": data.get("banios"),
             "84": data.get("cocheras"),
             "85": data.get("recamaras"),
+            "86": id_propuesta,
+            "87": data.get("orden"),
     }
 
     res = requests.post(url, json=data)
