@@ -132,12 +132,12 @@ class Inmuebles24(Portal):
                 self.logger.debug(f"Total: {total}")
                 first = False
 
-            if mode == Mode.NEW: # Obtenemos todos los leads sin leer de este pagina
+            if mode == Mode.NEW:    # Obtenemos todos los leads sin leer de este pagina
                 leads = []
                 for lead in data["result"]:
-                    status = lead.get("contact_response_status", {}).get("name") 
+                    status = lead.get("contact_response_status", {}).get("name")
                     if status == "Contactado":
-                    # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
+                        # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
                         self.logger.debug("Se encontro un lead con status 'Contactado', deteniendo")
                         finish = True
                         break
@@ -220,15 +220,14 @@ class Inmuebles24(Portal):
 
         params = PARAMS.copy()
         params["url"] = msg_url
-        # res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
-        res = requests.post(ZENROWS_API_URL, params=params, headers=self.request.headers, data=data)
+        res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Mensaje enviado correctamente a lead {id}")
         else:
             self.logger.error(f"Error enviando mensaje al lead {id}")
 
-    def make_contacted(self, id: str):
+    def AAA(self, id: str):
         status = "Contactado"
         status_url = f"{SITE_URL}leads-api/publisher/contact/status/{id}"
 
@@ -252,7 +251,7 @@ class Inmuebles24(Portal):
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {id} como {status}")
 
-    def make_readed(self, id: str):
+    def make_contacted(self, id: str):
         status = "READ"
         status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={id}"
 
@@ -269,9 +268,3 @@ class Inmuebles24(Portal):
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {id} como {status}")
         PARAMS["autoparse"] = True
-
-
-if __name__ == "__main__":
-    inmuebles24 = Inmuebles24()
-
-    inmuebles24.make_contacted("210139588")

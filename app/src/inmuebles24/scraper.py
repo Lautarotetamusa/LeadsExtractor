@@ -142,7 +142,7 @@ def extract_post_data(p: dict) -> dict:
         }
     }
 
-    #features
+    # features
     features_keys = [
         ("size", "CFT100"),
         ("building_size", "CFT101"),
@@ -159,8 +159,10 @@ def extract_post_data(p: dict) -> dict:
             post[feature] = ""
     return post
 
+
 def sanitaze_str(text: str) -> str:
     return text.strip().replace("\n", "").replace("\t", "")
+
 
 def safe_find(soup: BeautifulSoup, name: str, **args):
     tag = soup.find(name, **args)
@@ -195,7 +197,7 @@ def get_post_data(url: str) -> dict | None:
                 break
             # https://img10.naventcdn.com/avisos-va/vamx-pt10-ads/ad/1200x1200/ad4827e9-3c44-4558-b5f2-3e5a3de42f1c?isFirstImage=true
             src = dimensions_regex.sub(DEFAULT_DIMENSIONS, img["src"])
-            print(src)
+            src = src.replace("resize/", "")
             images.append(src)
     else:
         logger.error("cannot find gallery div")
@@ -235,10 +237,14 @@ def get_post_data(url: str) -> dict | None:
         logger.error("cannot find section{reactPublisherCodes}")
 
     price = " - "
+    tipo = " - "
     price_tag = soup.find("div", class_="price-value")
     if type(price_tag) is Tag:
         a1 = price_tag.find("span")
         if type(a1) is Tag:
+            tipo_str = a1.text.split(" ")
+            if len(tipo_str) > 0:
+                tipo = tipo_str[0]
             a2 = a1.find("span")
             if type(a2) is Tag:
                 price = a2.text.strip()
@@ -269,7 +275,7 @@ def get_post_data(url: str) -> dict | None:
         "title":        sanitaze_str(title),
         "price":        sanitaze_str(price),
         "currency":     "",
-        "type":         "",
+        "type":         sanitaze_str(tipo),
         "url":          url,
         "location":     {
             "full":       "",
