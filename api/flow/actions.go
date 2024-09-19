@@ -2,6 +2,7 @@ package flow
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"leadsextractor/infobip"
 	"leadsextractor/jotform"
@@ -13,8 +14,6 @@ import (
 	"os"
 	"reflect"
 	"text/template"
-
-	"github.com/invopop/jsonschema"
 )
 
 //Definimos las acciones permitidas dentro de un flow
@@ -164,29 +163,19 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
     )
 }
 
-type ActionInfo struct {
-    Name    string  `json:"name"`
-    Schema  *jsonschema.Schema `json:"schema"`
-}
-
-func (m *FlowManager) GetActions() map[string]ActionInfo {
-    reflector := jsonschema.Reflector{}
-    var actionsInfo map[string]ActionInfo = make(map[string]ActionInfo)
-
-    for name, def := range actions {
-        if (def.ParamType != nil) {
-            actionsInfo[name] = ActionInfo{
-                Name: name,
-                Schema: reflector.ReflectFromType(def.ParamType),
-            }
-        }else{
-            actionsInfo[name] = ActionInfo{
-                Name: name,
-                Schema: nil,
-            }
-        }
+func (m *FlowManager) GetActions() interface{} {
+    file, err := os.Open("flow/config.json")
+    if err != nil {
+        panic(err.Error())
     }
-    return actionsInfo
+    defer file.Close()
+    var config interface{}
+
+    if err := json.NewDecoder(file).Decode(&config); err != nil {
+        panic(fmt.Sprintf("cannot load config.json: %s", err.Error()))
+    }
+
+    return config
 }
 
 func mustReadFile (filepath string) string {

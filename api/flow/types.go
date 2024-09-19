@@ -27,8 +27,8 @@ type SendWppTextParam struct {
 }
 
 type SendWppMedia struct {
-    Image   *whatsapp.MediaPayload    `json:"image,omitempty" jsonschema:"oneof_required=image"`
-    Video   *whatsapp.MediaPayload    `json:"video,omitempty" jsonschema:"oneof_required=video"`
+    Image   *whatsapp.MediaPayload    `json:"image,omitempty"`
+    Video   *whatsapp.MediaPayload    `json:"video,omitempty"`
 }
 
 type Action struct {
