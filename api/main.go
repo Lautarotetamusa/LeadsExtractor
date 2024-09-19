@@ -84,6 +84,7 @@ func main() {
     server.SetRoutes(router)
     
     go webhook.ConsumeEntries(server.NewCommunication)
+	router.Use(CORS)
 
 	router.HandleFunc("/pipedrive", pkg.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
 
@@ -109,4 +110,19 @@ func loggingMiddleware(next http.Handler) http.Handler {
         //log.Println(r.Method, r.RequestURI)
         next.ServeHTTP(w, r)
     })
+}
+
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, DELETE, POST, PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

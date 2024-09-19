@@ -42,8 +42,6 @@ func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB, fh *FlowHand
 }
 
 func (s *Server) SetRoutes(router *mux.Router) {
-	router.Use(CORS)
-
 	router.HandleFunc("/asesor", HandleErrors(s.GetAllAsesores)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.GetOneAsesor)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/asesor", HandleErrors(s.InsertAsesor)).Methods("POST", "OPTIONS")
@@ -74,19 +72,4 @@ func (s *Server) Run(router *mux.Router) {
 	if err := http.ListenAndServe(s.listenAddr, router); err != nil {
 		s.logger.Error("No se pudo iniciar el server", err)
 	}
-}
-
-func CORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
