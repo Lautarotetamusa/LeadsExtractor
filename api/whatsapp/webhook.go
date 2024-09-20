@@ -199,22 +199,6 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
     }
 
     wh.logger.Info("nuevo mensaje de whatsapp recibido", "phone", value.Contacts[0].WaID, "name", value.Contacts[0].Profile.Name, "id", value.Messages[0].Id)
-
-    msg := value.Messages[0].Text.Body
-    nonPrintables := filterNonPrintables(msg)
-    decoded, err := decodeString(nonPrintables)
-    if err != nil {
-        wh.logger.Error("Error decoding non printables", "err", err.Error())
-    }
-    params, err := url.ParseQuery(decoded)
-    if err != nil {
-        wh.logger.Error("Error decoding params in url", "err", err.Error())
-    }
-    utm := models.Utm{
-        Source:     models.NullString{String: params.Get("s"), Valid: true}, 
-        Medium:     models.NullString{String: params.Get("m"), Valid: true}, 
-        Campaign:   models.NullString{String: params.Get("c"), Valid: true}, 
-    }
     
     phone, err := numbers.NewPhoneNumber(value.Contacts[0].WaID)
     if err != nil {
@@ -227,7 +211,6 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Fecha: "",
         Nombre: value.Contacts[0].Profile.Name,
         Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", value.Contacts[0].WaID),
-        Utm: utm,
         Telefono: *phone,
         Email: models.NullString{String: ""},
         Cotizacion: "",

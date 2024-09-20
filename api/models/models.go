@@ -129,10 +129,22 @@ type Busquedas struct {
     Recamaras        NullString `json:"recamaras" db:"rooms"`
 }
 
+type UtmDefinition struct {
+    Id          int         `json:"id" db:"id"`
+    Code        string      `json:"code" db:"code"`
+    Source      NullString   `json:"utm_source" db:"utm_source"`
+    Medium      NullString   `json:"utm_medium" db:"utm_medium"`
+    Campaign    NullString   `json:"utm_campaign" db:"utm_campaign"`
+    Ad          NullString  `json:"utm_ad" db:"utm_ad"`
+    Channel     string      `json:"utm_channel" db:"utm_channel"`
+}
+
 type Utm struct {
     Source      NullString   `json:"utm_source" db:"utm_source"`
     Medium      NullString   `json:"utm_medium" db:"utm_medium"`
     Campaign    NullString   `json:"utm_campaign" db:"utm_campaign"`
+    Ad          NullString  `json:"utm_ad" db:"utm_ad"`
+    Channel     string      `json:"utm_channel" db:"utm_channel"`
 }
 
 //Este es el objecto que recibimos del python script
@@ -146,10 +158,10 @@ type Communication struct {
     Link       string    `json:"link" db:"url"`
     Telefono   numbers.PhoneNumber    `json:"telefono" db:"phone"`
     Email      NullString `json:"email" db:"email"`
+    Utm        *Utm      `json:"utm" db:"utm"`
 	Cotizacion string    `json:"cotizacion"`
 	Asesor     Asesor    `json:"asesor"`
 	Propiedad  Propiedad `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
-    Utm        Utm       `json:"utm"` 
     IsNew      bool      `json:"is_new" db:"new_lead"`
 }

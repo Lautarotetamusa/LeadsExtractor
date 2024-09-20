@@ -49,6 +49,11 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/asesor/{phone}", HandleErrors(s.DeleteAsesor)).Methods("DELETE", "OPTIONS")
     router.HandleFunc("/asesor/{phone}/reasign", HandleErrors(s.Reasign)).Methods("PUT", "OPTIONS")
 
+	router.HandleFunc("/utm", HandleErrors(s.GetAllUtmes)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/utm/{id}", HandleErrors(s.GetOneUtm)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/utm", HandleErrors(s.InsertUtm)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/utm/{id}", HandleErrors(s.UpdateUtm)).Methods("PUT", "OPTIONS")
+
 	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/lead", HandleErrors(s.Insert)).Methods("POST", "OPTIONS")
