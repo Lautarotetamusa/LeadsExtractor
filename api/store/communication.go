@@ -18,6 +18,12 @@ type QueryParam struct{
     IsNew       *bool       `schema:"is_new" json:"is_new,omitempty" db:"isNew"`
     Page        int         `schema:"page" json:"page,omitempty" db:"page"`
     PageSize    int         `schema:"page_size" json:"page_size,omitempty"`
+
+    UtmSource   string      `schema:"utm_source" json:"utm_source,omitempty" db:"utm_source"`
+    UtmMedium   string      `schema:"utm_medium" json:"utm_medium,omitempty" db:"utm_medium"`
+    UtmCampaign string      `schema:"utm_campaign" json:"utm_campaign,omitempty" db:"utm_campaign"`
+    UtmAd       string      `schema:"utm_ad" json:"utm_ad,omitempty" db:"utm_ad"`
+    UtmChannel  string      `schema:"utm_channel" json:"utm_channel,omitempty" db:"utm_channel"`
 }
 
 type Query struct {
@@ -85,7 +91,12 @@ func (p *QueryParam) Matches(c *models.Communication) bool {
             (p.Fuente == ""     ||  p.Fuente == c.Fuente) && 
             (p.AsesorPhone == "" || p.AsesorPhone == c.Asesor.Phone.String()) && 
             (p.AsesorName == "" ||  p.AsesorName == c.Asesor.Name) &&  
-            (p.Nombre == ""     ||  p.Nombre == c.Nombre)
+            (p.Nombre == ""     ||  p.Nombre == c.Nombre) &&
+            (p.UtmCampaign == "" || p.UtmCampaign == c.Utm.Campaign.String) &&
+            (p.UtmAd == "" || p.UtmAd == c.Utm.Ad.String) &&
+            (p.UtmChannel == "" || p.UtmChannel == c.Utm.Channel) &&
+            (p.UtmMedium == "" || p.UtmMedium == c.Utm.Medium.String) &&
+            (p.UtmSource == "" || p.UtmSource == c.Utm.Source.String)
 }
 
 func (q *Query) buildWhere(params *QueryParam) {
@@ -124,6 +135,28 @@ func (q *Query) buildWhere(params *QueryParam) {
 		q.params["nombre"] = "%"+params.Nombre+"%"
 	}
 
+    // UTMS. TODO: recorrerlos de otro modo
+	if params.UtmSource != "" {
+		whereClauses = append(whereClauses, "C.utm_source LIKE :utm_source")
+		q.params["utm_source"] = "%"+params.UtmSource+"%"
+	}
+	if params.UtmMedium != "" {
+		whereClauses = append(whereClauses, "C.utm_medium LIKE :utm_medium")
+		q.params["utm_medium"] = "%"+params.UtmMedium+"%"
+	}
+	if params.UtmAd != "" {
+		whereClauses = append(whereClauses, "C.utm_ad LIKE :utm_ad")
+		q.params["utm_ad"] = "%"+params.UtmAd+"%"
+	}
+	if params.UtmChannel != "" {
+		whereClauses = append(whereClauses, "C.utm_channel LIKE :utm_channel")
+		q.params["utm_channel"] = "%"+params.UtmChannel+"%"
+	}
+	if params.UtmCampaign != "" {
+		whereClauses = append(whereClauses, "C.utm_campaign LIKE :utm_campaign")
+		q.params["utm_campaign"] = "%"+params.UtmCampaign+"%"
+	}
+
 	if len(whereClauses) > 0 {
 		q.query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
@@ -146,9 +179,18 @@ func (q *Query) buildPagination(params *QueryParam) {
 }
 
 func (s *Store) InsertCommunication(c *models.Communication, source *models.Source) error {
-	query := `INSERT INTO Communication(lead_phone, source_id, new_lead, lead_date, utm_source, utm_medium, utm_campaign, url, zones, mt2_terrain, mt2_builded, baths, rooms) 
-    VALUES (:lead_phone, :source_id, :new_lead, :lead_date, :utm_source, :utm_medium, :utm_campaign, :url, :zones, :mt2_terrain, :mt2_builded, :baths, :rooms)`
-    fmt.Printf("%#v\n", c.Utm)
+    fields := []string{
+        "lead_phone", "source_id", "new_lead", "lead_date", "utm_source", 
+        "utm_medium", "utm_campaign", "utm_ad", "utm_channel",
+        "url", "zones", "mt2_terrain", "mt2_builded", "baths", "rooms",
+    }
+
+    query := fmt.Sprintf("INSERT INTO Communication (%s) VALUES (%s)", 
+        strings.Join(fields, ", "), 
+        ":"+strings.Join(fields, ", :"))
+
+    fmt.Println(query)
+
     _, err := s.db.NamedExec(query, map[string]interface{}{
 		"lead_phone":  c.Telefono,
 		"source_id":   source.Id,
@@ -157,6 +199,8 @@ func (s *Store) InsertCommunication(c *models.Communication, source *models.Sour
         "utm_source":  c.Utm.Source,
         "utm_medium":  c.Utm.Medium,
         "utm_campaign":c.Utm.Campaign,
+        "utm_ad":      c.Utm.Ad,
+        "utm_channel": c.Utm.Channel,
 		"url":         c.Link,
 		"zones":       c.Busquedas.Zonas,
 		"mt2_terrain": c.Busquedas.TotalArea,

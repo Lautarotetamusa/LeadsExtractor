@@ -7,7 +7,7 @@ import (
 	"leadsextractor/store"
 	"net/http"
 	"reflect"
-	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gorilla/schema"
@@ -83,7 +83,7 @@ func (s *Server) NewCommunication(c *models.Communication) error {
 		return err
 	}
 
-    s.matchUtmCode(c)
+    s.findUtmInMessage(c)
     
 	c.Asesor = lead.Asesor
     c.Cotizacion = lead.Cotizacion
@@ -114,23 +114,29 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
 	return nil
 }
 
-func (s *Server) matchUtmCode(c *models.Communication) {
-    expr := `utm\s*=\s*([A-Za-z0-9]+)`
-    re := regexp.MustCompile(expr)
-	match := re.FindStringSubmatch(c.Message)
-    if len(match) > 1 {
-        code := match[1]
-        s.logger.Debug(fmt.Sprintf("utm code founded in message: %s", code))
-        utm, err := s.Store.GetOneUtmByCode(code)
-        if err != nil {
-            s.logger.Warn(fmt.Sprintf("utm code %s doesn't exists in db", code))
-            return
-        }
-        c.Utm = models.Utm{
-            Medium: utm.Medium,
-            Source: utm.Source,
-            Campaign: utm.Campaign,
+// TODO: los utms se podrían guardar en Server
+func (s *Server) findUtmInMessage(c *models.Communication) {
+    var utms []models.UtmDefinition
+    err := s.Store.GetAllUtm(&utms)
+    if err != nil {
+        s.logger.Error(err.Error())
+        return 
+    }
+    if c.Message == "" {
+        return 
+    }
+
+    message := strings.ToUpper(c.Message)
+    for _, utm := range utms {
+        if strings.Contains(message, utm.Code) {
+            s.logger.Info(fmt.Sprintf("found code %s in message", utm.Code))
+            c.Utm = models.Utm{
+                Medium: utm.Medium,
+                Source: utm.Source,
+                Campaign: utm.Campaign,
+                Ad: utm.Ad,
+                Channel: utm.Channel,
+            }
         }
     }
 }
-
