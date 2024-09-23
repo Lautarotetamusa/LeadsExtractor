@@ -189,8 +189,6 @@ func (s *Store) InsertCommunication(c *models.Communication, source *models.Sour
         strings.Join(fields, ", "), 
         ":"+strings.Join(fields, ", :"))
 
-    fmt.Println(query)
-
     _, err := s.db.NamedExec(query, map[string]interface{}{
 		"lead_phone":  c.Telefono,
 		"source_id":   source.Id,
