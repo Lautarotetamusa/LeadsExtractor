@@ -2,10 +2,12 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"net/http"
 	"reflect"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/schema"
@@ -81,6 +83,8 @@ func (s *Server) NewCommunication(c *models.Communication) error {
 		return err
 	}
 
+    s.matchUtmCode(c)
+    
 	c.Asesor = lead.Asesor
     c.Cotizacion = lead.Cotizacion
     c.Email = lead.Email
@@ -109,3 +113,24 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
     successResponse(w, "communication created succesfuly", c)
 	return nil
 }
+
+func (s *Server) matchUtmCode(c *models.Communication) {
+    expr := `utm\s*=\s*([A-Za-z0-9]+)`
+    re := regexp.MustCompile(expr)
+	match := re.FindStringSubmatch(c.Message)
+    if len(match) > 1 {
+        code := match[1]
+        s.logger.Debug(fmt.Sprintf("utm code founded in message: %s", code))
+        utm, err := s.Store.GetOneUtmByCode(code)
+        if err != nil {
+            s.logger.Warn(fmt.Sprintf("utm code %s doesn't exists in db", code))
+            return
+        }
+        c.Utm = models.Utm{
+            Medium: utm.Medium,
+            Source: utm.Source,
+            Campaign: utm.Campaign,
+        }
+    }
+}
+

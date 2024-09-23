@@ -158,10 +158,11 @@ type Communication struct {
     Link       string    `json:"link" db:"url"`
     Telefono   numbers.PhoneNumber    `json:"telefono" db:"phone"`
     Email      NullString `json:"email" db:"email"`
-    Utm        *Utm      `json:"utm" db:"utm"`
+    Utm        Utm      `json:"utm" db:"utm"`
 	Cotizacion string    `json:"cotizacion"`
 	Asesor     Asesor    `json:"asesor"`
 	Propiedad  Propiedad `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
     IsNew      bool      `json:"is_new" db:"new_lead"`
+    Message    string
 }

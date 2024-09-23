@@ -218,6 +218,7 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Propiedad: models.Propiedad{},
         Busquedas: models.Busquedas{},
         IsNew: false,
+        Message: value.Messages[0].Text.Body,
     }
 
     return &c, nil

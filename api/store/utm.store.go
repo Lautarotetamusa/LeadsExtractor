@@ -19,6 +19,14 @@ func (s *Store) GetOneUtm(id int) (*models.UtmDefinition, error) {
 	return &utm, nil
 }
 
+func (s *Store) GetOneUtmByCode(code string) (*models.UtmDefinition, error) {
+	utm := models.UtmDefinition{}
+	if err := s.db.Get(&utm, "SELECT * FROM Utm WHERE code=?", code); err != nil {
+		return nil, err
+	}
+	return &utm, nil
+}
+
 func (s *Store) InsertUtm(utm *models.UtmDefinition) error {
 	query := `
     INSERT INTO Utm 
