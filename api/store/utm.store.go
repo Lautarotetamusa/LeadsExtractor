@@ -1,7 +1,9 @@
 package store
 
 import (
+	"fmt"
 	"leadsextractor/models"
+	"strings"
 )
 
 func (s *Store) GetAllUtm(utms *[]models.UtmDefinition) error {
@@ -27,17 +29,24 @@ func (s *Store) GetOneUtmByCode(code string) (*models.UtmDefinition, error) {
 	return &utm, nil
 }
 
-func (s *Store) InsertUtm(utm *models.UtmDefinition) error {
+func (s *Store) InsertUtm(utm *models.UtmDefinition) (int64, error) {
 	query := `
     INSERT INTO Utm 
             ( code,  utm_source, utm_medium,  utm_campaign,  utm_ad,  utm_channel) 
     VALUES  (:code, :utm_source, :utm_medium, :utm_campaign, :utm_ad, :utm_channel)`
 
-    _, err := s.db.NamedExec(query, utm)
+    res, err := s.db.NamedExec(query, utm)
     if err != nil {
-        return err
+        if strings.Contains(err.Error(), "Error 1062") {
+            return 0, fmt.Errorf("ya existe un utm con codigo %s", utm.Code)
+        }
+        return 0, err
     }
-	return nil
+    id, err := res.LastInsertId()
+    if err != nil {
+        return 0, err
+    }
+	return id, nil
 }
 
 func (s *Store) UpdateUtm(utm *models.UtmDefinition) error {

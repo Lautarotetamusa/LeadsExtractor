@@ -68,9 +68,11 @@ func (s *Server) InsertUtm(w http.ResponseWriter, r *http.Request) error {
     }
     utm.Code = strings.ToUpper(utm.Code)
 
-    if err := s.Store.InsertUtm(&utm); err != nil {
+    id, err := s.Store.InsertUtm(&utm); 
+    if err != nil {
 		return err
 	}
+    utm.Id = int(id)
 
 	successResponse(w, "Utm creado correctamente", utm)
 	return nil
