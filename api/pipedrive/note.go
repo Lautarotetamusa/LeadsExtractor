@@ -27,6 +27,13 @@ bathrooms: %s,
 total_area: %s,
 covered_area: %s
 
+UTM:
+source: %s
+medium: %s
+campaign: %s
+ad: %s
+channel: %s
+
 @%s
 `
 
@@ -44,6 +51,13 @@ func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, erro
         c.Propiedad.Bathrooms,
         c.Propiedad.TotalArea,
         c.Propiedad.CoveredArea,
+
+        c.Utm.Source.String,
+        c.Utm.Medium.String,
+        c.Utm.Campaign.String,
+        c.Utm.Ad.String,
+        c.Utm.Channel,
+
         c.Asesor.Name,
     )
 
