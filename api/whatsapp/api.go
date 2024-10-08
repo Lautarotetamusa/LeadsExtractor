@@ -62,7 +62,7 @@ type Parameter struct {
 }
 
 type Components struct {
-    Type       string       `json:"type" jsonschema:"enum=body"`
+    Type       string       `json:"type" jsonschema:"enum=body,enum=header"`
 	Parameters []Parameter  `json:"parameters"`
 }
 
@@ -182,7 +182,6 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	if len(data.Messages) == 0 {
 		var debug interface{}
 		_ = json.Unmarshal(bodyBytes, &debug)
-        w.logger.Info("TEST")
 		w.logger.Error(fmt.Sprintf("response: %v", debug))
 		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
 	}

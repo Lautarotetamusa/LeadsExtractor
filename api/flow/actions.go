@@ -50,6 +50,7 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
             for i := range payload.Components {
                 payload.Components[i].ParseParameters(c)
             }
+            fmt.Printf("%#v\n", payload.Components[0].Parameters[0].Image)
             wpp.SendTemplate(c.Telefono.String(), *payload)
             return nil
         },
