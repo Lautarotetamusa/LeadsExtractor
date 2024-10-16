@@ -6,10 +6,11 @@ if __name__ == "__main__":
 
 import os
 from time import gmtime, strftime
+import urllib.parse
 from bs4 import BeautifulSoup, Tag 
 
-from make_requests import ApiRequest
-from logger import Logger
+from src.make_requests import ApiRequest
+from src.logger import Logger
 
 logger = Logger("EasyBroker")
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
@@ -18,6 +19,8 @@ request = ApiRequest(logger, ZENROWS_API_URL, {
     "apikey": os.getenv("ZENROWS_APIKEY"),
     "url": "",
 })
+
+GOOGLE_API_MAPS ="https://maps.google.com/maps/api/staticmap"
 
 def safe_find(soup: BeautifulSoup, name: str, **kwargs) -> str:
     default = " - "
@@ -79,7 +82,7 @@ def get_post_data(url: str) -> dict | None:
         "map_url": extract_ubication_image(soup)
     }
     set_attrs(soup, post)
-    print(post)
+    return post
 
 # TODO: re-escalar las imagenes al tamaño cuadrado
 def extract_images(soup: BeautifulSoup):
@@ -107,10 +110,25 @@ def extract_ubication_image(soup: BeautifulSoup) -> str | None:
     if type(link_a) is not Tag:
         return None
 
-    url = link_a.get("data-clipboard-text")
-    if url is None: 
+    url_str = link_a.get("data-clipboard-text")
+    if type(url_str) is not str: 
         return None
-    return str(url)
+
+    url = urllib.parse.urlparse(url_str)
+    query = urllib.parse.parse_qs(url.query)
+    q = query.get("q")
+    if q is None or len(q) <= 0:
+        logger.error("map doesnt have q query param")
+        return None
+    coords = q[0].replace('+', ',')
+
+    # Estos parametros salen de los mapas de inmuebles24
+    # TODO: No hardcodeado
+# https://maps.google.com/maps/api/staticmap?center=20.691528430429436,-103.386739423278811&zoom=16&markers=20.691528430429436,-103.386739423278811&key=AIzaSyBfTOxuYEmbL50_1P4KU8GI8toKT539agI&size=780x456&sensor=true&scale=2&signature=VRhalbIM0CNXK9S7t4uwEUpbeWI=&channel=rpfic-i24
+    # Esta key no vulnera nada pero seguramente deje de ser válida
+    # TODO: Arreglar esto
+    KEY = "AIzaSyBfTOxuYEmbL50_1P4KU8GI8toKT539agI"
+    return f"{GOOGLE_API_MAPS}?center={coords}&markers={coords}&zoom=16&size=780x456&sensor=true&scale=2&key={KEY}"
 
 if __name__ == "__main__":
     url = "https://www.easybroker.com/mx/listings/departamento-en-venta-en-chapalita-zapopan-chapalita"

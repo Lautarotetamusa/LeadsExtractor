@@ -220,6 +220,7 @@ class Inmuebles24(Portal):
 
         params = PARAMS.copy()
         params["url"] = msg_url
+        #res = requests.post(ZENROWS_API_URL, params=params, json=data, headers=self.request.headers)
         res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
