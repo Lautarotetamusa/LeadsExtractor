@@ -65,9 +65,10 @@ def get_post_data(url: str) -> dict | None:
     title = safe_find(soup, "h1", class_="property-title")
     location = safe_find(soup, "h2", class_="location")
     tipo = safe_find(soup, "div", class_="operation-type")
+    id = safe_find(soup, "div", class_="listing-id").replace("ID: ", "")
 
     post = {
-        "id": " - ",
+        "id": id,
         "extraction_date": strftime(DATE_FORMAT, gmtime()),
         "message_date": strftime(DATE_FORMAT, gmtime()),
         "title":        title,
@@ -84,7 +85,6 @@ def get_post_data(url: str) -> dict | None:
     set_attrs(soup, post)
     return post
 
-# TODO: re-escalar las imagenes al tamaño cuadrado
 def extract_images(soup: BeautifulSoup):
     images = []
     pictures_divs = soup.find_all("div", class_="picture")

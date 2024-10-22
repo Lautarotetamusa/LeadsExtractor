@@ -6,6 +6,9 @@ import requests
 import string
 import random
 
+from PIL import Image
+from io import BytesIO
+
 from src.logger import Logger
 import src.tasks as tasks
 
@@ -19,6 +22,8 @@ COTIZADORES = {
     "inmuebles24": inmuebles24,
     "easybroker": easybroker
 }
+
+DEFAULT_IMG_SIZE = (360, 266)
 
 def execute_cotizacion(urls: list[str], asesor: dict, cliente: str, task_id: str):
     try:
@@ -62,6 +67,17 @@ def combine_pdfs(pdfs: list[str], file_name):
     merger.write(file_name)
     merger.close()
 
+#TODO: No hardcodear el tipo de dato JPEG
+def resize_image(img_data, target_size):
+    try:
+        img = Image.open(BytesIO(img_data))
+        img = img.resize(target_size)  # Redimensiona la imagen
+        output = BytesIO()
+        img.save(output, format="JPEG")  # Guarda en el mismo formato que la original
+        return output.getvalue()  # Retorna los bytes de la imagen redimensionada
+    except Exception as e:
+        logger.error(f"Error al redimensionar la imagen: {str(e)}")
+        return None
 
 # Subir las imagenes a jotform
 def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[str]):
@@ -72,8 +88,7 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
     for url, qid in zip(urls, qids):
         logger.debug("Obteniendo imagen: " + url)
         img_data = None
-        if "maps" in url:
-            print(url)
+        if "maps" in url: # Si la imagen es de maps no necesitamos obtenerla con jotform
             res = requests.get(url)
             if res is None or not res.ok:
                 logger.error("Imposible obtener la imagen de ubicacion: "+ url)
@@ -87,6 +102,10 @@ def upload_images(form_id: str, submission_id: str, urls: list[str], qids: list[
         if img_data is None:
             logger.error("Imposible obtener la imagen: "+ url)
             continue
+        
+        if "maps" not in url:  # Si la imagen es de maps no hay que hacerle resize
+            img_data = resize_image(img_data, DEFAULT_IMG_SIZE)
+            if img_data is None: continue
 
         r = pool.apply_async(
                 jotform.upload_image,
