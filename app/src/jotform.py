@@ -56,24 +56,20 @@ def upload_image(form_id: str, submission_id: str, qid: str, img_data: bytes, im
 # https://api.jotform.com/form/242244461116044/questions?apiKey=
 def submit_cotizacion_form(logger: Logger, form_id: str, data, asesor, cliente: str, id_propuesta) -> dict | None:
     url = f"https://api.jotform.com/form/{form_id}/submissions?apiKey={API_KEY}"
-    print(data)
     data = {
             "10": data.get("title", ""),
             "26": data.get("price", ""),
             "12": data.get("type", ""),
             "24": cliente,
-            "13": asesor.get("name", ""),
-            "61": asesor.get("phone", ""),
-            "15": asesor.get("email", ""),
             "28": data.get("building_size", ""),
             "27": data.get("size", ""),
             "19": data.get("antiguedad", ""),
             "20": data.get("url", ""),
             "21": data.get("currency", ""),
             "22": data.get("location", {}).get("zone", ""),
-            "78": asesor["name"],
-            "79": asesor["phone"],
-            "81": asesor["email"],
+            "78": asesor.get("name"),
+            "79": asesor.get("phone"),
+            "81": asesor.get("email"),
             "82": data.get("id"),
             "83": data.get("banios"),
             "84": data.get("cocheras"),

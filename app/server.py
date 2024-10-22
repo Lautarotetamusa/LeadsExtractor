@@ -1,3 +1,4 @@
+import numbers
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import threading
@@ -8,6 +9,7 @@ from src.lead import Lead
 import src.jotform as jotform
 from src.cotizador import execute_cotizacion
 import src.tasks as tasks
+from src.numbers import parse_number
 
 # Scrapers
 from src.inmuebles24.scraper import main as inmuebles24_scraper
@@ -73,7 +75,15 @@ def ejecutar_script_route():
 def cotizacion():
     data = request.get_json()
 
-    asesor = data.get('asesor')
+    asesor = data.get("asesor")
+    phone_str = asesor.get("phone", "")
+    
+    # Lo parseamos sin codigo porque se debe agregar en el campo para que ande con whatsapp
+    phone = parse_number(logger, phone_str, None)
+    if phone is None:
+        print("phone is none")
+        return jsonify({'error': f"El numero {phone_str} no es valido"}), 400
+
     urls = data.get('urls')
     cliente = data.get('cliente')
 
