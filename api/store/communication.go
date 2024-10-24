@@ -189,7 +189,7 @@ func (s *Store) InsertCommunication(c *models.Communication, source *models.Sour
         strings.Join(fields, ", "), 
         ":"+strings.Join(fields, ", :"))
 
-    _, err := s.db.NamedExec(query, map[string]interface{}{
+    res, err := s.db.NamedExec(query, map[string]interface{}{
 		"lead_phone":  c.Telefono,
 		"source_id":   source.Id,
 		"new_lead":    c.IsNew,
@@ -209,6 +209,12 @@ func (s *Store) InsertCommunication(c *models.Communication, source *models.Sour
 	if err != nil {
 		return err
 	}
+    if id, err := res.LastInsertId(); err != nil{
+        return err
+    }else{
+        c.Id = int(id)
+    }
+
     s.logger.Info("communication saved")
     return nil
 }

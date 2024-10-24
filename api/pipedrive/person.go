@@ -41,6 +41,7 @@ var customFields = map[string]string{
     "utm_campaign": "d594db0232426e8890c66c1b27d182358d8c5da4",
     "utm_medium": "f1ae15f0f9f0800e30dbd0c5dfa192b3ea8da3f4",
     "utm_source": "e50923b345eb0ffc139e9752ddc92fa843559a78",
+    "mensaje": "a7032dfa893a197e2cf149791e6285e577c5641d",
 };
 
 var fuenteOptions = map[string]uint32{
@@ -71,6 +72,8 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         customFields["precio"]: c.Propiedad.Precio.String,
         customFields["cotizacion"]: c.Cotizacion,
 
+        customFields["mensaje"]: c.Message,
+
         customFields["area_total"]: c.Propiedad.TotalArea,
         customFields["area_cubierta"]: c.Propiedad.CoveredArea,
 
@@ -80,7 +83,6 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         customFields["utm_medium"]: c.Utm.Medium.String,
         customFields["utm_source"]: c.Utm.Source.String,
     }
-    fmt.Printf("%#v\n", c.Utm)
 
     if c.Email.Valid {
         payload["email"] = PersonChannel{

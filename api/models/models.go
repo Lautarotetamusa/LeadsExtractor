@@ -164,5 +164,5 @@ type Communication struct {
 	Propiedad  Propiedad `json:"propiedad"`
 	Busquedas  Busquedas `json:"busquedas"`
     IsNew      bool      `json:"is_new" db:"new_lead"`
-    Message    string
+    Message    string    `json:"message"`
 }

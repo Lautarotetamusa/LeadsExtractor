@@ -96,6 +96,9 @@ func (s *Server) NewCommunication(c *models.Communication) error {
         s.logger.Error(err.Error(), "path", "InsertCommunication")
         return err
     }
+    if err = s.Store.InsertMessage(store.CommunicationToMessage(c)); err != nil {
+        return err
+    }
     return nil
 }
 
