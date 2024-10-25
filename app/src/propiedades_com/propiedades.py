@@ -41,6 +41,7 @@ class Propiedades(Portal):
             username_env="PROPIEDADES_USERNAME",
             password_env="PROPIEDADES_PASSWORD",
             params_type="headers",
+            unauthorized_codes=[401],
             filename=__file__
         )
 

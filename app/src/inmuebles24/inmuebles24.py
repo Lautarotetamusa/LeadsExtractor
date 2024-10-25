@@ -64,6 +64,7 @@ class Inmuebles24(Portal):
                 username_env="INMUEBLES24_USERNAME",
                 password_env="INMUEBLES24_PASSWORD",
                 params_type="headers",
+                unauthorized_codes=[401],
                 filename=__file__
                 )
         self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
@@ -222,6 +223,7 @@ class Inmuebles24(Portal):
         params = PARAMS.copy()
         params["url"] = msg_url
         #res = requests.post(ZENROWS_API_URL, params=params, json=data, headers=self.request.headers)
+        self.logger.debug(f"POST {msg_url}")
         res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
@@ -236,6 +238,7 @@ class Inmuebles24(Portal):
         params = PARAMS.copy()
         params["url"] = status_url
         params["autoparse"] = False
+        self.logger.debug(f"POST {status_url}")
         res = self.request.make(ZENROWS_API_URL, 'POST', params=params)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:

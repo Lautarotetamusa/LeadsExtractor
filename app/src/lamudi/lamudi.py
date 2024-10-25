@@ -23,6 +23,7 @@ class Lamudi(Portal):
             username_env="LAMUDI_USERNAME",
             password_env="LAMUDI_PASSWORD",
             params_type="cookies",
+            unauthorized_codes=[401],
             filename=__file__
         )
 

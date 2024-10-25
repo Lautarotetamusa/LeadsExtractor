@@ -30,6 +30,7 @@ class CasasYTerrenos(Portal):
             username_env="CASASYTERRENOS_USERNAME",
             password_env="CASASYTERRENOS_PASSWORD",
             params_type="headers",
+            unauthorized_codes=[401],
             filename=__file__
         )
 
