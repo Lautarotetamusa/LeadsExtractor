@@ -1,9 +1,9 @@
-from time import gmtime, strftime
 from datetime import datetime
 import os
 import json
 import requests
 
+from src.make_requests import ApiRequest
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -66,37 +66,36 @@ class Inmuebles24(Portal):
                 params_type="headers",
                 filename=__file__
                 )
+        self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
 
     def login(self):
         self.logger.debug("Iniciando sesion")
         login_url = f"{SITE_URL}login_login.ajax"
 
         data = {
-                "email": self.username,
-                "password": self.password,
-                "recordarme": "true",
-                "homeSeeker": "true",
-                "urlActual": SITE_URL
-                }
-        self.request.headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
+            "email": self.username,
+            "password": self.password,
+            "recordarme": "true",
+            "homeSeeker": "true",
+            "urlActual": SITE_URL
+        }
+        # self.request.headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
+        self.request.headers["Content-Type"] = "application/json; charset=UTF-8"
 
-        self.logger.debug(f"POST {login_url}")
-        params = PARAMS.copy()
-        params["url"] = login_url
-        res = requests.post(ZENROWS_API_URL, params=params, data=data)
-        if not res.ok:
-            self.logger.error("status="+str(res.status_code)+" res="+str(res.text))
+        res = self.api_req.make(login_url, "POST", data=data)
+        if res is None:
+            self.logger.error("Cant login")
             return
+
         data = res.json()
 
         self.request.headers = {
-                "sessionId": data["contenido"]["sessionID"],
-                "x-panel-portal": "24MX",
-                "content-type": "application/json;charset=UTF-8",
-                "idUsuario": str(data["contenido"]["idUsuario"])
-                }
+            "sessionId": data["contenido"]["sessionID"],
+            "x-panel-portal": "24MX",
+            "content-type": "application/json;charset=UTF-8",
+            "idUsuario": str(data["contenido"]["idUsuario"])
+        }
 
-        print("headers", self.request.headers)
         with open(self.params_file, "w") as f:
             json.dump(self.request.headers, f, indent=4)
         self.logger.success("Sesion iniciada con exito")
@@ -155,6 +154,8 @@ class Inmuebles24(Portal):
 
         lead = Lead()
         lead.set_args({
+            # TODO: Comprobar que el mensaje haya sido enviado por el lead y no por nosotros
+            "message": raw_lead.get("last_message", {}).get("text", ""),
             "lead_id": raw_lead_id,
             "contact_id": contact_id,
             "fuente": self.name,

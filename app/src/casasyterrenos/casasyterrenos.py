@@ -69,6 +69,7 @@ class CasasYTerrenos(Portal):
     def get_lead_info(self, raw_lead: dict) -> Lead:
         lead = Lead()
         lead.set_args({
+            "message": raw_lead.get("message", ""),
             "fuente": self.name,
             "fecha_lead": datetime.strptime(raw_lead["created"], '%d-%m-%Y %H:%M:%S').strftime(DATE_FORMAT),
             "lead_id":  str(raw_lead["id"]),

@@ -79,6 +79,7 @@ class Portal():
         pass
 
     def main(self):
+        # self.login()
         for page in self.get_leads(Mode.NEW):
             for lead_res in page:
                 lead = self.get_lead_info(lead_res)
