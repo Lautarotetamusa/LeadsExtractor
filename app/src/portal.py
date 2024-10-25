@@ -36,12 +36,13 @@ class Portal():
                  username_env: str,
                  password_env: str,
                  params_type: str,  # headers | cookies
+                 unauthorized_codes: list[int],
                  filename: str = __file__
         ):
 
         self.name = name
         self.logger = Logger(name)
-        self.request = Request(None, None, self.logger, self.login)
+        self.request = Request(None, None, self.logger, self.login, unauthorized_codes)
 
         self.contact_id_field = contact_id_field
         self.send_msg_field = send_msg_field
@@ -78,8 +79,20 @@ class Portal():
     def login(self):
         pass
 
+    def default_action(self, lead_res: dict, msg):
+        # Marcar como contactado
+        if self.contact_id_field in lead_res:
+            self.make_contacted(lead_res[self.contact_id_field])
+        else:
+            self.logger.warning("No se encontro campo para contactar")
+
+        # Mensaje del portal
+        if self.send_msg_field in lead_res:
+            self.send_message(lead_res[self.send_msg_field], msg)
+        else:
+            self.logger.warning("No se encontro campo para enviar mensaje")
+
     def main(self):
-        # self.login()
         for page in self.get_leads(Mode.NEW):
             for lead_res in page:
                 lead = self.get_lead_info(lead_res)
@@ -92,6 +105,8 @@ class Portal():
                 lead.print()
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead is None:
+                    txt = bienvenida_1 + '\n' + "Lamentablemente tu numero de telefono no es valido para nuestro sistema, puedes enviar un mensaje de whatsapp a +5213328092850"
+                    self.default_action(lead_res, txt)
                     continue
 
                 if is_new:
@@ -99,19 +114,7 @@ class Portal():
                 else:
                     portal_msg = format_msg(lead, response_msg)
 
-                # Mensaje del portal
-                if self.send_msg_field in lead_res:
-                    self.send_message(lead_res[self.send_msg_field], portal_msg)
-                else:
-                    self.logger.warning("No se encontro campo para enviar mensaje")
-
-                # Marcar como contactado
-                if self.contact_id_field in lead_res:
-                    self.make_contacted(lead_res[self.contact_id_field])
-                else:
-                    self.logger.warning("No se encontro campo para contactar")
-
-                lead.message = portal_msg.replace('\n', '')
+                self.default_action(lead_res, portal_msg)
 
 
     def first_run(self):
