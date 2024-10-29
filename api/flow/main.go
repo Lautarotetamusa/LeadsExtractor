@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
-	"log/slog"
+	"leadsextractor/store"
 	"os"
 	"time"
 
@@ -115,33 +115,45 @@ func (f * FlowManager) Broadcast(comms []models.Communication, uuid uuid.UUID) e
     }
 
     for _, c := range comms {
-        go f.runFlow(&c, uuid)
+        go f.RunFlow(&c, uuid)
         time.Sleep(100 * time.Millisecond)
     }
     return nil
 }
 
 func (f *FlowManager) RunMainFlow(c *models.Communication) {
-    f.runFlow(c, f.Main)
+    f.RunFlow(c, f.Main)
 }
 
-func (f *FlowManager) runFlow(c *models.Communication, uuid uuid.UUID) {
+func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
     flow, ok := f.Flows[uuid] 
     if !ok{
-        slog.Error(fmt.Sprintf("el flow con uuid %s no existe", uuid.String()))
+        f.logger.Error(fmt.Sprintf("el flow con uuid %s no existe", uuid.String()))
         os.Exit(1)
     }
+    f.logger.Debug("running flow", "uuid", uuid)
 
     for _, rule := range flow.Rules {
         if !rule.Condition.Matches(c) {
             continue
         }
 
-        for _, action := range rule.Actions{
+        for order, action := range rule.Actions {
             actionFunc := actions[action.Name].Func
+            actionRunned := &store.ActionSave{
+                Name: action.Name,
+                Nro: order,
+                FlowUUID: uuid,
+                Wamid: c.Wamid,
+                LeadPhone: c.Telefono.String(),
+                OnResponse: action.OnResponse,
+            }
             
             schedule.After(time.Duration(action.Interval), func() {
                 f.logger.Debug("running action", "name", action.Name)
+                if err := f.storer.SaveAction(actionRunned); err != nil {
+                    f.logger.Error("cannot save action", "err", err.Error())
+                }
                 err := actionFunc(c, action.Params)
                 if err != nil {
                     f.logger.Error(err.Error(), "action", action.Name)

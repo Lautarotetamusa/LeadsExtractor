@@ -254,6 +254,7 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Busquedas: models.Busquedas{},
         IsNew: false,
         Message: value.Messages[0].Text.Body,
+        Wamid: value.Messages[0].Id,
     }
 
     return &c, nil

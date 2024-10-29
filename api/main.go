@@ -64,8 +64,10 @@ func main() {
         logger,
 	)
 
-    flowManager := flow.NewFlowManager("actions.json", logger)
-    flow.DefineActions(wpp, pipedriveApi, infobipApi, store.NewStore(db, logger))
+    storer := store.NewStore(db, logger)
+
+    flowManager := flow.NewFlowManager("actions.json", storer, logger)
+    flow.DefineActions(wpp, pipedriveApi, infobipApi, storer)
 
     flowManager.MustLoad()
 

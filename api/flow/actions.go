@@ -138,7 +138,7 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
     )
 
     DefineAction("wpp.send_response", 
-            func(c *models.Communication, params interface{}) error {
+        func(c *models.Communication, params interface{}) error {
             wpp.SendResponse(c.Telefono.String(), &c.Asesor)
             return nil
         },

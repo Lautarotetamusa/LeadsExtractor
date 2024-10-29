@@ -90,7 +90,20 @@ func (s *Server) NewCommunication(c *models.Communication) error {
     c.Email = lead.Email
     c.Nombre = lead.Name
 
-    go s.flowHandler.manager.RunMainFlow(c)
+    action, err := s.Store.GetLastActionFromLead(c.Telefono)
+    // flow, _ := s.flowHandler.manager.GetFlow(a.FlowUUID)
+    // action := flow.Rules[0].Actions[a.Nro]
+    if err != nil {
+        s.logger.Error("cannot get the lead last action", "err", err)
+    }
+
+    fmt.Printf("action %+v\n", action)
+    if action != nil && action.OnResponse.Valid {
+        go s.flowHandler.manager.RunFlow(c, action.OnResponse.UUID)
+    }else{
+        go s.flowHandler.manager.RunMainFlow(c)
+    }
+
         
     if err = s.Store.InsertCommunication(c, source); err != nil {
         s.logger.Error(err.Error(), "path", "InsertCommunication")
