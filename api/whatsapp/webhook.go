@@ -55,6 +55,27 @@ type Message struct {
     Text        struct {
         Body    string  `json:"body"`
     } `json:"text,omitempty"`
+    Interactive Interactive `json:"interactive,omitempty"`
+}
+
+type Interactive struct {
+    Type InteractiveType `json:"type"`
+}
+
+type InteractiveType struct {
+    ButtonReply ButtonReply `json:"button_reply,omitempty"`
+    ListReply   ListReply   `json:"list_reply,omitempty"`
+}
+
+type ButtonReply struct {
+    ID    string `json:"id"`
+    Title string `json:"title"`
+}
+
+type ListReply struct {
+    ID          string `json:"id"`
+    Title       string `json:"title"`
+    Description string `json:"description"`
 }
 
 type Metadata struct {
@@ -133,10 +154,14 @@ func GenerateWppLink(w http.ResponseWriter, r *http.Request) error {
 func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) error {
     defer r.Body.Close()
     var payload NotificationPayload
+    // var data interface{}
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
         wh.logger.Error("error parseando el payload", "err", err.Error())
         return err
     }
+
+    // j, _ := json.MarshalIndent(data, " ", "\t")
+    // fmt.Println(string(j))
 
     for _, e := range payload.Entries {
         wh.entries <- e
@@ -183,7 +208,10 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
 
     if len(value.Statuses) > 0 {
         for _, s := range value.Statuses {
-            wh.logger.Debug("cambio de estado de un mensaje", "status", s.Status, "recipientId", s.RecipientId, "msgId", s.Id)
+            wh.logger.Debug("cambio de estado de un mensaje", 
+                "status", s.Status, 
+                "recipientId", s.RecipientId, 
+                "msgId", s.Id)
             for _, e := range s.Errors {
                 wh.logger.Error(e.Message, "code", e.Code, "to", s.RecipientId)
             }
@@ -198,12 +226,19 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         return nil, fmt.Errorf("%d - %s", value.Errors[0].Code, value.Errors[0].Message)
     }
 
-    wh.logger.Info("nuevo mensaje de whatsapp recibido", "phone", value.Contacts[0].WaID, "name", value.Contacts[0].Profile.Name, "id", value.Messages[0].Id)
+    wh.logger.Info("nuevo mensaje de whatsapp recibido", 
+        "phone", value.Contacts[0].WaID, 
+        "name", value.Contacts[0].Profile.Name, 
+        "id", value.Messages[0].Id)
     
     phone, err := numbers.NewPhoneNumber(value.Contacts[0].WaID)
     if err != nil {
         return nil, fmt.Errorf("Error parsing whatsapp number: %s", value.Contacts[0].WaID)
     }
+
+    // for _, m := range value.Messages {
+    //     fmt.Printf("%#v\n", m)
+    // }
 
     c := models.Communication {
         Fuente: "whatsapp",

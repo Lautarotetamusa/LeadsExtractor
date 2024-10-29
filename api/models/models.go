@@ -129,6 +129,7 @@ type Busquedas struct {
     Recamaras        NullString `json:"recamaras" db:"rooms"`
 }
 
+// Este es el objeto del glosario Utm, es una tabla aparte
 type UtmDefinition struct {
     Id          int         `json:"id" db:"id"`
     Code        string      `json:"code" db:"code"`
@@ -139,6 +140,7 @@ type UtmDefinition struct {
     Channel     string      `json:"utm_channel" db:"utm_channel"`
 }
 
+// En la db se guarda en la tabla Communication
 type Utm struct {
     Source      NullString   `json:"utm_source" db:"utm_source"`
     Medium      NullString   `json:"utm_medium" db:"utm_medium"`
@@ -147,7 +149,6 @@ type Utm struct {
     Channel     string      `json:"utm_channel" db:"utm_channel"`
 }
 
-//Este es el objecto que recibimos del python script
 type Communication struct {
     Fuente     string    `json:"fuente" db:"fuente"`
     FechaLead  string    `json:"fecha_lead" db:"lead_date"`

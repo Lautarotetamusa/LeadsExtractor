@@ -1,0 +1,43 @@
+{
+ 	"entry": [
+ 		{
+ 			"changes": [
+ 				{
+ 					"field": "messages",
+ 					"value": {
+ 						"contacts": [
+ 							{
+ 								"profile": {
+ 									"name": "Lautaro Teta Musa"
+ 								},
+ 								"wa_id": "5493415854220"
+ 							}
+ 						],
+ 						"messages": [
+ 							{
+ 								"context": {
+ 									"from": "5213328092850",
+ 									"id": "wamid.HBgNNTQ5MzQxNTg1NDIyMBUCABEYEjJGRUM0ODE0NUQ1NzcxM0NBRgA="
+ 								},
+ 								"from": "5493415854220",
+ 								"id": "wamid.HBgNNTQ5MzQxNTg1NDIyMBUCABIYFjNFQjBDRThDRDdEMEQ1RjQ0M0MwNUQA",
+ 								"text": {
+ 									"body": "Hola!"
+ 								},
+ 								"timestamp": "1730213862",
+ 								"type": "text"
+ 							}
+ 						],
+ 						"messaging_product": "whatsapp",
+ 						"metadata": {
+ 							"display_phone_number": "5213328092850",
+ 							"phone_number_id": "193151663891728"
+ 						}
+ 					}
+ 				}
+ 			],
+ 			"id": "260492810474024"
+ 		}
+ 	],
+ 	"object": "whatsapp_business_account"
+ }

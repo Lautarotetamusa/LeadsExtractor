@@ -18,6 +18,7 @@ type QueryParam struct{
     IsNew       *bool       `schema:"is_new" json:"is_new,omitempty" db:"isNew"`
     Page        int         `schema:"page" json:"page,omitempty" db:"page"`
     PageSize    int         `schema:"page_size" json:"page_size,omitempty"`
+    Message     string      `schema:"message" json:"message"`
 
     UtmSource   string      `schema:"utm_source" json:"utm_source,omitempty" db:"utm_source"`
     UtmMedium   string      `schema:"utm_medium" json:"utm_medium,omitempty" db:"utm_medium"`
@@ -75,6 +76,8 @@ INNER JOIN Asesor A
     ON L.asesor = A.phone
 LEFT JOIN Property P
     ON S.property_id = P.id
+INNER Join Message M
+    ON M.id_communication = C.id
 `;
 
 func NewQuery(baseQuery string) Query {
@@ -96,7 +99,8 @@ func (p *QueryParam) Matches(c *models.Communication) bool {
             (p.UtmAd == "" || p.UtmAd == c.Utm.Ad.String) &&
             (p.UtmChannel == "" || p.UtmChannel == c.Utm.Channel) &&
             (p.UtmMedium == "" || p.UtmMedium == c.Utm.Medium.String) &&
-            (p.UtmSource == "" || p.UtmSource == c.Utm.Source.String)
+            (p.UtmSource == "" || p.UtmSource == c.Utm.Source.String) &&
+            (p.Message == "" || p.Message == c.Message)
 }
 
 func (q *Query) buildWhere(params *QueryParam) {
@@ -133,6 +137,10 @@ func (q *Query) buildWhere(params *QueryParam) {
 	if params.Nombre != "" {
 		whereClauses = append(whereClauses, "L.name LIKE :nombre")
 		q.params["nombre"] = "%"+params.Nombre+"%"
+	}
+	if params.Message != "" {
+		whereClauses = append(whereClauses, "M.text LIKE :message")
+		q.params["message"] = "%"+params.Message+"%"
 	}
 
     // UTMS. TODO: recorrerlos de otro modo
