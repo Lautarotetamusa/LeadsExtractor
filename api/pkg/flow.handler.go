@@ -140,7 +140,7 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
    
-	comms, err := s.Store.GetAllCommunications(&body.Condition)
+	comms, err := s.Store.GetAllDistinctCommunications(&body.Condition)
 	if err != nil {
         return err
 	}

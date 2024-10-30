@@ -63,7 +63,8 @@ SELECT
     C.mt2_terrain as "busquedas.mt2_terrain", 
     C.mt2_builded as "busquedas.mt2_builded", 
     C.baths as "busquedas.baths", 
-    C.rooms as "busquedas.rooms"
+    C.rooms as "busquedas.rooms",
+    M.text as "message"
 `;
 const countQuery = "SELECT COUNT(*)";
 const joinQuery = `
@@ -79,6 +80,8 @@ LEFT JOIN Property P
 INNER Join Message M
     ON M.id_communication = C.id
 `;
+
+const groupByLeadPhone = " GROUP BY L.phone"
 
 func NewQuery(baseQuery string) Query {
     return Query {
@@ -252,6 +255,25 @@ func (s *Store) GetAllCommunications(params *QueryParam) ([]models.Communication
 
     query := NewQuery(selectQuery + joinQuery)
     query.buildWhere(params)
+
+    stmt, err := s.db.PrepareNamed(query.query)
+    if err != nil {
+        return nil, err
+    }
+    if err := stmt.Select(&communications, query.params); err != nil {
+        return nil, err
+    }
+
+    return communications, nil
+}
+
+func (s *Store) GetAllDistinctCommunications(params *QueryParam) ([]models.Communication, error) {
+    //Lo hago asi para que si no encuentra nada devuelva []
+    communications := make([]models.Communication, 0)
+
+    query := NewQuery(selectQuery + joinQuery)
+    query.buildWhere(params)
+    query.query += groupByLeadPhone
 
     stmt, err := s.db.PrepareNamed(query.query)
     if err != nil {
