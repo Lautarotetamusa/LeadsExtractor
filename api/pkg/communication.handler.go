@@ -97,7 +97,6 @@ func (s *Server) NewCommunication(c *models.Communication) error {
         s.logger.Error("cannot get the lead last action", "err", err)
     }
 
-    fmt.Printf("action %+v\n", action)
     if action != nil && action.OnResponse.Valid {
         go s.flowHandler.manager.RunFlow(c, action.OnResponse.UUID)
     }else{

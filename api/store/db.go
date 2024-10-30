@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"time"
 
@@ -18,7 +19,7 @@ func ConnectDB(ctx context.Context) *sqlx.DB{
     dbName := os.Getenv("DB_NAME")
 
     connectionStr := fmt.Sprintf("%s:%s@(%s:%s)/%s", dbUser, dbPass, host, dbPort, dbName)
-    fmt.Printf("db connection: %s\n", connectionStr)
+    slog.Info(fmt.Sprintf("db connection: %s\n", connectionStr))
 
     ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
     defer cancel()

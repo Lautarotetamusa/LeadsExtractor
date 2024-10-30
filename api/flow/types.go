@@ -107,7 +107,6 @@ func (a *Action) UnmarshalJSON(data []byte) error {
         return fmt.Errorf("parámetros inválidos para la acción %s: %v", a.Name, err)
     }
     a.Params = params
-    fmt.Printf("a: %+v\n", a)
 
     return nil
 }
