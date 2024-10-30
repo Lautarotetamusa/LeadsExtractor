@@ -19,7 +19,7 @@ const tableName = "Message";
 func CommunicationToMessage(c *models.Communication) *Message {
     return &Message{
         IdCommunication: c.Id,
-        Text: c.Message,
+        Text: c.Message.String,
     }
 }
 

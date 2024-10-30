@@ -108,7 +108,7 @@ func (s *Server) NewCommunication(c *models.Communication) error {
         s.logger.Error(err.Error(), "path", "InsertCommunication")
         return err
     }
-    if len(c.Message) > 0 {
+    if c.Message.Valid {
         if err = s.Store.InsertMessage(store.CommunicationToMessage(c)); err != nil {
             return err
         }
@@ -139,11 +139,11 @@ func (s *Server) findUtmInMessage(c *models.Communication) {
         s.logger.Error(err.Error())
         return 
     }
-    if c.Message == "" {
+    if !c.Message.Valid {
         return 
     }
 
-    message := strings.ToUpper(c.Message)
+    message := strings.ToUpper(c.Message.String)
     for _, utm := range utms {
         if strings.Contains(message, utm.Code) {
             s.logger.Info(fmt.Sprintf("found code %s in message", utm.Code))

@@ -77,7 +77,7 @@ INNER JOIN Asesor A
     ON L.asesor = A.phone
 LEFT JOIN Property P
     ON S.property_id = P.id
-INNER Join Message M
+LEFT Join Message M
     ON M.id_communication = C.id
 `;
 
@@ -103,7 +103,7 @@ func (p *QueryParam) Matches(c *models.Communication) bool {
             (p.UtmChannel == "" || p.UtmChannel == c.Utm.Channel) &&
             (p.UtmMedium == "" || p.UtmMedium == c.Utm.Medium.String) &&
             (p.UtmSource == "" || p.UtmSource == c.Utm.Source.String) &&
-            (p.Message == "" || p.Message == c.Message)
+            (p.Message == "" || p.Message == c.Message.String)
 }
 
 func (q *Query) buildWhere(params *QueryParam) {
