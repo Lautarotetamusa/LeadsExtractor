@@ -108,7 +108,7 @@ func (f *FlowManager) DeleteFlow(uuid uuid.UUID) error {
 }
 
 func (f * FlowManager) Broadcast(comms []models.Communication, uuid uuid.UUID) error {
-    f.logger.Info("lanzando broadcast", "count", len(comms))
+    f.logger.Info("Lanzando broadcast", "count", len(comms))
     _, ok := f.Flows[uuid] 
     if !ok{
         return fmt.Errorf("el flow con uuid %s no existe", uuid)
@@ -154,6 +154,7 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
                 if err := f.storer.SaveAction(actionRunned); err != nil {
                     f.logger.Error("cannot save action", "err", err.Error())
                 }
+                fmt.Printf("%p\n", &action.Params)
                 err := actionFunc(c, action.Params)
                 if err != nil {
                     f.logger.Error(err.Error(), "action", action.Name)

@@ -47,10 +47,15 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
                 return fmt.Errorf("invalid parameters for wpp.template")
             }
 
-            for i := range payload.Components {
-                payload.Components[i].ParseParameters(c)
+            // Hacemos un deep copy para no alterar los parametros
+            parsedPayload := *payload
+            parsedPayload.Components = make([]whatsapp.Components, len(payload.Components))
+            for i, comp := range payload.Components {
+                parsedPayload.Components[i] = comp
+                parsedParameters := whatsapp.ParseParameters(comp, c)
+                parsedPayload.Components[i].Parameters = parsedParameters
             }
-            wpp.SendTemplate(c.Telefono.String(), *payload)
+            wpp.SendTemplate(c.Telefono.String(), parsedPayload)
             return nil
         },
         reflect.TypeOf(whatsapp.TemplatePayload{}), 

@@ -264,7 +264,9 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 	return w.Send(NewTemplatePayload(to, templateName, components))
 }
 
-func (c *Components) ParseParameters (communication *models.Communication) {
+func ParseParameters(c Components, communication *models.Communication) []Parameter {
+    parsedParameters := make([]Parameter, len(c.Parameters))
+
 	for i, param := range c.Parameters {
         t, err := template.New("txt").Parse(param.Text)
         if err == nil { //Si lo puede parsear lo hace
@@ -272,13 +274,15 @@ func (c *Components) ParseParameters (communication *models.Communication) {
             if err := t.Execute(buf, communication); err != nil {
                 continue
             }
-            param.Text = buf.String()
+            parsedParam := param 
+            parsedParam.Text = buf.String()
 
-            if param.Text == "" {
-                param.Text = " - "
+            if parsedParam.Text == "" {
+                parsedParam.Text = " - "
             }
 
-            c.Parameters[i] = param
+            parsedParameters[i] = parsedParam
         }
     }
+    return parsedParameters
 }
