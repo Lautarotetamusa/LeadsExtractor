@@ -204,6 +204,9 @@ func (wh *Webhook) ConsumeEntries(callback func (*models.Communication) error ) 
 }
 
 func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) {
+    if (len(e.Changes) <= 0) {
+        return nil, fmt.Errorf("whatsapp entry doesn't have any Changes")
+    }
     value := e.Changes[0].Value
 
     if len(value.Statuses) > 0 {
@@ -226,26 +229,33 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         return nil, fmt.Errorf("%d - %s", value.Errors[0].Code, value.Errors[0].Message)
     }
 
-    wh.logger.Info("nuevo mensaje de whatsapp recibido", 
-        "phone", value.Contacts[0].WaID, 
-        "name", value.Contacts[0].Profile.Name, 
-        "id", value.Messages[0].Id)
-    
-    phone, err := numbers.NewPhoneNumber(value.Contacts[0].WaID)
-    if err != nil {
-        return nil, fmt.Errorf("Error parsing whatsapp number: %s", value.Contacts[0].WaID)
+    if (len(value.Contacts) <= 0) {
+        return nil, fmt.Errorf("whatsapp value doesn't have any Contacts")
+    }
+    if (len(value.Messages) <= 0) {
+        return nil, fmt.Errorf("whatsapp value doesn't have any Messages")
     }
 
-    // for _, m := range value.Messages {
-    //     fmt.Printf("%#v\n", m)
-    // }
+    // TODO: Leer todos los mensajes? por qué hay muchos contactos?
+    contact := value.Contacts[0]
+    message := value.Messages[0]
+
+    wh.logger.Info("nuevo mensaje de whatsapp recibido", 
+        "phone", contact.WaID, 
+        "name", contact.Profile.Name, 
+        "id", message.Id)
+    
+    phone, err := numbers.NewPhoneNumber(contact.WaID)
+    if err != nil {
+        return nil, fmt.Errorf("error parsing whatsapp number: %s", contact.WaID)
+    }
 
     c := models.Communication {
         Fuente: "whatsapp",
         FechaLead: "",
         Fecha: "",
-        Nombre: value.Contacts[0].Profile.Name,
-        Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", value.Contacts[0].WaID),
+        Nombre: contact.Profile.Name,
+        Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", contact.WaID),
         Telefono: *phone,
         Email: models.NullString{String: ""},
         Cotizacion: "",
@@ -253,8 +263,8 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Propiedad: models.Propiedad{},
         Busquedas: models.Busquedas{},
         IsNew: false,
-        Message: models.NullString{String: value.Messages[0].Text.Body, Valid: true},
-        Wamid: value.Messages[0].Id,
+        Message: models.NullString{String: message.Text.Body, Valid: true},
+        Wamid: message.Id,
     }
 
     return &c, nil
