@@ -131,7 +131,6 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
 	return nil
 }
 
-// TODO: los utms se podrían guardar en Server
 func (s *Server) findUtmInMessage(c *models.Communication) {
     var utms []models.UtmDefinition
     err := s.Store.GetAllUtm(&utms)

@@ -3,28 +3,28 @@ package store
 import (
 	"fmt"
 	"leadsextractor/models"
+	"reflect"
 	"strings"
 	"time"
 )
 
-type QueryParam struct{
-    DateFrom    time.Time   `schema:"fecha_from" json:"fecha_from,omitempty" db:"dateFrom"`
-    DateTo      time.Time   `schema:"fecha_to" json:"fecha_to,omitempty" db:"dateTo"`
-    AsesorPhone string      `schema:"asesor_phone" json:"asesor_phone,omitempty" db:"asesorPhone"`
-    AsesorName  string      `schema:"asesor_name" json:"asesor_name,omitempty" db:"asesorName"`
-    Fuente      string      `schema:"fuente" json:"fuente,omitempty" db:"fuente"`
-    Nombre      string      `schema:"nombre" json:"nombre,omitempty" db:"nombre"`
-    Telefono    string      `schema:"telefono" json:"telefono,omitempty" db:"telefono"`
-    IsNew       *bool       `schema:"is_new" json:"is_new,omitempty" db:"isNew"`
-    Page        int         `schema:"page" json:"page,omitempty" db:"page"`
-    PageSize    int         `schema:"page_size" json:"page_size,omitempty"`
-    Message     string      `schema:"message" json:"message"`
-
-    UtmSource   string      `schema:"utm_source" json:"utm_source,omitempty" db:"utm_source"`
-    UtmMedium   string      `schema:"utm_medium" json:"utm_medium,omitempty" db:"utm_medium"`
-    UtmCampaign string      `schema:"utm_campaign" json:"utm_campaign,omitempty" db:"utm_campaign"`
-    UtmAd       string      `schema:"utm_ad" json:"utm_ad,omitempty" db:"utm_ad"`
-    UtmChannel  string      `schema:"utm_channel" json:"utm_channel,omitempty" db:"utm_channel"`
+type QueryParam struct {
+    DateFrom    time.Time `schema:"fecha_from" json:"fecha_from,omitempty" db:"dateFrom" select:"C.created_at"`
+    DateTo      time.Time `schema:"fecha_to" json:"fecha_to,omitempty" db:"dateTo" select:"C.created_at"`
+    AsesorPhone string    `schema:"asesor_phone" json:"asesor_phone,omitempty" db:"asesorPhone" select:"A.phone"`
+    AsesorName  string    `schema:"asesor_name" json:"asesor_name,omitempty" db:"asesorName" select:"A.name"`
+    Fuente      string    `schema:"fuente" json:"fuente,omitempty" db:"fuente" select:"IF(S.type = 'property', P.portal, S.type)"`
+    Nombre      string    `schema:"nombre" json:"nombre,omitempty" db:"nombre" select:"L.name"`
+    Telefono    string    `schema:"telefono" json:"telefono,omitempty" db:"telefono" select:"L.phone"`
+    IsNew       *bool     `schema:"is_new" json:"is_new,omitempty" db:"isNew" select:"C.new_lead"`
+    Page        int       `schema:"page" json:"page,omitempty" db:"page"`
+    PageSize    int       `schema:"page_size" json:"page_size,omitempty"`
+    Message     string    `schema:"message" json:"message" select:"M.text"`
+    UtmSource   string    `schema:"utm_source" json:"utm_source,omitempty" db:"utm_source" select:"C.utm_source"`
+    UtmMedium   string    `schema:"utm_medium" json:"utm_medium,omitempty" db:"utm_medium" select:"C.utm_medium"`
+    UtmCampaign string    `schema:"utm_campaign" json:"utm_campaign,omitempty" db:"utm_campaign" select:"C.utm_campaign"`
+    UtmAd       string    `schema:"utm_ad" json:"utm_ad,omitempty" db:"utm_ad" select:"C.utm_ad"`
+    UtmChannel  string    `schema:"utm_channel" json:"utm_channel,omitempty" db:"utm_channel" select:"C.utm_channel"`
 }
 
 type Query struct {
@@ -106,71 +106,71 @@ func (p *QueryParam) Matches(c *models.Communication) bool {
             (p.Message == "" || p.Message == c.Message.String)
 }
 
+func encloseWords(input string) string {
+	words := strings.Split(input, ",")
+	
+	for i, word := range words {
+		words[i] = `"` + strings.TrimSpace(word) + `"`
+	}
+
+	return strings.Join(words, ",")
+}
+
 func (q *Query) buildWhere(params *QueryParam) {
     var whereClauses []string
 
-	if !params.DateFrom.IsZero() {
-		whereClauses = append(whereClauses, "DATE_SUB(C.created_at, INTERVAL 6 HOUR) >= :dateFrom")
-		q.params["dateFrom"] = params.DateFrom
-	}
-	if !params.DateTo.IsZero() {
-		whereClauses = append(whereClauses, "DATE_SUB(C.created_at, INTERVAL 6 HOUR) <= :dateTo")
-		q.params["dateTo"] = params.DateTo
-	}
-	if params.IsNew != nil{
-		whereClauses = append(whereClauses, "C.new_lead = :isNew")
-		q.params["isNew"] = params.IsNew
-	}
-	if params.Telefono != "" {
-		whereClauses = append(whereClauses, "L.phone LIKE :telefono")
-		q.params["telefono"] = "%"+params.Telefono+"%"
-	}
-	if params.Fuente != "" {
-		whereClauses = append(whereClauses, "IF(S.type = 'property', P.portal, S.type) LIKE :fuente")
-		q.params["fuente"] = "%"+params.Fuente+"%"
-	}
-	if params.AsesorPhone != "" {
-		whereClauses = append(whereClauses, "A.phone LIKE :asesorPhone")
-		q.params["asesorPhone"] = "%"+params.AsesorPhone+"%"
-	}
-	if params.AsesorName != "" {
-		whereClauses = append(whereClauses, "A.name LIKE :asesorName")
-		q.params["asesorName"] = "%"+params.AsesorName+"%"
-	}
-	if params.Nombre != "" {
-		whereClauses = append(whereClauses, "L.name LIKE :nombre")
-		q.params["nombre"] = "%"+params.Nombre+"%"
-	}
-	if params.Message != "" {
-		whereClauses = append(whereClauses, "M.text LIKE :message")
-		q.params["message"] = "%"+params.Message+"%"
-	}
+    t := reflect.TypeOf(*params)
+    paramValue := reflect.ValueOf(*params)
 
-    // UTMS. TODO: recorrerlos de otro modo
-	if params.UtmSource != "" {
-		whereClauses = append(whereClauses, "C.utm_source LIKE :utm_source")
-		q.params["utm_source"] = "%"+params.UtmSource+"%"
-	}
-	if params.UtmMedium != "" {
-		whereClauses = append(whereClauses, "C.utm_medium LIKE :utm_medium")
-		q.params["utm_medium"] = "%"+params.UtmMedium+"%"
-	}
-	if params.UtmAd != "" {
-		whereClauses = append(whereClauses, "C.utm_ad LIKE :utm_ad")
-		q.params["utm_ad"] = "%"+params.UtmAd+"%"
-	}
-	if params.UtmChannel != "" {
-		whereClauses = append(whereClauses, "C.utm_channel LIKE :utm_channel")
-		q.params["utm_channel"] = "%"+params.UtmChannel+"%"
-	}
-	if params.UtmCampaign != "" {
-		whereClauses = append(whereClauses, "C.utm_campaign LIKE :utm_campaign")
-		q.params["utm_campaign"] = "%"+params.UtmCampaign+"%"
-	}
+    for i := 0; i < t.NumField(); i++ {
+        field := t.Field(i)
+        fieldValue := paramValue.Field(i)
+        dbTag := field.Tag.Get("db")
+        selectTag := field.Tag.Get("select")
+
+        if dbTag == "" || selectTag == "" {
+            continue
+        }
+
+        switch fieldValue.Kind(){
+        case reflect.String:
+            if fieldValue.String() == "" {
+                continue
+            }
+            values := strings.Split(fieldValue.String(), ",")
+            var queryWhere []string
+            for i, value := range values {
+                tag := fmt.Sprintf("%s%v", dbTag, i)
+                queryWhere = append(queryWhere, fmt.Sprintf("%s LIKE :%s%v", selectTag, dbTag, i))
+                q.params[tag] = "%"+value+"%"
+            }
+
+            whereClauses = append(whereClauses, "("+strings.Join(queryWhere, " OR ")+")")
+        case reflect.Ptr:
+            if boolPtr, ok := fieldValue.Interface().(*bool); ok && boolPtr != nil {
+                whereClauses = append(whereClauses, selectTag+" = :"+dbTag)
+                q.params[dbTag] = *boolPtr
+            }
+        case reflect.Struct:
+            if field.Type == reflect.TypeOf(time.Time{}) && !fieldValue.Interface().(time.Time).IsZero() {
+                var comp string
+                if field.Name == "DateFrom" {
+                    comp = ">="
+                } else if field.Name == "DateTo" {
+                    comp = "<="
+                }
+                queryStr := fmt.Sprintf("DATE_SUB(%s, INTERVAL 6 HOUR) %s :%s",selectTag, comp, dbTag)
+                whereClauses = append(whereClauses, queryStr)
+                q.params[dbTag] = fieldValue.Interface()
+            }
+        }
+    }
 
 	if len(whereClauses) > 0 {
 		q.query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
+    // fmt.Println(q.query)
+    // fmt.Println(q.params)
 }
 
 func (q *Query) buildPagination(params *QueryParam) {
