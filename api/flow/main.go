@@ -70,10 +70,29 @@ func (f *FlowManager) SetMain(uuid uuid.UUID) error {
     return nil
 }
 
+func (f *FlowManager) validateOnResponse(flow *Flow) error {
+    for _, rule := range flow.Rules {
+        for _, action := range rule.Actions {
+            if !action.OnResponse.Valid{
+                continue
+            }
+            _, ok := f.Flows[action.OnResponse.UUID]
+            if !ok {
+                return fmt.Errorf("on_respose=%s no corresponde a ningun flow", action.OnResponse.UUID)
+            }
+        }
+    }
+    return nil
+}
+
 func (f *FlowManager) AddFlow(flow *Flow) (*uuid.UUID, error) {
     uuid, err := uuid.NewRandom()
     if err != nil {
         return nil, fmt.Errorf("no se pudo generar una uuid: %s", err)
+    }
+
+    if err := f.validateOnResponse(flow); err != nil{
+        return nil, err
     }
 
     f.Flows[uuid] = *flow
