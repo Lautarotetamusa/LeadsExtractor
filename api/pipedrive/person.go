@@ -55,6 +55,19 @@ var fuenteOptions = map[string]uint32{
     "ivr": 75,
 };
 
+func (p *Pipedrive) validatePersonCustomFields() error {
+    for label, id := range customFields {
+        field, err := p.getField(id)
+        if err != nil {
+            return err
+        }
+        if field.Label != label {
+            return fmt.Errorf("el label del field con id %s no coincide %s != %s", id, field.Label, label)
+        }
+    }
+    return nil
+}
+
 func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Person, error){
     payload := map[string]interface{}{
         "name": c.Nombre,
@@ -154,6 +167,7 @@ func (p *Pipedrive) UpdatePersonOwner(personId uint32, newOwnerId uint32) error 
     return nil
 }
 
+// El id no es el uuid de customFields si no un id int ej:9051
 func (p *Pipedrive) getField(id string) (*FieldOption, error){
     var field *FieldOption
 

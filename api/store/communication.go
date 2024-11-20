@@ -196,11 +196,12 @@ func (s *Store) InsertCommunication(c *models.Communication, source *models.Sour
         "url", "zones", "mt2_terrain", "mt2_builded", "baths", "rooms",
     }
 
-    query := fmt.Sprintf("INSERT INTO Communication (%s) VALUES (%s)", 
-        strings.Join(fields, ", "), 
-        ":"+strings.Join(fields, ", :"))
+    query := fmt.Sprintf(
+        "INSERT INTO Communication (%s) VALUES (:%s)", 
+        strings.Join(fields, ", "), strings.Join(fields, ", :"),
+    )
 
-    res, err := s.db.NamedExec(query, map[string]interface{}{
+	res, err := s.db.NamedExec(query, map[string]interface{}{
 		"lead_phone":  c.Telefono,
 		"source_id":   source.Id,
 		"new_lead":    c.IsNew,

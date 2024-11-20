@@ -42,7 +42,7 @@ func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, erro
     content := fmt.Sprintf(noteContent, 
         c.Fuente,
         c.Fecha,
-        c.Message,
+        c.Message.String,
         c.Link,
         c.Propiedad.Titulo.String,
         c.Propiedad.Link.String,

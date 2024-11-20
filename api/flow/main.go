@@ -163,7 +163,6 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
                 Name: action.Name,
                 Nro: order,
                 FlowUUID: uuid,
-                Wamid: c.Wamid,
                 LeadPhone: c.Telefono.String(),
                 OnResponse: action.OnResponse,
             }

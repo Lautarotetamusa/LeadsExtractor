@@ -100,6 +100,12 @@ func NewPipedrive(c Config, l *slog.Logger) *Pipedrive{
     if p.token != nil{
         p.refreshToken()        
     }
+    
+    // TODO: Validar
+    /* if err := p.validatePersonCustomFields(); err != nil {
+        panic(err.Error())
+    }*/
+
     return &p
 }
 
@@ -121,8 +127,8 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
 
     person, err := p.GetPersonByNumber(c.Telefono.String())
     if err != nil{
-        p.logger.Warn("No se encontro al asesor", "err", err)
-        p.logger.Debug("Creando asesor en PipeDrive")
+        p.logger.Warn(err.Error())
+        p.logger.Debug("Creando persona")
         person, err = p.createPerson(c, asesor.Id)
         if err != nil{
             p.logger.Error("Error creando persona", "err", err)
@@ -133,15 +139,15 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
 
     deal, err := p.SearchPersonDeal(person.Id, asesor.Id)
     if err != nil{
-        p.logger.Warn("No se encontro al deal", "err", err)
-        p.logger.Debug("Cargando deal en PipeDrive")
+        p.logger.Warn("No se encontro el deal", "err", err)
+        p.logger.Debug("Creando deal")
         deal, err = p.createDeal(c, asesor.Id, person.Id)
         if err != nil{
             p.logger.Error("Error creando deal", "err", err)
             return
         }
 
-        p.logger.Info("Deal cargando correctamente en PipeDrive")
+        p.logger.Info("Deal creado correctamente")
     }else{
         p.logger.Info("El Deal ya estaba cargado")
     }

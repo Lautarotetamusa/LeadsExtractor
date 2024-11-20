@@ -7,11 +7,11 @@ import (
 )
 
 type Message struct {
-    Id      int `db:"id"`
-    IdCommunication     int `db:"id_communication"`
-    CreatedAt   string `db:"created_at"`
-    Text    string  `db:"text"`
-    Wamid   string  `db:"wamid"`
+    Id              int     `db:"id"`           //auto generated
+    IdCommunication int     `db:"id_communication"`
+    CreatedAt       string  `db:"created_at"`   //auto generated
+    Text            string  `db:"text"`
+    Wamid           models.NullString  `db:"wamid"`
 }
 var insertFields = []string{"id_communication", "text", "wamid"};
 const tableName = "Message";
@@ -20,6 +20,7 @@ func CommunicationToMessage(c *models.Communication) *Message {
     return &Message{
         IdCommunication: c.Id,
         Text: c.Message.String,
+        Wamid: c.Wamid,
     }
 }
 

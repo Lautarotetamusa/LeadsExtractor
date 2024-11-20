@@ -25,6 +25,7 @@ type CreateDeal struct {
     VisibleTo   string  `json:"visible_to"`
 }
 
+// Buscamos para la persona con id personId una trato con el asesor con id userId
 func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, error){
     url := fmt.Sprintf("persons/%d/deals", personId)
 

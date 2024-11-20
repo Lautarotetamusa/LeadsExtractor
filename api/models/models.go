@@ -166,5 +166,5 @@ type Communication struct {
 	Busquedas  Busquedas `json:"busquedas"`
     IsNew      bool      `json:"is_new" db:"new_lead"`
     Message    NullString `json:"message"`
-    Wamid      string 
+    Wamid      NullString 
 }

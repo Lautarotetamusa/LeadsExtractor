@@ -262,9 +262,9 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         Asesor: models.Asesor{},
         Propiedad: models.Propiedad{},
         Busquedas: models.Busquedas{},
-        IsNew: false,
+        IsNew: false, // WHAT?
         Message: models.NullString{String: message.Text.Body, Valid: true},
-        Wamid: message.Id,
+        Wamid: models.NullString{String: message.Id, Valid: true},
     }
 
     return &c, nil

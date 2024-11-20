@@ -16,12 +16,12 @@ func TestCreateDeal(t *testing.T) {
 	c := &models.Communication{
 		Fuente:    "inmuebles24",
 		FechaLead: "2024-04-07",
-		ID:        "461161340",
+		LeadId:    "461161340",
 		Fecha:     "2024-04-08",
 		Nombre:    "Lautaro",
 		Link:      "https://www.inmuebles24.com/panel/interesados/198059132",
 		Telefono:  "5493415854220",
-        Email:     models.NullString{String: "cornejoy369@gmail.com"},
+        Email:     models.NullString{String: "cornejoy369@gmail.com", Valid: true},
 		Propiedad: models.Propiedad{},
 	}
 
