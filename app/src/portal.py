@@ -105,7 +105,9 @@ class Portal():
                 lead.print()
                 is_new, lead = api.new_communication(self.logger, lead)
                 if lead is None:
-                    txt = bienvenida_1 + '\n' + "Lamentablemente tu numero de telefono no es valido para nuestro sistema, puedes enviar un mensaje de whatsapp a +5213328092850"
+                    # TODO: No hardcodear esto
+                    not_valid_msg = """Verificamos tu número de teléfono, y no es válido, para llamar o para enviarte un WhatsApp, por favor envíanos un mensaje a nuestro WhatsApp oficial, o si prefieres llamarnos, te comparto el número de nuestro departamento comercial que está listo, para ayudarte en todo el proceso, bienvenido a tu nueva casa con Rebora"""
+                    txt = bienvenida_1 + not_valid_msg 
                     self.default_action(lead_res, txt)
                     continue
 
