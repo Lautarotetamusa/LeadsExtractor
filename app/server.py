@@ -35,6 +35,9 @@ SCRAPERS = {
     "lamudi": LamudiScraper
 }
 
+thread = threading.Thread(target=tasks.init_task_scheduler)
+thread.start()
+
 @app.route('/jotform', methods=['POST'])
 def generate_pdf():
     lead = Lead()
@@ -123,7 +126,11 @@ def check_task(task_id):
     if not task:
         return jsonify({"error": "Tarea no encontrada"}), 404
 
-    return jsonify(task)
+    current_task = task.copy()
+    if task["status"] != tasks.Status.in_progress:
+        tasks.remove_task(task_id)
+
+    return jsonify(current_task)
 
 
 if __name__ == '__main__':

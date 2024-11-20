@@ -1,6 +1,6 @@
 from multiprocessing.pool import ThreadPool
 import src.jotform as jotform
-from pypdf import PdfMerger
+from pypdf import PdfWriter
 import datetime
 import requests
 import string
@@ -43,10 +43,10 @@ def execute_cotizacion(urls: list[str], asesor: dict, cliente: str, task_id: str
                 posts.append(post)
 
         pdf_file_name = cotizacion(asesor, cliente, posts)
-        tasks.update_status(task_id, "completed")
+        tasks.update_status(task_id, tasks.Status.completed)
         tasks.update(task_id, pdf_file_name=pdf_file_name)
     except Exception as e:
-        tasks.update_status(task_id, "error")
+        tasks.update_status(task_id, tasks.Status.error)
         tasks.update(task_id, error=str(e))
         print(f"Error generando la cotización: {str(e)}")
 
@@ -59,7 +59,7 @@ def get_portal_from_url(url: str):
     return None
 
 def combine_pdfs(pdfs: list[str], file_name):
-    merger = PdfMerger()
+    merger = PdfWriter()
 
     for pdf in pdfs:
         merger.append(pdf)
