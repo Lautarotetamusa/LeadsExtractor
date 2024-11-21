@@ -54,7 +54,8 @@ class CasasYTerrenos(Portal):
 
             yield data["results"]
 
-    def make_contacted(self, id: str):
+    def make_contacted(self, lead: dict):
+        id = lead[self.contact_id_field]
         self.logger.debug(f"Marcando como contactacto a lead {id}")
         url = f"{API_URL}/contact/{id}"
 

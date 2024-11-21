@@ -34,7 +34,6 @@ def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
         logger.error("Error en la peticion: "+str(res.text))
-        logger.error(lead.__dict__)
         return False, None
     logger.success("Communication cargada correctamente")
 

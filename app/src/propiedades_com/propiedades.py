@@ -123,7 +123,8 @@ class Propiedades(Portal):
             "covered_area": ""
         }
 
-    def make_contacted(self, id: str, status=Status.CONTACTADO):
+    def _change_status(self, lead, status=Status.CONTACTADO):
+        id = lead[self.contact_id_field]
         self.logger.debug(f"Marcando como {status.name} al lead {id}")
 
         url = f"{API_URL}/prod/leads/status"
@@ -139,6 +140,9 @@ class Propiedades(Portal):
             self.logger.error(f"No se pudo marcar al lead como {status.name}")
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")
+
+    def make_contacted(self, lead):
+        self._change_status(lead, Status.CONTACTADO)
 
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"

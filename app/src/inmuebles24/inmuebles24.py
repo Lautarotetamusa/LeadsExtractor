@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 import os
 import json
 import requests
@@ -55,6 +56,11 @@ def extract_busqueda_info(data: dict | None) -> dict:
 
     return busqueda
 
+class Status(Enum):
+    pending = 1
+    contacted = 2
+    phone_error = 4
+
 class Inmuebles24(Portal):
     def __init__(self):
         super().__init__(
@@ -107,7 +113,7 @@ class Inmuebles24(Portal):
         first = True
         offset = 0
         total = 0
-        limit = 20
+        limit = 100
         finish = False
 
         while first or (not finish and offset < total):
@@ -136,12 +142,12 @@ class Inmuebles24(Portal):
                 leads = []
                 for lead in data["result"]:
                     status = lead.get("contact_response_status", {}).get("name")
-                    if status == "Contactado":
-                        # Como los leads estan ordenandos, al encontrar uno con estado READ. paramos
-                        self.logger.debug("Se encontro un lead con status 'Contactado', deteniendo")
-                        finish = True
-                        break
-                    leads.append(lead)
+                    if status == "Pendiente":
+                        leads.append(lead)
+                if len(leads) == 0: 
+                    self.logger.debug("No se encontro ningun lead que no sea 'Contactado', paramos")
+                    finish = True
+                    break
                 yield leads
             else:  # Obtenemos todos los leads
                 yield data["result"]
@@ -231,21 +237,33 @@ class Inmuebles24(Portal):
         else:
             self.logger.error(f"Error enviando mensaje al lead {id}")
 
-    def make_contacted(self, id: str):
-        status = "READ"
-        status_url = f"{SITE_URL}leads-api/leads/status/{status}?=&contact_publisher_user_id={id}"
+    def _change_status(self, lead: dict, status: Status):
+        contact_id = lead[self.contact_id_field]
+        status_url = f"{SITE_URL}leads-api/publisher/contact/status/{contact_id}"
 
+        id = lead["id"]
         params = PARAMS.copy()
         params["url"] = status_url
         params["autoparse"] = False
+        data = {
+            "lead_id": id,
+            "lead_status_id": status.value
+        }
         self.logger.debug(f"POST {status_url}")
-        res = self.request.make(ZENROWS_API_URL, 'POST', params=params)
+        print(data)
+        res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
-            self.logger.success(f"Se marco a lead {id} como {status}")
+            self.logger.success(f"Se marco a lead {contact_id} como {status}")
         else:
             if res is not None:
                 self.logger.error(res.content)
                 self.logger.error(res.status_code)
-            self.logger.error(f"Error marcando al lead {id} como {status}")
+            self.logger.error(f"Error marcando al lead {contact_id} como {status}")
         PARAMS["autoparse"] = True
+
+    def make_contacted(self, lead: dict):
+        self._change_status(lead, Status.contacted)
+
+    def make_failed(self, lead: dict):
+        self._change_status(lead, Status.phone_error)

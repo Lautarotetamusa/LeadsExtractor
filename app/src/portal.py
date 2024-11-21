@@ -74,7 +74,9 @@ class Portal():
         return Lead()
     def send_message(self, id: str,  message: str):
         pass
-    def make_contacted(self, id: str):
+    def make_contacted(self, lead: dict):
+        pass
+    def make_failed(self, lead: dict):
         pass
     def login(self):
         pass
@@ -82,15 +84,15 @@ class Portal():
     def default_action(self, lead_res: dict, msg):
         # Marcar como contactado
         if self.contact_id_field in lead_res:
-            self.make_contacted(lead_res[self.contact_id_field])
+            self.make_contacted(lead_res)
         else:
             self.logger.warning("No se encontro campo para contactar")
 
         # Mensaje del portal
-        if self.send_msg_field in lead_res:
-            self.send_message(lead_res[self.send_msg_field], msg)
-        else:
-            self.logger.warning("No se encontro campo para enviar mensaje")
+        # if self.send_msg_field in lead_res:
+        #     self.send_message(lead_res[self.send_msg_field], msg)
+        # else:
+        #     self.logger.warning("No se encontro campo para enviar mensaje")
 
     def main(self):
         for page in self.get_leads(Mode.NEW):
@@ -99,7 +101,7 @@ class Portal():
 
                 if lead.telefono is None or lead.telefono == "":
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
-                    self.make_contacted(lead_res[self.contact_id_field])
+                    self.make_contacted(lead_res)
                     continue
 
                 lead.print()
@@ -109,6 +111,7 @@ class Portal():
                     not_valid_msg = """Verificamos tu número de teléfono, y no es válido, para llamar o para enviarte un WhatsApp, por favor envíanos un mensaje a nuestro WhatsApp oficial, o si prefieres llamarnos, te comparto el número de nuestro departamento comercial que está listo, para ayudarte en todo el proceso, bienvenido a tu nueva casa con Rebora"""
                     txt = bienvenida_1 + not_valid_msg 
                     self.default_action(lead_res, txt)
+                    self.make_failed(lead_res)
                     continue
 
                 if is_new:

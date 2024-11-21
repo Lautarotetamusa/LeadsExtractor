@@ -129,7 +129,8 @@ class Lamudi(Portal):
         self.request.make(msg_url, 'POST', json=data)
         self.logger.success(f"Mensaje enviado correctamente a lead {id}")
 
-    def make_contacted(self, id):
+    def make_contacted(self, lead):
+        id = lead[self.contact_id_field]
         self.logger.debug(f"Marcando como contactacto a lead {id}")
         read_url = f"{API_URL}/leads/{id}/status"
 
