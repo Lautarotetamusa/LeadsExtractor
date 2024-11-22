@@ -93,7 +93,7 @@ class Propiedades(Portal):
 
         # Si no tiene propiedad lo marcamos como cerrado
         if prop is None:
-            self.make_contacted(raw_lead["id"], Status.CERRADA)
+            self.make_contacted(raw_lead)
             return lead
 
         prop["address"] = raw_lead["address"]
@@ -123,7 +123,7 @@ class Propiedades(Portal):
             "covered_area": ""
         }
 
-    def _change_status(self, lead, status=Status.CONTACTADO):
+    def _change_status(self, lead: dict, status=Status.CONTACTADO):
         id = lead[self.contact_id_field]
         self.logger.debug(f"Marcando como {status.name} al lead {id}")
 
@@ -141,8 +141,8 @@ class Propiedades(Portal):
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")
 
-    def make_contacted(self, lead):
-        self._change_status(lead, Status.CONTACTADO)
+    def make_contacted(self, lead: dict):
+        self._change_status(lead, Status.CERRADA)
 
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"
