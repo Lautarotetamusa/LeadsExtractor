@@ -141,11 +141,12 @@ class Inmuebles24(Portal):
             if mode == Mode.NEW:    # Obtenemos todos los leads sin leer de este pagina
                 leads = []
                 for lead in data["result"]:
-                    status = lead.get("contact_response_status", {}).get("name")
-                    if status == "Pendiente":
+                    response_status = lead.get("contact_response_status", {}).get("name")
+                    status = lead.get("statuses", [{}])[0]
+                    if status == "UNREAD" or response_status == "Pendiente":
                         leads.append(lead)
                 if len(leads) == 0: 
-                    self.logger.debug("No se encontro ningun lead que no sea 'Contactado', paramos")
+                    self.logger.debug("No se encontro ningun lead 'Pendiente' o 'UNREAD', paramos")
                     finish = True
                     break
                 yield leads
@@ -160,6 +161,10 @@ class Inmuebles24(Portal):
         posting = raw_lead.get("posting", {})
 
         lead = Lead()
+        phone = raw_lead.get("phone")
+        if phone is None or phone == "":
+            phone = raw_lead.get("lead_user", {}).get("phone")
+
         lead.set_args({
             # TODO: Comprobar que el mensaje haya sido enviado por el lead y no por nosotros
             "message": raw_lead.get("last_message", {}).get("text", ""),
@@ -170,8 +175,22 @@ class Inmuebles24(Portal):
             "nombre": raw_lead.get("lead_user", {}).get("name"),
             "link": f"{SITE_URL}panel/interesados/{contact_id}",
             "email": raw_lead.get("lead_user", {}).get("email"),
-            "telefono": raw_lead.get("phone")
+            "telefono": phone,
         })
+        utm_channel = raw_lead.get("actions", [{}])[0].get("type", {}).get("name")
+        # Los 3 tipos de mensaje que recibimos en inmuebles24
+        channel_map = {
+            "CONTACT":  "inbox",
+            "WHATSAPP": "whatsapp",
+            "VIEW_DATA": "ivr",
+        }
+        if utm_channel is not None and utm_channel in channel_map:
+            lead.set_args({
+                "utm": {
+                    "utm_channel": channel_map[utm_channel]
+                }
+            })
+
         lead.set_busquedas(busqueda)
         posting_id = posting.get("id", None)
         lead.set_propiedad({
@@ -250,7 +269,6 @@ class Inmuebles24(Portal):
             "lead_status_id": status.value
         }
         self.logger.debug(f"POST {status_url}")
-        print(data)
         res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:

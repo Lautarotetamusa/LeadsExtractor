@@ -48,6 +48,7 @@ SELECT
     utm_source as "utm.utm_source",
     utm_medium as "utm.utm_medium",
     utm_campaign as "utm.utm_campaign",
+    utm_channel as "utm.utm_channel",
     IF(S.type = "property", P.portal, S.type) as "fuente",
     L.name, 
     C.url, 

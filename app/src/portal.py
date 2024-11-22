@@ -89,10 +89,10 @@ class Portal():
             self.logger.warning("No se encontro campo para contactar")
 
         # Mensaje del portal
-        # if self.send_msg_field in lead_res:
-        #     self.send_message(lead_res[self.send_msg_field], msg)
-        # else:
-        #     self.logger.warning("No se encontro campo para enviar mensaje")
+        if self.send_msg_field in lead_res:
+            self.send_message(lead_res[self.send_msg_field], msg)
+        else:
+            self.logger.warning("No se encontro campo para enviar mensaje")
 
     def main(self):
         for page in self.get_leads(Mode.NEW):
@@ -102,6 +102,7 @@ class Portal():
                 if lead.telefono is None or lead.telefono == "":
                     self.logger.debug("El lead no tiene telefono, no hacemos nada")
                     self.make_contacted(lead_res)
+                    self.make_failed(lead_res)
                     continue
 
                 lead.print()

@@ -103,6 +103,7 @@ func (s *Server) NewCommunication(c *models.Communication) error {
         go s.flowHandler.manager.RunMainFlow(c)
     }
         
+    fmt.Printf("%#v\n", c.Utm)
     if err = s.Store.InsertCommunication(c, source); err != nil {
         s.logger.Error(err.Error(), "path", "InsertCommunication")
         return err
