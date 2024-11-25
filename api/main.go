@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
 	"time"
 
 	"leadsextractor/flow"
 	"leadsextractor/infobip"
+	"leadsextractor/logs"
 	"leadsextractor/pipedrive"
 	"leadsextractor/pkg"
 	"leadsextractor/store"
@@ -19,28 +21,46 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+
 	"github.com/lmittmann/tint"
 )
 
 func main() {
     ctx := context.Background()
 
-    w := os.Stderr
-
-    logger := slog.New(
-        tint.NewHandler(w, &tint.Options{
-            Level:      slog.LevelDebug,
-            TimeFormat: time.DateTime,
-        }),
-    )
-
 	if err := godotenv.Load("../.env"); err != nil {
 		log.Fatal("Error loading .env file")
-	}
+    }
+
+    //TODO: Agregar un index a campo 'time' de la db de logs
+    client := logs.MongoConnect(ctx, &logs.MongoConnectionSettings{
+        User: os.Getenv("DB_USER"),
+        Pass: os.Getenv("DB_PASS"),
+        Host: os.Getenv("HOST"),
+        Port: int16(27017),
+    })
+    collection := client.Database("db").Collection("log")
+
+    w := os.Stdout
+    mw := logs.NewMongoWriter(collection) 
+
+    logger := slog.New(
+        logs.Fanout(
+            slog.NewJSONHandler(mw, &slog.HandlerOptions{
+                Level: slog.LevelDebug,
+            }),
+            tint.NewHandler(w, &tint.Options{
+                Level:      slog.LevelDebug,
+                TimeFormat: time.DateTime,
+            }),
+        ),
+    )
+
+    logsHandler := logs.NewLogsHandler(ctx, collection)
+
 	db := store.ConnectDB(ctx)
 
 	apiPort := os.Getenv("API_PORT")
-	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
 
 	infobipApi := infobip.NewInfobipApi(
         os.Getenv("INFOBIP_APIURL"),
@@ -59,7 +79,6 @@ func main() {
 
 	wpp := whatsapp.NewWhatsapp(
         os.Getenv("WHATSAPP_ACCESS_TOKEN"),
-
         os.Getenv("WHATSAPP_NUMBER_ID"),
         logger,
 	)
@@ -82,6 +101,7 @@ func main() {
 
     flowHandler := pkg.NewFlowHandler(flowManager)
 
+	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
 	server := pkg.NewServer(host, logger, db, flowHandler)
     server.SetRoutes(router)
     
@@ -103,6 +123,9 @@ func main() {
 	router.HandleFunc("/flows/main", pkg.HandleErrors(flowHandler.GetMainFlow)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.GetFlow)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
+
+    // Logs
+	router.HandleFunc("/logs", pkg.HandleErrors(logsHandler.GetLogs)).Methods("GET", "OPTIONS")
 
 	server.Run(router)
 }

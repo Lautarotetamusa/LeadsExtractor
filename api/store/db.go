@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"log/slog"
 	"os"
 	"time"
 
@@ -19,18 +18,17 @@ func ConnectDB(ctx context.Context) *sqlx.DB{
     dbName := os.Getenv("DB_NAME")
 
     connectionStr := fmt.Sprintf("%s:%s@(%s:%s)/%s", dbUser, dbPass, host, dbPort, dbName)
-    slog.Info(fmt.Sprintf("db connection: %s\n", connectionStr))
 
     ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
     defer cancel()
 
     db, err := sqlx.ConnectContext(ctx, "mysql", connectionStr)
     if err != nil {
-        log.Fatal("Imposible conectar con la base de datos", err)
+        log.Fatal("imposible conectar con mysql\n", err)
     }
 
     if err := db.PingContext(ctx); err != nil {
-        log.Fatal("error pinging database: %w", err)
+        log.Fatal("error pinging mysql: %w", err)
     }
 
     return db

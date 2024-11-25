@@ -371,3 +371,66 @@ SET phone = (
     END
 );
 SET FOREIGN_KEY_CHECKS = 1;
+
+
+/* Lista de leads (agregado mensaje)*/
+SELECT 
+    C.id,
+    DATE_SUB(C.created_at, INTERVAL 6 HOUR) as "created_at",
+    C.new_lead,
+    IF(S.type = "property", P.portal, S.type) as "fuente",
+    L.name, 
+    L.phone,
+    L.email,
+    M.text
+FROM Communication C
+INNER JOIN Leads L
+    ON C.lead_phone = L.phone
+INNER JOIN Source S
+    ON C.source_id = S.id
+INNER JOIN Asesor A
+    ON L.asesor = A.phone
+LEFT JOIN Property P
+    ON S.property_id = P.id
+INNER Join Message M
+    ON M.id_communication = C.id
+ORDER BY C.id DESC LIMIT 1;
+
+
+
+
+/* Leads que recibieron broadcast 2ab6ccd7-0527-4592-9da8-e9380ff22c8a*/
+select * from Action 
+where flow_uuid = "2ab6ccd7-0527-4592-9da8-e9380ff22c8a";
+/* Leads que se les envio un template dsp de recibir el broadcast de clientes*/
+select * from (
+    select firstAction.lead_phone
+    from Action as firstAction
+    inner join Action otherAction
+        on firstAction.lead_phone = otherAction.lead_phone
+        and otherAction.sended_at > firstAction.sended_at
+        and firstAction.flow_uuid = "2ab6ccd7-0527-4592-9da8-e9380ff22c8a"
+    group by firstAction.lead_phone
+) as Interesados
+inner join Leads 
+on phone = Interesados.lead_phone
+INTO OUTFILE '/data/clientes.csv'
+FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+/* Leads que recibieron broadcast e25b6a30-f25d-4386-85e7-f8a2c6b8c35f*/
+select * from Action 
+where flow_uuid = "e25b6a30-f25d-4386-85e7-f8a2c6b8c35f";
+/* Leads que se les envio un template dsp de recibir el broadcast de asesores*/
+select * from (
+    select firstAction.lead_phone
+    from Action as firstAction
+    inner join Action otherAction
+        on firstAction.lead_phone = otherAction.lead_phone
+        and otherAction.sended_at > firstAction.sended_at
+        and firstAction.flow_uuid = "e25b6a30-f25d-4386-85e7-f8a2c6b8c35f"
+    group by firstAction.lead_phone
+) as Interesados
+inner join Leads 
+on phone = Interesados.lead_phone
+INTO OUTFILE '/data/asesores.csv'
+FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
