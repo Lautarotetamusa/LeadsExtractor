@@ -18,6 +18,16 @@ services:
       timeout: 20s
       retries: 10
 
+  mongo:
+    image: mongo
+    restart: always
+    env_file: ./.env
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=$DB_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$DB_PASS
+    ports:
+      - "27017:27017"
+
   app:
     depends_on:
       - api
@@ -37,6 +47,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mongo:
+        condition: service_started
     build: 
       context: ./
       dockerfile: ./api/Dockerfile
@@ -48,3 +60,4 @@ services:
     network_mode: "host"
     volumes:
       - ./api/actions.json:/go/app/api/actions.json
+

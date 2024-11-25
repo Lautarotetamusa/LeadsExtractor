@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
 	"time"
 
 	"leadsextractor/flow"
 	"leadsextractor/infobip"
+	"leadsextractor/logger"
 	"leadsextractor/pipedrive"
 	"leadsextractor/pkg"
 	"leadsextractor/store"
@@ -19,7 +21,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+
 	"github.com/lmittmann/tint"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -27,11 +33,24 @@ func main() {
 
     w := os.Stderr
 
+    clientOptions := options.Client().ApplyURI("mongodb://teti:Lautaro123.@localhost:27017")
+    client, err := mongo.Connect(context.TODO(), clientOptions)
+
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.Disconnect(ctx)  
+    mw := &logger.MongoWriter{}
+    mw.SetClient(client)
+
     logger := slog.New(
-        tint.NewHandler(w, &tint.Options{
-            Level:      slog.LevelDebug,
-            TimeFormat: time.DateTime,
-        }),
+        logger.Fanout(
+            slog.NewJSONHandler(mw, &slog.HandlerOptions{Level: slog.LevelDebug}),
+            tint.NewHandler(w, &tint.Options{
+                Level:      slog.LevelDebug,
+                TimeFormat: time.DateTime,
+            }),
+        ),
     )
 
 	if err := godotenv.Load("../.env"); err != nil {
