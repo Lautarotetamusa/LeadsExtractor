@@ -131,13 +131,13 @@ type Busquedas struct {
 
 // Este es el objeto del glosario Utm, es una tabla aparte
 type UtmDefinition struct {
-    Id          int         `json:"id" db:"id"`
-    Code        string      `json:"code" db:"code"`
+    Id          int          `json:"id" db:"id"`
+    Code        string       `json:"code" db:"code"`
     Source      NullString   `json:"utm_source" db:"utm_source"`
     Medium      NullString   `json:"utm_medium" db:"utm_medium"`
     Campaign    NullString   `json:"utm_campaign" db:"utm_campaign"`
-    Ad          NullString  `json:"utm_ad" db:"utm_ad"`
-    Channel     string      `json:"utm_channel" db:"utm_channel"`
+    Ad          NullString   `json:"utm_ad" db:"utm_ad"`
+    Channel     NullString   `json:"utm_channel" db:"utm_channel"`
 }
 
 // En la db se guarda en la tabla Communication
@@ -145,8 +145,8 @@ type Utm struct {
     Source      NullString   `json:"utm_source" db:"utm_source"`
     Medium      NullString   `json:"utm_medium" db:"utm_medium"`
     Campaign    NullString   `json:"utm_campaign" db:"utm_campaign"`
-    Ad          NullString  `json:"utm_ad" db:"utm_ad"`
-    Channel     string      `json:"utm_channel" db:"utm_channel"`
+    Ad          NullString   `json:"utm_ad" db:"utm_ad"`
+    Channel     NullString   `json:"utm_channel" db:"utm_channel"`
 }
 
 type Communication struct {
