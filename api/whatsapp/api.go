@@ -241,7 +241,7 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
         c.Busquedas.CoveredArea.String,
 
         c.Utm.Source.String,
-        c.Utm.Channel,
+        c.Utm.Channel.String,
         c.Utm.Medium.String,
         c.Utm.Campaign.String,
         c.Utm.Ad.String,

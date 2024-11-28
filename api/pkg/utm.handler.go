@@ -16,7 +16,7 @@ import (
 
 var validChannels = []string{"ivr", "whatsapp", "inbox"}
 func validateChannel(utm *models.UtmDefinition) error {
-    if !slices.Contains(validChannels, utm.Channel) {
+    if !slices.Contains(validChannels, utm.Channel.String) {
         return fmt.Errorf("el channel no es valido. validos: %s", strings.Join(validChannels, ", "))
     }
     return nil

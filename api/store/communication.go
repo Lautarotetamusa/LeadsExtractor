@@ -102,7 +102,7 @@ func (p *QueryParam) Matches(c *models.Communication) bool {
             (p.Nombre == ""     ||  p.Nombre == c.Nombre) &&
             (p.UtmCampaign == "" || p.UtmCampaign == c.Utm.Campaign.String) &&
             (p.UtmAd == "" || p.UtmAd == c.Utm.Ad.String) &&
-            (p.UtmChannel == "" || p.UtmChannel == c.Utm.Channel) &&
+            (p.UtmChannel == "" || p.UtmChannel == c.Utm.Channel.String) &&
             (p.UtmMedium == "" || p.UtmMedium == c.Utm.Medium.String) &&
             (p.UtmSource == "" || p.UtmSource == c.Utm.Source.String) &&
             (p.Message == "" || p.Message == c.Message.String)
