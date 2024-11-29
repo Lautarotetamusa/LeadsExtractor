@@ -26,11 +26,8 @@ class Scraper():
         self.sheet = Sheet(self.logger, 'scraper_mapping.json')
         self.headers = self.sheet.get("Extracciones!A1:Z1")[0]
 
-    def get_posts(self, url) -> Iterator[list[dict]]:
+    def get_posts(self, param: str | dict) -> Iterator[list[dict]]:
         yield []
-
-    def extract_posts(self, raw) -> list[dict]:
-        return []
 
     def send_message(self, msg: str, post: dict):
         pass

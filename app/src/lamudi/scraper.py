@@ -64,12 +64,12 @@ class LamudiScraper(Scraper):
         headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0"}
 
         try:
-            res = requests.get(property_url, headers=headers, cookies=cookies)
+            res = requests.get(property_url, headers=headers)
             if res.status_code != 200:
                 logger.error("Fallo en la peticion: "+str(res.status_code))
 
             soup = BeautifulSoup(res.text, "html.parser")
-            phone_element = soup.find("a", class_="agency__phone")
+            phone_element = soup.find("a", attrs={"data-test": "agency-name"})
             if phone_element is None:
                 logger.error("No se encontro el elemento class='agency__phone'")
                 return ""
@@ -85,7 +85,7 @@ class LamudiScraper(Scraper):
 
     # Esta funcion recibe el html de una pagina y nos devuelve una lista con todas los ads de esa pagina
     def extract_posts(self, raw: BeautifulSoup):
-        ads = raw.find_all("a", attrs={"data-test": "normal-listing"})
+        ads = raw.find_all("div", attrs={"data-test": "normal-listing"})
         print("ads: ", len(ads))
         posts = []
         for ad in ads:
@@ -112,6 +112,11 @@ class LamudiScraper(Scraper):
                 print("Se encontro una propiedad de Rebora")
                 continue
 
+            href = ad.find("a").get("href")
+            if  href is None:
+                logger.error("no se encontro la url de la propiedad")
+                continue
+
             post = {
                 "fuente": "LAMUDI",
                 "id":           ad.get("data-idanuncio"),
@@ -121,7 +126,7 @@ class LamudiScraper(Scraper):
                 "price":        price,
                 "currency":     currency,
                 "type":         "",
-                "url":          SITE + ad.get("href", ""),
+                "url":          SITE + href,
                 "bedrooms": bedrooms.next_sibling.strip() if bedrooms is not None else "",
                 "bathrooms": bathromms.next_sibling.strip() if bathromms is not None else "",
                 "building_size": area.next_sibling.strip() if area is not None else "",
@@ -144,7 +149,9 @@ class LamudiScraper(Scraper):
 
         return posts
 
-    def get_posts(self, url):
+    def get_posts(self, param):
+        assert type(param) is str
+        url = param
         headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0"}
 
         is_last: bool = False
@@ -152,7 +159,7 @@ class LamudiScraper(Scraper):
 
         while not is_last:
             self.logger.debug(f"{page}: {url}")
-            res = requests.get(url, headers=headers, cookies=cookies)
+            res = requests.get(url, headers=headers)
             soup = BeautifulSoup(res.text, "html.parser")
 
             if res.status_code != 200:
@@ -176,9 +183,7 @@ class LamudiScraper(Scraper):
 
 
 if __name__ == "__main__":
-    url = "https://www.lamudi.com.mx/jalisco/zapopan/terreno/for-sale/?minPrice=3500000"
-    url = "https://www.lamudi.com.mx/jalisco/tlajomulco-de-zuniga/terreno/for-sale/?minPrice=3500000"
-    url = "https://www.lamudi.com.mx/jalisco/guadalajara/terreno/for-sale/?minPrice=3500000"
+    url = "https://www.lamudi.com.mx/jalisco/guadalajara/departamento/for-sale/?bedrooms=1&min-price=5000000&priceCurrency=MXN"
 
     msg = """¡Hola! {nombre}, ¿cómo estás?
 

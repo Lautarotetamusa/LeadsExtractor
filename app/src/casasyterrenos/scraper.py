@@ -4,7 +4,6 @@ if __name__ == "__main__":
     sys.path.append('.')
     load_dotenv()
 
-import json
 import os
 import re
 from time import gmtime, strftime
@@ -126,7 +125,6 @@ class CasasyterrenosScraper(Scraper):
         data["property"] = int(post["id"])
 
         res = requests.post(URL_SEND, json=data)
-        print("TEST")
         if not res:
             return None
 
@@ -137,7 +135,9 @@ class CasasyterrenosScraper(Scraper):
 
         self.logger.success(f"Mensaje enviado con exito a la propiedad {property_id}")
 
-    def get_posts(self, url):
+    def get_posts(self, param):
+        assert type(param) is str
+        url = param
         page = 1
         len_posts = 0
         total_posts = 1e9
@@ -159,7 +159,14 @@ class CasasyterrenosScraper(Scraper):
                 self.logger.error(res.text)
                 continue
 
-            data = res.json().get("pageProps", {}).get("initialState")
+            try:
+                raw = res.json()
+            except requests.exceptions.JSONDecodeError:
+                self.logger.error("cannot decode json response")
+                self.logger.error(res.text)
+                continue
+
+            data = raw.get("pageProps", {}).get("initialState")
             if data is None:
                 self.logger.debug(res.text)
                 return
@@ -176,9 +183,7 @@ class CasasyterrenosScraper(Scraper):
             yield posts
 
 if __name__ == "__main__":
-    url = "https://www.casasyterrenos.com/_next/data/BjfFbQqYClvcX0zy0nfMq/es/buscar/buscar/jalisco/zapopan/casas/venta.json?desde=10000000&hasta=100000000+&utm_source=results_page&page=22&slug=buscar&slug=jalisco&slug=zapopan&slug=casas&slug=venta"
-
-    url = "https://www.casasyterrenos.com/_next/data/BjfFbQqYClvcX0zy0nfMq/es/buscar/buscar/jalisco/guadalajara/casas/venta.json?desde=10000000&hasta=100000000+&utm_source=results_page&page=21&slug=buscar&slug=jalisco&slug=guadalajara&slug=casas&slug=venta"
+    url = "https://www.casasyterrenos.com/_next/data/3p3n18wV11NSHARkGU6tj/es/buscar/buscar/jalisco/guadalajara/casas/venta.json?habitaciones=4&desde=20000000&hasta=1000000000&utm_source=results_page&page=2&slug=buscar%2Cjalisco%2Cguadalajara%2Ccasas%2Cventa"
 
     scraper = CasasyterrenosScraper()
     msg = """Hola! {nombre}, como estás? 

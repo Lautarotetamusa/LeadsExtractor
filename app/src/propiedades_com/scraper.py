@@ -15,7 +15,7 @@ from src.scraper import Scraper
 from src.make_requests import ApiRequest
 
 PROPS_URL = "https://propiedades.com/properties/filtrar"
-URL_SEND  = "https://propiedades.com/messages/send"
+URL_SEND  = "https://propiedades.com/messages/getContactActivity"#"https://propiedades.com/messages/send"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
@@ -34,22 +34,38 @@ class PropiedadesScraper(Scraper):
         })
 
     def send_message(self, msg: str, post: dict):
+        # headers = {
+        #     "Content-Type": "multipart/form-data; boundary=---------------------------364683554611898991106638518"
+        # }
+        # data = {
+        #     "lead_type": "2",
+        #     "is_ficha": "0",
+        #     "id": post["id"],
+        #     "ssr": 1,
+        #     "referral": "null",
+        #     "referenceAddress": "",
+        #     "ContactForm[name]": "juan",#self.sender["name"],
+        #     "ContactForm[lastname]": "",
+        #     "ContactForm[phone]": 3415854221,#self.sender["phone"],
+        #     "ContactForm[email]": "juanpozzi@gmail.com",#self.sender["email"],
+        #     "ContactForm[acceptTerms]": "1",
+        #     "ContactForm[registerUser]": "false",
+        #     "ContactForm[lead_source]": "5",
+        #     "ContactForm[body]": "Hola!",#msg,
+        #     # "lead_source": "5",
+        # }
+
         data = {
-            "lead_type": "1",
-            "ContactForm[name]": self.sender["name"],
-            "ContactForm[lastname]": "",
-            "ContactForm[phone]": self.sender["phone"],
-            "ContactForm[email]": self.sender["email"],
-            "ContactForm[acceptTerms]": "1",
-            "ContactForm[registerUser]": "false",
-            "ContactForm[lead_source]": "1",
-            "ContactForm[body]": msg,
-            "is_ficha": "1",
-            "id": post["id"],
-            "lead_source": "1",
+                "id": post["id"],
+                "is_ficha": "1",
+                "contact_with_whatsapp": "undefined"
         }
 
+        print(requests.Request('POST', 'http://httpbin.org/post', files=data).prepare().body.decode('utf8'))
+
+        print(json.dumps(data, indent=4))
         res = self.request.make(URL_SEND, 'POST', json=data)
+        # res = requests.post(URL_SEND, files=data, headers=headers)
         if res is None or not res.ok:
             self.logger.error("Error enviando el mensaje")
             return
@@ -61,6 +77,7 @@ class PropiedadesScraper(Scraper):
             self.logger.error("Error enviando el mensaje")
             self.logger.error(res.text)
 
+        print(res.json())
         return res.json()["track"]["phone_contact"]
 
     def extract_posts(self, raw: bs4.BeautifulSoup) -> list[dict]:
@@ -109,7 +126,9 @@ class PropiedadesScraper(Scraper):
         a = ul.contents[len(ul.contents)-2].a
         return int(a.text)
 
-    def get_posts(self, url: str):
+    def get_posts(self, param):
+        assert type(param) is str
+        url = param
         page = 1
         last_page = 1e9
         if not "pagina" in url:
@@ -143,6 +162,9 @@ if __name__ == "__main__":
     url = "https://propiedades.com/guadalajara-centro-guadalajara/residencial-renta"
     url = "https://propiedades.com/zapopan/terrenos-comerciales-venta?pagina=1#remates=2&precio-min=3500000"
 
+
+    post = {'fuente': 'PROPIEDADES.COM', 'id': 28277332, 'title': 'San Francisco #1228, Col. Los Cajetes C.P. 45234, Zapopan', 'extraction_date': '2024-11-29', 'message_date': '2024-11-29', 'price': 20490000, 'currency': 'MXN', 'type': 'Terreno comercial', 'url': '', 'bedrooms': 0, 'bathrooms': 0, 'building_size': '3169', 'location': {'full': 'San Francisco #1228, Col. Los Cajetes C.P. 45234, Zapopan', 'zone': '', 'city': 'Zapopan', 'province': 'Jalisco'}, 'publisher': {'name': '', 'id': '', 'whatsapp': '', 'phone': '', 'cellPhone': ''}}
+
     msg = """¡Hola! {nombre}, ¿cómo estás?
 
 He visto que tienes publicaciones de terrenos en {ubicacion} y nosotros construimos casas de lujo que podrían interesar a tu cartera de clientes en esa zona y áreas cercanas. Me gustaría explorar una alianza contigo .
@@ -156,4 +178,5 @@ Sabemos que esta alianza puede tener grandes beneficios para ti, tu cliente y no
 Saludos, Gerencia Comercial"""
 
     scraper = PropiedadesScraper()
-    scraper.main(msg, url)
+    # scraper.main(msg, url)
+    scraper.send_message("Hola!", post)

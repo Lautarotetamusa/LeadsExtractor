@@ -1,4 +1,3 @@
-import numbers
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import threading
@@ -12,7 +11,7 @@ import src.tasks as tasks
 from src.numbers import parse_number
 
 # Scrapers
-from src.inmuebles24.scraper import main as inmuebles24_scraper
+from src.inmuebles24.scraper import Inmuebles24Scraper
 from src.lamudi.scraper import LamudiScraper
 from src.propiedades_com.scraper import PropiedadesScraper
 from src.casasyterrenos.scraper import CasasyterrenosScraper
@@ -31,7 +30,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 SCRAPERS = {
     "casasyterrenos": CasasyterrenosScraper,
     "propiedades": PropiedadesScraper,
-    "inmuebles24": inmuebles24_scraper,
+    "inmuebles24": Inmuebles24Scraper,
     "lamudi": LamudiScraper
 }
 
@@ -84,7 +83,6 @@ def cotizacion():
     # Lo parseamos sin codigo porque se debe agregar en el campo para que ande con whatsapp
     phone = parse_number(logger, phone_str, None)
     if phone is None:
-        print("phone is none")
         return jsonify({'error': f"El numero {phone_str} no es valido"}), 400
 
     urls = data.get('urls')

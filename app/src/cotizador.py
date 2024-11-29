@@ -13,8 +13,8 @@ from src.logger import Logger
 import src.tasks as tasks
 
 # Cotizadores
-import src.inmuebles24.scraper as inmuebles24
-import src.easybroker.scraper as easybroker
+import src.inmuebles24.cotizador as inmuebles24
+import src.easybroker.cotizador as easybroker
 
 logger = Logger("Cotizador")
 
