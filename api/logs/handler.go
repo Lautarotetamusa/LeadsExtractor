@@ -26,6 +26,7 @@ type Pagination struct {
     ItemsCount  int `json:"items"`
     Page        int `json:"page"`
     PageSize    int `json:"page_size"`
+    Total       int64 `json:"total"`
     IsLastPage  bool `json:"is_last_page"`
 }
 
@@ -106,6 +107,12 @@ func (h *LogsHandler) GetLogs(w http.ResponseWriter, r *http.Request) error {
         return err
     }
 
+    total, err := h.collection.CountDocuments(h.context, filter)
+    if err != nil {
+        return err
+    }
+    pagination.Total = total
+
     logs := []bson.M{} // Para no devolver null si no existen logs
     if err = cur.All(h.context, &logs); err != nil {
         return err
@@ -114,9 +121,9 @@ func (h *LogsHandler) GetLogs(w http.ResponseWriter, r *http.Request) error {
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(map[string]any{
-        "success": true,
-        "pagination": pagination,
         "data": logs,
+        "pagination": pagination,
+        "success": true,
     })
 	return nil
 }
