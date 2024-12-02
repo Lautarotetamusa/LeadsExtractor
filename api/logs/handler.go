@@ -47,7 +47,7 @@ func (p *Pagination) setItemsCount(count int) {
 }
 
 func buildPagination(opts *options.FindOptions, query url.Values) *Pagination {
-    limit, err := strconv.Atoi(query.Get("limit"))
+    limit, err := strconv.Atoi(query.Get("page_size"))
     if err != nil || limit <= 0 {
         limit = 10
     }
@@ -56,9 +56,9 @@ func buildPagination(opts *options.FindOptions, query url.Values) *Pagination {
     if err != nil || page <= 0 {
         page = 1
     }
-    skip := (page - 1) * limit
 
-    opts.SetLimit(int64(limit)).SetSkip(int64(skip))
+    skip := (page - 1) * limit
+    opts.SetSkip(int64(skip)).SetLimit(int64(limit))
 
     return &Pagination{
         Page: page,
@@ -66,30 +66,35 @@ func buildPagination(opts *options.FindOptions, query url.Values) *Pagination {
     }
 }
 
-func buildFilter(query url.Values) *bson.M {
+func buildFilter(query url.Values) bson.M {
     filter := bson.M{}
    
-    for field := range query {
-        // TODO: No agarrar solo el primero
-        // Si la requests es GET /?name=pedro&name=juan
-        // query[name] = {pedro, juan}
-        fieldValue := query[field][0]
+    for field, values := range query {
+        if field == "page" || field == "page_size" {
+            continue
+        }
 
-        // GET /?time_gt=2024-12-01 ==> {time: {"$gt": 2024-12-01}}
-        query_strs := strings.Split(field, "_")
-        if len(query_strs) == 1 {
-            filter[field] = fieldValue
-        }else if slices.Contains([]string{"gt", "lt"}, query_strs[1]) {
-            filter[query_strs[0]] = bson.M{"$"+query_strs[1]: fieldValue}
+        // Si la request es GET /?name=pedro&name=juan
+        // query[name] = {pedro, juan}
+        if len(values) == 1 {
+            // GET /?time_gt=2024-12-01 ==> {time: {"$gt": 2024-12-01}}
+            query_strs := strings.Split(field, "_")
+            if len(query_strs) == 1 {
+                filter[field] = values[0]
+            }else if slices.Contains([]string{"gt", "lt"}, query_strs[1]) {
+                filter[query_strs[0]] = bson.M{"$"+query_strs[1]: values[0]}
+            }
+        }else {
+            filter[field] = bson.M{"$in": values}
         }
     }
-    return &filter
+    return filter
 }
 
 func (h *LogsHandler) GetLogs(w http.ResponseWriter, r *http.Request) error {
-    opts := options.Find().SetSort(bson.M{"time": -1}) // Descendente
+    opts := options.Find().SetSort(bson.M{"_id": -1}) // Descendente
 
-    query := r.URL.Query() 
+    query := r.URL.Query()
 
     filter := buildFilter(query)
 
