@@ -48,7 +48,6 @@ func (s *Store) SaveAction(a *ActionSave) error {
 func (s *Store) GetLastActionFromLead(leadPhone numbers.PhoneNumber) (*ActionSave, error) {
     var a ActionSave
     query := fmt.Sprintf("SELECT * FROM %s WHERE lead_phone=? ORDER BY sended_at DESC LIMIT 1", tableNameAction)
-    fmt.Println(leadPhone)
     if err := s.db.Get(&a, query, leadPhone.String()); err != nil {
         return nil, err
     }

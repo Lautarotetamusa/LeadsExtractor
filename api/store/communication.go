@@ -171,8 +171,6 @@ func (q *Query) buildWhere(params *QueryParam) {
 	if len(whereClauses) > 0 {
 		q.query += " WHERE " + strings.Join(whereClauses, " AND ")
 	}
-    // fmt.Println(q.query)
-    // fmt.Println(q.params)
 }
 
 func (q *Query) buildPagination(params *QueryParam) {

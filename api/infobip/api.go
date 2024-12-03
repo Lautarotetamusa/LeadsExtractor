@@ -27,7 +27,6 @@ func (i *InfobipApi) SendWppTemplate(to string, templateName string, language st
         language = "es_MX"
     }
 
-    fmt.Printf("Enviando %s template por whatsapp", templateName)
     message := SendMessage{
         From: i.sender,
         To: to,
@@ -44,7 +43,6 @@ func (i *InfobipApi) SendWppTemplate(to string, templateName string, language st
 }
 
 func (i *InfobipApi) SendWppMediaMessage(to string, tipo string, mediaUrl string){
-    fmt.Printf("Enviando %s por whatsapp\n", tipo)
     payload := &SendMessage{
         From: i.sender,
         To: to,

@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -50,8 +49,6 @@ func getMetricValue(s *Store, params *QueryParam) ([]Value, error) {
 func getMetricCount(s *Store, params *QueryParam) (*uint32, error) {
     q := NewQuery(baseCount)
     q.buildWhere(params)
-    fmt.Println()
-    fmt.Println(q.query)
 
     stmt, err := s.db.PrepareNamed(q.query)
     var count uint32

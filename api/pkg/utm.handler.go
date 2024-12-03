@@ -35,7 +35,6 @@ func (s *Server) GetAllUtmes(w http.ResponseWriter, r *http.Request) error {
 func (s *Server) GetOneUtm(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
     id, err := strconv.Atoi(idStr)
-    fmt.Println(id)
     utm, err := s.Store.GetOneUtm(id)
 	if err != nil {
         return fmt.Errorf("no se encontro el utm con id %s", id)

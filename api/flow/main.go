@@ -172,7 +172,6 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
                 if err := f.storer.SaveAction(actionRunned); err != nil {
                     f.logger.Error("cannot save action", "err", err.Error())
                 }
-                fmt.Printf("%p\n", &action.Params)
                 err := actionFunc(c, action.Params)
                 if err != nil {
                     f.logger.Error(err.Error(), "action", action.Name)
