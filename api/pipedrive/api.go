@@ -138,6 +138,10 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
     p.logger.Debug(fmt.Sprintf("Person: %v", person))
 
     deal, err := p.SearchPersonDeal(person.Id, asesor.Id)
+    if err != nil {
+        p.logger.Error(err.Error())
+        return
+    }
 
     if deal.Status == Lost {
         p.logger.Info("El deal está perdido, reabriendo")
@@ -152,8 +156,7 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
     }
 
     if err != nil {
-        p.logger.Warn("No se encontro el deal", "err", err)
-        p.logger.Debug("Creando deal")
+        p.logger.Warn("No se encontro el deal, crando", "err", err)
         deal, err = p.createDeal(c, asesor.Id, person.Id)
         if err != nil {
             p.logger.Error("Error creando deal", "err", err)
