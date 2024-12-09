@@ -54,7 +54,7 @@ class Scraper():
 
         max = 10
         timeout = 30
-        max_messages = 3
+        max_messages = 1
         occurences = {}
 
         for page in self.get_posts(param):

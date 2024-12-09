@@ -11,7 +11,6 @@ import os
 
 from time import gmtime, strftime
 
-import requests
 from src.scraper import Scraper
 from src.logger import Logger
 from src.make_requests import ApiRequest

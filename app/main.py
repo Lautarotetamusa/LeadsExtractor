@@ -6,7 +6,7 @@ from src.lamudi.lamudi import Lamudi
 from src.inmuebles24.inmuebles24 import Inmuebles24
 
 #Scrapers
-from src.inmuebles24.scraper import main as inmuebles24_scraper
+from src.inmuebles24.scraper import Inmuebles24Scraper
 from src.lamudi.scraper import LamudiScraper
 from src.propiedades_com.scraper import PropiedadesScraper 
 from src.casasyterrenos.scraper import CasasyterrenosScraper
@@ -37,6 +37,7 @@ SCRAPES = {
     "propiedades": PropiedadesScraper,
     "casasyterrenos": CasasyterrenosScraper,
     "lamudi": LamudiScraper,
+    "inmuebles24": Inmuebles24Scraper
 }
 
 TASKS = [
