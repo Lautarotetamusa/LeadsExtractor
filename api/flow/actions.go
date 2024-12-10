@@ -126,30 +126,6 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
         nil,
     )
 
-    DefineAction("wpp.send_image", 
-		func(c *models.Communication, params interface{}) error {
-            wpp.SendImage(c.Telefono.String(), os.Getenv("WHATSAPP_IMAGE_ID"))
-            return nil
-        },
-        nil,
-    )
-
-    DefineAction("wpp.send_video", 
-		func(c *models.Communication, params interface{}) error {
-            wpp.SendVideo(c.Telefono.String(), os.Getenv("WHATSAPP_VIDEO_ID"))
-            return nil
-        },
-        nil,
-    )
-
-    DefineAction("wpp.send_response", 
-        func(c *models.Communication, params interface{}) error {
-            wpp.SendResponse(c.Telefono.String(), &c.Asesor)
-            return nil
-        },
-        nil,
-    )
-
     DefineAction("infobip.save", 
         func(c *models.Communication, params interface{}) error {
             infobipLead := infobip.Communication2Infobip(c)

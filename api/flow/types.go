@@ -81,7 +81,7 @@ func (a *Action) UnmarshalJSON(data []byte) error {
         Name        string          `json:"action"`
         Interval    Interval        `json:"interval"`
         Params      json.RawMessage `json:"params"`
-        OnResponse  uuid.NullUUID       `json:"on_response"`
+        OnResponse  uuid.NullUUID   `json:"on_response"`
     }
 
     if err := json.Unmarshal(data, &temp); err != nil {
