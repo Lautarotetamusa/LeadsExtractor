@@ -1,3 +1,7 @@
+# 
+# La URL sale de las request, no es la url de busquedas
+#
+
 if __name__ == "__main__":
     import sys
     from dotenv import load_dotenv
@@ -137,22 +141,23 @@ class CasasyterrenosScraper(Scraper):
 
     def get_posts(self, param):
         assert type(param) is str
-        url = param
+        base_url = param
         page = 1
         len_posts = 0
         total_posts = 1e9
 
-        r = re.search(r'(?<=page=)\d+', url)
-        if r:
-            page = int(r.group(0))
-        else:
-            self.logger.warning("Page not found")
+        s = re.search(r'page=(\d+)', base_url)
+        if s is not None:
+            page = int(s.group(1))
 
-        url = url.replace(r'/page=\d+/', "{page}")
+        base_url = re.sub(r'page=\d+', "page={page}", base_url)
+        if not "&page={page}" in base_url:
+            base_url += "&page={page}"
+        print(base_url)
 
         while len_posts < total_posts:
-            url.format(page=page)
-            self.logger.debug(f"Page: {page}")
+            url = base_url.format(page=page)
+            self.logger.debug(f"Page: {page} Url: {url}")
             res = requests.get(url)
             if not res.ok: 
                 self.logger.error("Error geting page")
@@ -183,7 +188,7 @@ class CasasyterrenosScraper(Scraper):
             yield posts
 
 if __name__ == "__main__":
-    url = "https://www.casasyterrenos.com/_next/data/3p3n18wV11NSHARkGU6tj/es/buscar/buscar/jalisco/guadalajara/casas/venta.json?habitaciones=4&desde=20000000&hasta=1000000000&utm_source=results_page&page=2&slug=buscar%2Cjalisco%2Cguadalajara%2Ccasas%2Cventa"
+    url = "https://www.casasyterrenos.com/_next/data/3p3n18wV11NSHARkGU6tj/es/buscar/jalisco/guadalajara/casas-y-departamentos-y-terrenos/venta.json?desde=0&amp%3Bhasta=1000000000&amp%3Butm_source=results_page&slug=jalisco%2Cguadalajara%2Ccasas-y-departamentos-y-terrenos%2Cventa&page=10"
 
     scraper = CasasyterrenosScraper()
     msg = """Hola! {nombre}, como estás? 
@@ -198,4 +203,4 @@ Beneficios de nuestro programa de socios comerciales:
 •⁠  ⁠Cierra tu primera operación tan rápido como en un mes.
 
 •⁠  ⁠Marcelo Michel"""
-    scraper.main(msg, url)
+    scraper.test(msg, url)

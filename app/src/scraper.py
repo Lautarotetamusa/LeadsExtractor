@@ -63,6 +63,7 @@ class Scraper():
             row_ads = []
 
             for ad in page:
+                print(ad)
                 phone = ad["publisher"]["phone"]
                 if phone == "" or phone is None:
                     ad["publisher"]["phone"] = self.view_phone(ad)
@@ -72,14 +73,14 @@ class Scraper():
                     self.logger.debug("Propiedad de Rebora encontrada")
                     continue
 
-                id = ad["id"]
+                id = ad["publisher"]["phone"]
                 if id in occurences:
                     occurences[id] += 1
                 else:
                     occurences[id] = 0
 
                 if occurences[id] > max_messages:
-                    self.logger.debug(f"Maxima cantidad de mensajes enviados para {phone}")
+                    self.logger.warning(f"Maxima cantidad de mensajes enviados para {phone}")
                     continue
 
                 r = pool.apply_async(self._action, args=(ad, spin_msg, ))
@@ -98,4 +99,37 @@ class Scraper():
 
             # Save the lead in the sheet
             self.sheet.write(row_ads, "Extracciones!A2")
+        self.logger.success(f"Se encontraron un total de {total_posts} en la url especificada")
+
+    def test(self, spin_msg: str | None, param: str | dict):
+        total_posts = 0
+
+        max_messages = 1
+        occurences = {}
+
+        for page in self.get_posts(param):
+            total_posts += len(page)
+            row_ads = []
+
+            for ad in page:
+                phone = ad["publisher"]["phone"]
+                if phone == "" or phone is None:
+                    ad["publisher"]["phone"] = self.view_phone(ad)
+                    phone = ad["publisher"]["phone"]
+
+                if phone == SENDER_PHONE:
+                    self.logger.debug("Propiedad de Rebora encontrada")
+                    continue
+
+                id = ad["publisher"]["phone"]
+                if id in occurences:
+                    occurences[id] += 1
+                else:
+                    occurences[id] = 0
+
+                if occurences[id] > max_messages:
+                    self.logger.warning(f"Maxima cantidad de mensajes enviados para {phone}")
+                    continue
+
+            self.sheet.write(row_ads, "PruebasExtracciones!A2")
         self.logger.success(f"Se encontraron un total de {total_posts} en la url especificada")
