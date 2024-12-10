@@ -56,7 +56,7 @@ class LamudiScraper(Scraper):
             logger.error(f"Ocurrio un error enviando un mensaje al ad  {property_id}")
             return None
 
-        logger.success("Mensaje enviado con exito")
+        logger.success(f"Mensaje enviado con exito id: {property_id}")
 
     def view_phone(self, post):
         property_url = post["url"]
@@ -94,27 +94,37 @@ class LamudiScraper(Scraper):
             bathromms = ad.find("span", attrs={"data-test": "full-bathrooms-value"})
             area = ad.find("div", attrs={"data-test": "area-value"})
 
-            # El primero es el simbolo $, lo ignoramos con _
             price_text = ad.find("div", class_="snippet__content__price").text.strip()
-            if len(price_text.split(" ")) > 2:
+            # [0:3] y [0:2] Para no tener errores de "too many values to unpack"
+            splitted = price_text.split(" ")
+            if len(splitted) > 2:
                 # $ 6,948,000 MXN
-                [_, price, currency] = price_text.split(" ")
-            else:
+                [_, price, currency] = price_text.split(" ")[0:3]
+            elif len(splitted) > 1:
                 # USD 5,574,631
-                [currency, price] = price_text.split(" ")
+                [currency, price] = price_text.split(" ")[0:2]
+            else:
+                currency = ""
+                price = ""
 
             phone = ""
             wpp_btn = ad.find("button", attrs={"data-test": "snippet-whatsapp-button-in-content"})
             if wpp_btn is not None:
                 phone = wpp_btn.get("value", "").split("phone=")[1].split("&text")[0]
 
-            if phone == self.sender["userPhone"]:
-                print("Se encontro una propiedad de Rebora")
+            href = ad.find("a").get("href")
+            if href is None:
+                logger.error("no se encontro la url de la propiedad")
                 continue
 
-            href = ad.find("a").get("href")
-            if  href is None:
-                logger.error("no se encontro la url de la propiedad")
+            name = ""
+            name_span = ad.find("span", attrs={"data-test": "agency-name"})
+            if name_span is None:
+                logger.error("no se encontro el span agency-name")
+                continue
+            name = name_span.text.strip()            
+            if name == "":
+                logger.error("no se encontro el nombre")
                 continue
 
             post = {
@@ -136,12 +146,12 @@ class LamudiScraper(Scraper):
                     "city": location[0],
                     "province": location[1] if len(location) >= 2 else "",
                 },
-                "publisher":    {
-                    "name": ad.find("span", attrs={"data-test": "agency-name"}).get("text", ""),
+                "publisher": {
+                    "name": name,
                     "id":   ad.get("data-idagencia", ""),
                     "whatsapp": phone,
-                    "phone": "",
-                    "cellPhone": ""
+                    "phone": phone,
+                    "cellPhone": phone
                 }
             }
 
@@ -178,12 +188,11 @@ class LamudiScraper(Scraper):
             url = pagination.get("href", "")
             page += 1
 
-            posts = self.extract_posts(soup)
-            yield posts
+            yield self.extract_posts(soup)
 
 
 if __name__ == "__main__":
-    url = "https://www.lamudi.com.mx/jalisco/guadalajara/departamento/for-sale/?bedrooms=1&min-price=5000000&priceCurrency=MXN"
+    url = "https://www.lamudi.com.mx/jalisco/guadalajara/for-sale/?propertyTypeGroups=terreno%2Ccasa%2Cdepartamento?page=17"
 
     msg = """¡Hola! {nombre}, ¿cómo estás?
 
@@ -198,4 +207,4 @@ Sabemos que esta alianza puede tener grandes beneficios para ti, tu cliente y no
 Saludos, Gerencia Comercial"""
 
     scraper = LamudiScraper()
-    scraper.main(msg, url)
+    scraper.test(msg, url)
