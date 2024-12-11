@@ -67,6 +67,7 @@ func buildPagination(opts *options.FindOptions, query url.Values) *Pagination {
     }
 }
 
+// TODO: Parsear correctamente las fechas
 func buildFilter(query url.Values) bson.M {
     filter := bson.M{}
    
@@ -83,9 +84,14 @@ func buildFilter(query url.Values) bson.M {
             if len(query_strs) == 1 {
                 filter[field] = values[0]
             }else if slices.Contains([]string{"gt", "lt"}, query_strs[1]) {
-                filter[query_strs[0]] = bson.M{"$"+query_strs[1]: values[0]}
+                // Si el filtro[key] YA es un objeto bson.M
+                if f, ok := filter[query_strs[0]].(bson.M); ok {
+                    f["$"+query_strs[1]] = values[0] // Lo agregamos
+                }else{
+                    filter[query_strs[0]] = bson.M{"$"+query_strs[1]: values[0]}
+                }
             }
-        }else {
+        }else{
             filter[field] = bson.M{"$in": values}
         }
     }
