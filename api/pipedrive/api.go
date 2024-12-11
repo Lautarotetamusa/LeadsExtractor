@@ -117,10 +117,10 @@ func (p *Pipedrive) HandleOAuth(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (p *Pipedrive) SaveCommunication(c *models.Communication){
+func (p *Pipedrive) SaveCommunication(c *models.Communication) {
     asesor, err := p.GetUserByEmail(c.Asesor.Email)
     if err != nil{
-        p.logger.Error("Error obteniendo el asesor %s", "err", err)
+        p.logger.Error(err.Error())
         return
     }
     p.logger.Debug(fmt.Sprintf("Asesor: %v", asesor))
@@ -139,24 +139,7 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
 
     deal, err := p.SearchPersonDeal(person.Id, asesor.Id)
     if err != nil {
-        p.logger.Error(err.Error())
-        return
-    }
-
-    if deal.Status == Lost {
-        p.logger.Info("El deal está perdido, reabriendo")
-        _, err := p.updateDeal(deal.Id, &UpdateDeal{
-            Status: Open,
-        })
-        if err != nil {
-            p.logger.Error("Error actualizando el deal", "err", err)
-            return
-        }
-        p.logger.Info("Deal reabierto con exito")
-    }
-
-    if err != nil {
-        p.logger.Warn("No se encontro el deal, crando", "err", err)
+        p.logger.Warn(err.Error())
         deal, err = p.createDeal(c, asesor.Id, person.Id)
         if err != nil {
             p.logger.Error("Error creando deal", "err", err)
@@ -164,9 +147,18 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication){
         }
 
         p.logger.Info("Deal creado correctamente")
-    }else{
-        p.logger.Info("El Deal ya estaba cargado")
+    }else if deal.Status == Lost {
+        p.logger.Debug("El deal está perdido, reabriendo")
+        _, err := p.updateDeal(deal.Id, &UpdateDeal{
+            Status: Open,
+        })
+        if err != nil {
+            p.logger.Error("Error reabriendo el deal", "err", err)
+            return
+        }
+        p.logger.Info("Deal reabierto con exito")
     }
+
     p.logger.Debug(fmt.Sprintf("Deal: %v", deal))
 
     _, err = p.addNote(c, deal.Id)
