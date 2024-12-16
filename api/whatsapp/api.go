@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"leadsextractor/models"
 	"log/slog"
 	"net/http"
-	"text/template"
 	"time"
 )
 
@@ -200,18 +198,6 @@ func (w *Whatsapp) SendMessage(to string, message string) (*Response, error) {
 	return w.Send(newTextPayload(to, message))
 }
 
-func (w *Whatsapp) SendResponse(to string, asesor *models.Asesor) (*Response, error) {
-	components := []Components{{
-		Type: "body",
-		Parameters: []Parameter{{
-            Type: "text",
-            Text: asesor.Name,
-		}},
-	}}
-
-	return w.Send(NewTemplatePayload(to, "2do_mensaje_bienvenida", components[:]))
-}
-
 func (w *Whatsapp) SendImage(to string, imageId string) {
 	w.Send(NewMediaPayload(to, imageId, "image"))
 }
@@ -220,69 +206,3 @@ func (w *Whatsapp) SendVideo(to string, videoId string) {
 	w.Send(NewMediaPayload(to, videoId, "video"))
 }
 
-func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool) (*Response, error) {
-	templateName := "msg_asesor_duplicado"
-	if isNew {
-		templateName = "msg_asesor_2"
-	}
-	params := []string{
-		c.Nombre,
-		c.Fuente,
-		c.Telefono.String(),
-        c.Email.String,
-		c.FechaLead,
-		c.Link,
-		c.Propiedad.Titulo.String,
-		c.Propiedad.Precio.String,
-		c.Propiedad.Ubicacion.String,
-		c.Propiedad.Link.String,
-        c.Busquedas.Presupuesto,
-        c.Busquedas.TotalArea.String,
-        c.Busquedas.CoveredArea.String,
-
-        c.Utm.Source.String,
-        c.Utm.Channel.String,
-        c.Utm.Medium.String,
-        c.Utm.Campaign.String,
-        c.Utm.Ad.String,
-	}
-
-	parameters := make([]Parameter, len(params))
-	for i, param := range params {
-		if param == "" {
-			param = " - "
-		}
-		parameters[i] = Parameter{
-            Type: "text",
-            Text: param,
-		}
-	}
-	components := []Components{{
-		Type:       "body",
-		Parameters: parameters,
-	}}
-	return w.Send(NewTemplatePayload(to, templateName, components))
-}
-
-func ParseParameters(c Components, communication *models.Communication) []Parameter {
-    parsedParameters := make([]Parameter, len(c.Parameters))
-
-	for i, param := range c.Parameters {
-        t, err := template.New("txt").Parse(param.Text)
-        if err == nil { //Si lo puede parsear lo hace
-            buf := &bytes.Buffer{}
-            if err := t.Execute(buf, communication); err != nil {
-                continue
-            }
-            parsedParam := param 
-            parsedParam.Text = buf.String()
-
-            if parsedParam.Text == "" {
-                parsedParam.Text = " - "
-            }
-
-            parsedParameters[i] = parsedParam
-        }
-    }
-    return parsedParameters
-}

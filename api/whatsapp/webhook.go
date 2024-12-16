@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
-	"leadsextractor/numbers"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -203,69 +202,3 @@ func (wh *Webhook) ConsumeEntries(callback func (*models.Communication) error ) 
     }
 }
 
-func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) {
-    if (len(e.Changes) <= 0) {
-        return nil, fmt.Errorf("whatsapp entry doesn't have any Changes")
-    }
-    value := e.Changes[0].Value
-
-    if len(value.Statuses) > 0 {
-        for _, s := range value.Statuses {
-            wh.logger.Debug("cambio de estado de un mensaje", 
-                "status", s.Status, 
-                "recipientId", s.RecipientId, 
-                "msgId", s.Id)
-            for _, e := range s.Errors {
-                wh.logger.Error(e.Message, "code", e.Code, "to", s.RecipientId)
-            }
-        }
-        return nil, fmt.Errorf("cambio de estado")
-    }
-
-    if len(value.Errors) > 0 {
-        for _, e := range value.Errors {
-            wh.logger.Error(e.Message, "code", e.Code, "title", e.Title)
-        }
-        return nil, fmt.Errorf("%d - %s", value.Errors[0].Code, value.Errors[0].Message)
-    }
-
-    if (len(value.Contacts) <= 0) {
-        return nil, fmt.Errorf("whatsapp value doesn't have any Contacts")
-    }
-    if (len(value.Messages) <= 0) {
-        return nil, fmt.Errorf("whatsapp value doesn't have any Messages")
-    }
-
-    // TODO: Leer todos los mensajes? por qué hay muchos contactos?
-    contact := value.Contacts[0]
-    message := value.Messages[0]
-
-    wh.logger.Info("nuevo mensaje de whatsapp recibido", 
-        "phone", contact.WaID, 
-        "name", contact.Profile.Name, 
-        "id", message.Id)
-    
-    phone, err := numbers.NewPhoneNumber(contact.WaID)
-    if err != nil {
-        return nil, fmt.Errorf("error parsing whatsapp number: %s", contact.WaID)
-    }
-
-    c := models.Communication {
-        Fuente: "whatsapp",
-        FechaLead: "",
-        Fecha: "",
-        Nombre: contact.Profile.Name,
-        Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", contact.WaID),
-        Telefono: *phone,
-        Email: models.NullString{String: ""},
-        Cotizacion: "",
-        Asesor: models.Asesor{},
-        Propiedad: models.Propiedad{},
-        Busquedas: models.Busquedas{},
-        IsNew: false, // WHAT?
-        Message: models.NullString{String: message.Text.Body, Valid: true},
-        Wamid: models.NullString{String: message.Id, Valid: true},
-    }
-
-    return &c, nil
-}
