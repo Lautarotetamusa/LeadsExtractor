@@ -10,15 +10,15 @@ import (
 )
 
 const (
-    template_dup_lead_asesor = "info_asesor"
-    template_new_lead_asesor = "msg_asesor_duplicado"
+    templateMsgAsesor = "info_asesor_2"
 )
 
 func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool) (*Response, error) {
-	templateName := template_new_lead_asesor
-	if isNew {
-		templateName = template_dup_lead_asesor
-	}
+    isNewMsg := "DUPLICADO"
+    if isNew {
+        isNewMsg = "NUEVO"
+    }
+
 	params := []string{
 		c.Nombre,
 		c.Fuente,
@@ -39,6 +39,7 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
         c.Utm.Medium.String,
         c.Utm.Campaign.String,
         c.Utm.Ad.String,
+        isNewMsg,
 	}
 
 	parameters := make([]Parameter, len(params))
@@ -55,7 +56,7 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 		Type:       "body",
 		Parameters: parameters,
 	}}
-	return w.Send(NewTemplatePayload(to, templateName, components))
+	return w.Send(NewTemplatePayload(to, templateMsgAsesor, components))
 }
 
 func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) {
