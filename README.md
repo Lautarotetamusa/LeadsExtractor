@@ -5,6 +5,16 @@ Para cada portal extraeremos toda la información de los diferentes leads y la v
 
 Los portales con los que trabajaremos por ahora serán:
 
+# Proceso Testing Whatsapp
+- Ir a la pestaña Acciones del panel de Rebora.
+- Clickear "Set as main" en el flow "TESTING leads nuevos"
+    Este flow ahora estará configurado como principal (main)
+- Enviar cualquier mensaje de whatsapp al numero de Rebora, estarás actuando como si fueses un lead nuevo.
+- Revisar que se realicen todas las acciones esperadas para un lead nuevo, mensajes, imágenes, etc.
+- Ir a la pestaña de Logs en en el panel
+- Revisar los últimos logs y buscar algun error
+- Volver a setear como main el flow "Respuesta"
+
 * [inmuebles24](https://inmuebles24.com)
 * [lamudi](https://www.lamudi.com.mx/)
 * [Casas y terrenos](https://www.casasyterrenos.com/)

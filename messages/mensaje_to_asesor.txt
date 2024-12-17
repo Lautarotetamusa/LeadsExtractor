@@ -1,4 +1,0 @@
-Tienes un nuevo lead asignado. 
-Nombre: {nombre}
-Telefono: {telefono}
-Comunicate con este lead lo antes posible.
