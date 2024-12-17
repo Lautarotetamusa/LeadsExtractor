@@ -145,6 +145,9 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
         return err
 	}
 
+    if _, err := s.flowHandler.manager.GetFlow(body.Uuid); err != nil {
+        return err
+    }
     go s.flowHandler.manager.Broadcast(comms, body.Uuid)
 
 	w.Header().Set("Content-Type", "application/json")

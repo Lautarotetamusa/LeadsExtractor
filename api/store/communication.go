@@ -94,18 +94,25 @@ func NewQuery(baseQuery string) Query {
 
 // Validate that the communication matches the params
 func (p *QueryParam) Matches(c *models.Communication) bool {
-    return  (p.IsNew == nil     || *p.IsNew == c.IsNew) && 
-            (p.Telefono == ""   ||  p.Telefono == c.Telefono.String()) && 
-            (p.Fuente == ""     ||  p.Fuente == c.Fuente) && 
-            (p.AsesorPhone == "" || p.AsesorPhone == c.Asesor.Phone.String()) && 
-            (p.AsesorName == "" ||  p.AsesorName == c.Asesor.Name) &&  
-            (p.Nombre == ""     ||  p.Nombre == c.Nombre) &&
-            (p.UtmCampaign == "" || p.UtmCampaign == c.Utm.Campaign.String) &&
-            (p.UtmAd == "" || p.UtmAd == c.Utm.Ad.String) &&
-            (p.UtmChannel == "" || p.UtmChannel == c.Utm.Channel.String) &&
-            (p.UtmMedium == "" || p.UtmMedium == c.Utm.Medium.String) &&
-            (p.UtmSource == "" || p.UtmSource == c.Utm.Source.String) &&
-            (p.Message == "" || p.Message == c.Message.String)
+    return  (p.IsNew == nil || *p.IsNew == c.IsNew) && 
+            matchesQueryParam(p.Telefono, c.Telefono.String()) &&
+            matchesQueryParam(p.Fuente, c.Fuente) && 
+            matchesQueryParam(p.AsesorPhone, c.Asesor.Phone.String()) && 
+            matchesQueryParam(p.AsesorName, c.Asesor.Name) &&  
+            matchesQueryParam(p.Nombre, c.Nombre) &&
+            matchesQueryParam(p.UtmCampaign, c.Utm.Campaign.String) &&
+            matchesQueryParam(p.UtmAd, c.Utm.Ad.String) &&
+            matchesQueryParam(p.UtmChannel, c.Utm.Channel.String) &&
+            matchesQueryParam(p.UtmMedium, c.Utm.Medium.String) &&
+            matchesQueryParam(p.UtmSource, c.Utm.Source.String) &&
+            matchesQueryParam(p.Message, c.Message.String)
+}
+
+func matchesQueryParam(param, value string) bool {
+    if param == "" {
+        return true
+    }
+    return strings.EqualFold(param, value)
 }
 
 func encloseWords(input string) string {
