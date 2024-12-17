@@ -1,4 +1,3 @@
-// Funciones relacionadas con el sistema actual
 package whatsapp
 
 import (
@@ -60,43 +59,17 @@ func (w *Whatsapp) SendMsgAsesor(to string, c *models.Communication, isNew bool)
 }
 
 func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) {
-    if (len(e.Changes) <= 0) {
-        return nil, fmt.Errorf("whatsapp entry doesn't have any Changes")
+    if err := wh.validateEntry(e); err != nil {
+        return nil, err
     }
+    //TODO: Why are multiples changes??
     value := e.Changes[0].Value
 
-    if len(value.Statuses) > 0 {
-        for _, s := range value.Statuses {
-            wh.logger.Debug("cambio de estado de un mensaje", 
-                "status", s.Status, 
-                "recipientId", s.RecipientId, 
-                "msgId", s.Id)
-            for _, e := range s.Errors {
-                wh.logger.Error(e.Message, "code", e.Code, "to", s.RecipientId)
-            }
-        }
-        return nil, fmt.Errorf("cambio de estado")
-    }
-
-    if len(value.Errors) > 0 {
-        for _, e := range value.Errors {
-            wh.logger.Error(e.Message, "code", e.Code, "title", e.Title)
-        }
-        return nil, fmt.Errorf("%d - %s", value.Errors[0].Code, value.Errors[0].Message)
-    }
-
-    if (len(value.Contacts) <= 0) {
-        return nil, fmt.Errorf("whatsapp value doesn't have any Contacts")
-    }
-    if (len(value.Messages) <= 0) {
-        return nil, fmt.Errorf("whatsapp value doesn't have any Messages")
-    }
-
-    // TODO: Leer todos los mensajes? por qué hay muchos contactos?
+    // TODO: Read all the messages? why are multiple contacts??
     contact := value.Contacts[0]
     message := value.Messages[0]
 
-    wh.logger.Info("nuevo mensaje de whatsapp recibido", 
+    wh.logger.Info("new message recived", 
         "phone", contact.WaID, 
         "name", contact.Profile.Name, 
         "id", message.Id)
@@ -106,24 +79,71 @@ func (wh *Webhook) Entry2Communication(e *Entry) (*models.Communication, error) 
         return nil, fmt.Errorf("error parsing whatsapp number: %s", contact.WaID)
     }
 
+    messageText := wh.getMessageText(&message)
+
     c := models.Communication {
         Fuente: "whatsapp",
-        FechaLead: "",
-        Fecha: "",
         Nombre: contact.Profile.Name,
-        Link: fmt.Sprintf("https://web.whatsapp.com/send/?phone=%s", contact.WaID),
+        Link: fmt.Sprintf(webSendUrl, contact.WaID),
         Telefono: *phone,
-        Email: models.NullString{String: ""},
-        Cotizacion: "",
-        Asesor: models.Asesor{},
-        Propiedad: models.Propiedad{},
-        Busquedas: models.Busquedas{},
-        IsNew: false, // WHAT?
-        Message: models.NullString{String: message.Text.Body, Valid: true},
+        Message: models.NullString{String: messageText, Valid: true},
         Wamid: models.NullString{String: message.Id, Valid: true},
     }
 
     return &c, nil
+}
+
+func (wh *Webhook) validateEntry(e *Entry) error {
+    if (len(e.Changes) <= 0) {
+        return fmt.Errorf("whatsapp entry doesn't have any Changes")
+    }
+    value := e.Changes[0].Value
+
+    if len(value.Statuses) > 0 {
+        for _, s := range value.Statuses {
+            wh.logger.Debug("message status has changed", 
+                "status", s.Status, 
+                "recipientId", s.RecipientId, 
+                "msgId", s.Id)
+            for _, e := range s.Errors {
+                wh.logger.Error(e.Message, "code", e.Code, "to", s.RecipientId)
+            }
+        }
+        return fmt.Errorf("status changed")
+    }
+
+    if len(value.Errors) > 0 {
+        for _, e := range value.Errors {
+            wh.logger.Error(e.Message, "code", e.Code, "title", e.Title)
+        }
+        // TODO: Parse all the errors
+        return fmt.Errorf("%d - %s", value.Errors[0].Code, value.Errors[0].Message)
+    }
+
+    if (len(value.Contacts) <= 0) {
+        return fmt.Errorf("whatsapp value doesn't have any Contacts")
+    }
+    if (len(value.Messages) <= 0) {
+        return fmt.Errorf("whatsapp value doesn't have any Messages")
+    }
+    return nil
+}
+
+func (wh *Webhook) getMessageText(m *Message) string {
+    var text string
+
+    switch m.Type {
+    case InteractiveMessage: 
+        text = m.Interactive.ButtonReply.Title
+    case ButtonMessage:
+        text = m.Button.Text
+    case TextMessage:
+        text = m.Text.Body
+    default:
+        text = ""
+    }
+    wh.logger.Info(fmt.Sprintf("Mensaje de tipo %s", m.Type), "text", text)
+    return text
 }
 
 func ParseParameters(c Components, communication *models.Communication) []Parameter {

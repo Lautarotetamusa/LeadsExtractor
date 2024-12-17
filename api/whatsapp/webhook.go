@@ -50,20 +50,25 @@ type Message struct {
     From        string  `json:"from"`
     Id          string  `json:"id"`
     Timestamp   string  `json:"timestamp"`
-    Type        string  `json:"type"`
-    Text        struct {
-        Body    string  `json:"body"`
-    } `json:"text,omitempty"`
-    Interactive Interactive `json:"interactive,omitempty"`
+    Type        MessageType  `json:"type"`
+
+    Text        *Text           `json:"text,omitempty"`
+    Interactive *Interactive    `json:"interactive,omitempty"`
+    Button      *Button         `json:"button,omitempty"`
+}
+
+type Text struct {
+    Body    string  `json:"body"`
+}
+
+type Button struct {
+    Text string `json:"text"`
+    Payload string `json:"payload"`
 }
 
 type Interactive struct {
-    Type InteractiveType `json:"type"`
-}
-
-type InteractiveType struct {
-    ButtonReply ButtonReply `json:"button_reply,omitempty"`
-    ListReply   ListReply   `json:"list_reply,omitempty"`
+    ButtonReply *ButtonReply `json:"button_reply,omitempty"`
+    ListReply   *ListReply   `json:"list_reply,omitempty"`
 }
 
 type ButtonReply struct {
@@ -153,14 +158,10 @@ func GenerateWppLink(w http.ResponseWriter, r *http.Request) error {
 func (wh *Webhook) ReciveNotificaction(w http.ResponseWriter, r *http.Request) error {
     defer r.Body.Close()
     var payload NotificationPayload
-    // var data interface{}
     if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
         wh.logger.Error("error parseando el payload", "err", err.Error())
         return err
     }
-
-    // j, _ := json.MarshalIndent(data, " ", "\t")
-    // fmt.Println(string(j))
 
     for _, e := range payload.Entries {
         wh.entries <- e

@@ -11,6 +11,7 @@ import (
 )
 
 const baseUrl = "https://graph.facebook.com/v17.0/%s/messages"
+const webSendUrl = "https://web.whatsapp.com/send/?phone=%s"
 
 type Whatsapp struct {
 	accessToken string
