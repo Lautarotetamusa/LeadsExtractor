@@ -20,6 +20,7 @@ func (f *FlowManager) MustLoad() {
     defer file.Close()
 
     if err := json.NewDecoder(file).Decode(&f); err != nil {
+        fmt.Printf("%#v\n", err)
         panic(fmt.Sprintf("cannot load actions.json: %s", err.Error()))
     }
 }
@@ -72,14 +73,12 @@ func (f *FlowManager) SetMain(uuid uuid.UUID) error {
 
 func (f *FlowManager) validateOnResponse(flow *Flow) error {
     for _, rule := range flow.Rules {
-        for _, action := range rule.Actions {
-            if !action.OnResponse.Valid{
-                continue
-            }
-            _, ok := f.Flows[action.OnResponse.UUID]
-            if !ok {
-                return fmt.Errorf("on_respose=%s no corresponde a ningun flow", action.OnResponse.UUID)
-            }
+        if !rule.OnResponse.Valid{
+            continue
+        }
+        _, ok := f.Flows[rule.OnResponse.UUID]
+        if !ok {
+            return fmt.Errorf("on_respose=%s no corresponde a ningun flow", rule.OnResponse.UUID)
         }
     }
     return nil
@@ -164,14 +163,16 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
                 Nro: order,
                 FlowUUID: uuid,
                 LeadPhone: c.Telefono.String(),
-                OnResponse: action.OnResponse,
+                OnResponse: rule.OnResponse,
             }
             
             schedule.After(time.Duration(action.Interval), func() {
                 f.logger.Debug("running action", "name", action.Name)
+
                 if err := f.storer.SaveAction(actionRunned); err != nil {
                     f.logger.Error("cannot save action", "err", err.Error())
                 }
+
                 err := actionFunc(c, action.Params)
                 if err != nil {
                     f.logger.Error(err.Error(), "action", action.Name)

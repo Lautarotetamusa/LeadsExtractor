@@ -35,12 +35,12 @@ type Action struct {
     Name        string      `json:"action"`
     Interval    Interval    `json:"interval"`
     Params      interface{} `json:"params"`
-    OnResponse  uuid.NullUUID   `json:"on_response,omitempty"` // Si es nulo significa que debemos ejecutar el flow main
 }
 
 type Rule struct {
     Condition   store.QueryParam    `json:"condition"`
     Actions     []Action            `json:"actions"`  
+    OnResponse  uuid.NullUUID       `json:"on_response,omitempty"` // Si es nulo significa que debemos ejecutar el flow main
 }
 
 type Flow struct {
@@ -81,7 +81,6 @@ func (a *Action) UnmarshalJSON(data []byte) error {
         Name        string          `json:"action"`
         Interval    Interval        `json:"interval"`
         Params      json.RawMessage `json:"params"`
-        OnResponse  uuid.NullUUID   `json:"on_response"`
     }
 
     if err := json.Unmarshal(data, &temp); err != nil {
@@ -90,7 +89,6 @@ func (a *Action) UnmarshalJSON(data []byte) error {
 
     a.Name = temp.Name
     a.Interval = temp.Interval
-    a.OnResponse = temp.OnResponse
 
     actionDef, exists := actions[a.Name]
     if !exists {

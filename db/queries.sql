@@ -417,8 +417,8 @@ on phone = Interesados.lead_phone
 INTO OUTFILE '/data/clientes.csv'
 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
 
-/* Leads que recibieron broadcast e25b6a30-f25d-4386-85e7-f8a2c6b8c35f*/
-select * from Action 
+/* leads que recibieron broadcast e25b6a30-f25d-4386-85e7-f8a2c6b8c35f*/
+select * from action 
 where flow_uuid = "e25b6a30-f25d-4386-85e7-f8a2c6b8c35f";
 /* Leads que se les envio un template dsp de recibir el broadcast de asesores*/
 select * from (
@@ -433,4 +433,30 @@ select * from (
 inner join Leads 
 on phone = Interesados.lead_phone
 INTO OUTFILE '/data/asesores.csv'
+FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+/* leads que recibieron broadcast 18da18ac-d065-4404-9945-e7363719311d*/
+select * from Action 
+where flow_uuid = "18da18ac-d065-4404-9945-e7363719311d";
+
+select * from Action 
+where flow_uuid = "526ea665-a204-4333-99e7-02f89a404f53";
+
+select * from Message
+where text like "Quiero más información";
+
+select * from Message
+where text like "No estoy interesado";
+
+/* Personas que enviaron un mensaje luego de recibir el broadcast */
+select M.created_at, id_communication, C.lead_phone, text as 'primer mensaje'
+from Message M
+inner join Communication C
+    on C.id = M.id_communication
+inner join Action A
+    on M.created_at > A.sended_at
+    and C.lead_phone = A.lead_phone
+    and flow_uuid = "18da18ac-d065-4404-9945-e7363719311d"
+group by M.created_at, id_communication
+INTO OUTFILE '/data/respuestas-broadcast-video.csv'
 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
