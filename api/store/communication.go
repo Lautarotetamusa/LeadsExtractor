@@ -19,7 +19,7 @@ type QueryParam struct {
     IsNew       *bool     `schema:"is_new" json:"is_new,omitempty" db:"isNew" select:"C.new_lead"`
     Page        int       `schema:"page" json:"page,omitempty" db:"page"`
     PageSize    int       `schema:"page_size" json:"page_size,omitempty"`
-    Message     string    `schema:"message" json:"message" select:"M.text"`
+    Message     string    `schema:"message" db:"message" json:"message" select:"M.text"`
     UtmSource   string    `schema:"utm_source" json:"utm_source,omitempty" db:"utm_source" select:"C.utm_source"`
     UtmMedium   string    `schema:"utm_medium" json:"utm_medium,omitempty" db:"utm_medium" select:"C.utm_medium"`
     UtmCampaign string    `schema:"utm_campaign" json:"utm_campaign,omitempty" db:"utm_campaign" select:"C.utm_campaign"`
