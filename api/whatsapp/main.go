@@ -134,11 +134,19 @@ func (wh *Webhook) getMessageText(m *Message) string {
 
     switch m.Type {
     case InteractiveMessage: 
-        text = m.Interactive.ButtonReply.Title
+        if m.Interactive != nil {
+            if m.Interactive.ButtonReply != nil {
+                text = m.Interactive.ButtonReply.Title
+            }
+        }
     case ButtonMessage:
-        text = m.Button.Text
+        if m.Button != nil {
+            text = m.Button.Text
+        }
     case TextMessage:
-        text = m.Text.Body
+        if m.Text != nil {
+            text = m.Text.Body
+        }
     default:
         text = ""
     }
