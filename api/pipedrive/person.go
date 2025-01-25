@@ -33,7 +33,6 @@ var customFields = map[string]string{
     "zona": "41a4e5fc09fbc6243074f02d9dc284b8f9b1a505",
     "ubicacion": "8274fd2ca686df722bb1e78c5479acaba1067058",
     "precio": "80b2cb3150d88f04e61e442b76d942e636596274",
-    "cotizacion": "982e5632726bfefe555bb5a7daea9a2bcbea1bf1",
     "area_total": "a9ca1dc337fc2fc24d2c5cb453426d03ad213809",
     "area_cubierta": "71f8984cf0276d7595bc06c16ace472a8e8c1175",
     "utm_channel": "d1004a59705fc22a31ce5a106bd749255945aae7",
