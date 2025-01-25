@@ -82,7 +82,6 @@ func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Pers
         //La zona no la pongo porque es un campo que tiene valores opcionales (tendría que cargar esta zona como opcion)
         customFields["ubicacion"]: c.Propiedad.Ubicacion.String,
         customFields["precio"]: c.Propiedad.Precio.String,
-        customFields["cotizacion"]: c.Cotizacion,
 
         customFields["mensaje"]: c.Message,
 
