@@ -61,6 +61,7 @@ func (s *Server) SetRoutes(router *mux.Router) {
 
 	router.HandleFunc("/communication", HandleErrors(s.HandleNewCommunication)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/communications", HandleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/communication-csv", HandleErrors(s.HandleCSVUpload)).Methods("POST", "OPTIONS")
 
 	router.HandleFunc("/broadcast", HandleErrors(s.NewBroadcast)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST", "OPTIONS")

@@ -94,6 +94,7 @@ func NewWhatsapp(accesToken string, numberId string, l *slog.Logger) *Whatsapp {
 	return w
 }
 
+//TODO: use MessageType
 func newPayload(to string, tipo string) *Payload {
 	return &Payload{
 		MessagingProduct: "whatsapp",

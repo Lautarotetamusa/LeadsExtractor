@@ -2,97 +2,8 @@ package models
 
 import (
 	"database/sql"
-	"database/sql/driver"
-	"encoding/json"
 	"leadsextractor/numbers"
-	"reflect"
 )
-
-
-type NullString sql.NullString
-
-func (s *NullString) MarshalJSON() ([]byte, error) {
-    if !s.Valid {
-        return []byte("null"), nil
-    }
-    return json.Marshal(s.String)
-}
-
-func (ns *NullString) Scan(value interface{}) error {
-	var s sql.NullString
-	if err := s.Scan(value); err != nil {
-		return err
-	}
-
-	if reflect.TypeOf(value) == nil {
-		*ns = NullString{s.String, false}
-	} else {
-		*ns = NullString{s.String, true}
-	}
-
-	return nil
-}
-
-func (ns NullString) Value() (driver.Value, error) {
-    if !ns.Valid {
-        return nil, nil
-    }
-    return ns.String, nil
-}
-
-func (ns *NullString) UnmarshalJSON(b []byte) error {
-	err := json.Unmarshal(b, &ns.String)
-	ns.Valid = (err == nil)
-	return err
-}
-
-type NullInt16 sql.NullInt16
-func (ni *NullInt16) MarshalJSON() ([]byte, error) {
-	if !ni.Valid {
-		return []byte("null"), nil
-	}
-	return json.Marshal(ni.Int16)
-}
-
-// Scan implements the Scanner interface for NullInt64
-func (ni *NullInt16) Scan(value interface{}) error {
-	var i sql.NullInt16
-	if err := i.Scan(value); err != nil {
-		return err
-	}
-
-	// if nil then make Valid false
-	if reflect.TypeOf(value) == nil {
-		*ni = NullInt16{i.Int16, false}
-	} else {
-		*ni = NullInt16{i.Int16, true}
-	}
-	return nil
-}
-
-type NullInt32 sql.NullInt32
-func (ni *NullInt32) MarshalJSON() ([]byte, error) {
-	if !ni.Valid {
-		return []byte("null"), nil
-	}
-	return json.Marshal(ni.Int32)
-}
-
-// Scan implements the Scanner interface for NullInt64
-func (ni *NullInt32) Scan(value interface{}) error {
-	var i sql.NullInt32
-	if err := i.Scan(value); err != nil {
-		return err
-	}
-
-	// if nil then make Valid false
-	if reflect.TypeOf(value) == nil || value == ""{
-		*ni = NullInt32{i.Int32, false}
-	} else {
-		*ni = NullInt32{i.Int32, true}
-	}
-	return nil
-}
 
 type Source struct {
 	Id         int           `db:"id"`
@@ -101,20 +12,20 @@ type Source struct {
 }
 
 type Propiedad struct {
-    ID        NullInt32  `db:"id" json:"-"` //Lo hacemos null porque en el left join puede no traer
-    Portal    string     `db:"portal" json:"-"`
-    PortalId  NullString `db:"portal_id" json:"id"`
-    Titulo    NullString `json:"titulo" db:"title"`
-    Link      NullString `json:"link" db:"url"`
-    Precio    NullString `json:"precio" db:"price"`
-    Ubicacion NullString `json:"ubicacion" db:"ubication"`
-    Tipo      NullString `json:"tipo" db:"tipo"`
+    ID        NullInt32  `json:"-"          db:"id" `       // Lo hacemos null porque en el left join puede no traer
+    Portal    string     `json:"-"          db:"portal"     csv:"fuente"`
+    PortalId  NullString `json:"id"         db:"portal_id"  csv:"id"`
+    Titulo    NullString `json:"titulo"     db:"title"      csv:"titulo"`
+    Link      NullString `json:"link"       db:"url"        csv:"url"`
+    Precio    NullString `json:"precio"     db:"price"      csv:"precio"`
+    Ubicacion NullString `json:"ubicacion"  db:"ubication"  csv:"ubicacion"`
+    Tipo      NullString `json:"tipo"       db:"tipo"`
 
-    //Campos nuevos agregados para pipedrive (no los guardamos en la DB)
-    Bedrooms		string	`json:"bedrooms"`
-    Bathrooms		string	`json:"bathrooms"`
-    TotalArea		string	`json:"total_area"`
-    CoveredArea    string	`json:"covered_area"`
+    // Campos nuevos agregados para pipedrive (no los guardamos en la DB)
+    Bedrooms		string	`json:"bedrooms" csv:"habitaciones"`
+    Bathrooms		string	`json:"bathrooms" csv:"banios"`
+    TotalArea		string	`json:"total_area" csv:"area"`
+    CoveredArea     string	`json:"covered_area"`
 }
 
 type Busquedas struct {
@@ -150,21 +61,21 @@ type Utm struct {
 }
 
 type Communication struct {
-    Fuente     string    `json:"fuente" db:"fuente"`
-    FechaLead  string    `json:"fecha_lead" db:"lead_date"`
+    Fuente     string    `json:"fuente" db:"fuente" csv:"fuente"`
+    FechaLead  string    `json:"fecha_lead" db:"lead_date" csv:"fecha"`
     Id         int       `json:"id" db:"id"`
-    LeadId     string    `json:"lead_id"` //No guardamos este campo
+    LeadId     string    `json:"lead_id"`
     Fecha      string    `json:"fecha" db:"created_at"`
-    Nombre     string    `json:"nombre" db:"name"`
+    Nombre     string    `json:"nombre" db:"name" csv:"nombre"`
     Link       string    `json:"link" db:"url"`
-    Telefono   numbers.PhoneNumber    `json:"telefono" db:"phone"`
-    Email      NullString `json:"email" db:"email"`
+    Telefono   numbers.PhoneNumber    `json:"telefono" db:"phone" csv:"telefono"`
+    Email      NullString `json:"email" db:"email" csv:"email"`
     Utm        Utm      `json:"utm" db:"utm"`
-	Cotizacion string    `json:"cotizacion"`
-	Asesor     Asesor    `json:"asesor"`
-	Propiedad  Propiedad `json:"propiedad"`
-	Busquedas  Busquedas `json:"busquedas"`
+    Cotizacion string    `json:"cotizacion"`
+    Asesor     Asesor    `json:"asesor"`
+    Propiedad  Propiedad `json:"propiedad" csv:"propiedad"`
+    Busquedas  Busquedas `json:"busquedas"`
     IsNew      bool      `json:"is_new" db:"new_lead"`
-    Message    NullString `json:"message"`
+    Message    NullString `json:"message" csv:"mensaje"`
     Wamid      NullString 
 }

@@ -7,12 +7,17 @@ import (
 	"slices"
 )
 
+var validSources = []string{"whatsapp", "ivr", "viewphone", "inmuebles24", "lamudi", "casasyterrenos", "propiedades"}
+
+func isValidSource(source string) bool {
+	return slices.Contains(validSources, source)
+}
+
 func (s *Store) GetSource(c *models.Communication) (*models.Source, error) {
 	source := models.Source{}
-	validSources := []string{"whatsapp", "ivr", "viewphone", "inmuebles24", "lamudi", "casasyterrenos", "propiedades"}
-	if !slices.Contains(validSources, c.Fuente) {
+    if !isValidSource(c.Fuente) {
 		return nil, fmt.Errorf("la fuente %s es incorrecta, debe ser (whatsapp, ivr, inmuebles24, lamudi, casasyterrenos, propiedades)", c.Fuente)
-	}
+    }
 
 	if slices.Contains([]string{"whatsapp", "ivr", "viewphone"}, c.Fuente) {
 		err := s.db.Get(&source, "SELECT * FROM Source WHERE type LIKE ?", c.Fuente)
