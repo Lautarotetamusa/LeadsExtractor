@@ -66,11 +66,9 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/broadcast", HandleErrors(s.NewBroadcast)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/mainFlow", HandleErrors(s.flowHandler.SetFlowAsMain)).Methods("POST", "OPTIONS")
 
-    //Metrics
 	router.HandleFunc("/metrics", HandleErrors(s.HandleMetrics)).Methods("GET", "OPTIONS")
 
-    // Recive IVR
-    router.HandleFunc("/ivr", HandleErrors(s.reciveIVR)).Methods("GET", "OPTIONS")
+    router.HandleFunc("/aircall", s.AircallWebhook).Methods("POST", "OPTIONS")
 }
 
 func (s *Server) Run(router *mux.Router) {
