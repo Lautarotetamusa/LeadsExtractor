@@ -68,7 +68,9 @@ func (s *Server) SetRoutes(router *mux.Router) {
 
 	router.HandleFunc("/metrics", HandleErrors(s.HandleMetrics)).Methods("GET", "OPTIONS")
 
-    router.HandleFunc("/aircall", s.AircallWebhook).Methods("POST", "OPTIONS")
+    aircall := NewAircall(s.NewCommunication, s.logger)
+    // aircall := AircallTestHandler{}
+    router.Handle("/aircall", aircall).Methods("POST", "OPTIONS")
 }
 
 func (s *Server) Run(router *mux.Router) {

@@ -1,0 +1,137 @@
+{
+ 	"data": {
+ 		"answered_at": null,
+ 		"archived": false,
+ 		"asset": null,
+ 		"call_uuid": "CA2146fef4b917b05a2fa165edb48099b5",
+ 		"comments": [],
+ 		"contact": {
+ 			"company_name": "",
+ 			"created_at": 1721926970,
+ 			"direct_link": "https://api.aircall.io/v1/contacts/258264453",
+ 			"emails": [],
+ 			"first_name": "523415854220",
+ 			"id": 258264453,
+ 			"information": null,
+ 			"is_shared": true,
+ 			"last_name": "",
+ 			"phone_numbers": [
+ 				{
+ 					"id": 507851050,
+ 					"label": "Work",
+ 					"value": "+523415854220"
+ 				}
+ 			],
+ 			"updated_at": 1721926970
+ 		},
+ 		"cost": "0",
+ 		"direct_link": "https://api.aircall.io/v1/calls/2555905936",
+ 		"direction": "inbound",
+ 		"duration": 0,
+ 		"ended_at": null,
+ 		"hangup_cause": null,
+ 		"id": 2555905936,
+ 		"ivr_options": [],
+ 		"missed_call_reason": null,
+ 		"number": {
+ 			"availability_status": "open",
+ 			"country": "MX",
+ 			"digits": "+52 33 4164 7703",
+ 			"direct_link": "https://api.aircall.io/v1/numbers/846098",
+ 			"e164_digits": "+523341647703",
+ 			"id": 846098,
+ 			"is_ivr": false,
+ 			"live_recording_activated": true,
+ 			"messages": {
+ 				"callback_later": "https://media-web.aircall.io/tts/languages/es/voices/Penelope/f11e65d724c771400eb11278bc9bb11a60ddc436.mp3",
+ 				"closed": "https://media-web.aircall.io/tracks/tts/languages/es/voices/Penelope/46c9f46eb778632df89e47373568396d8ff2bffe.mp3",
+ 				"ivr": "https://media-web.aircall.io/tts/languages/es/voices/Penelope/fb42e8ffaa4271e39fc0e7ed9c199cceb9831bdd.mp3",
+ 				"voicemail": "https://media-web.aircall.io/tracks/tts/languages/es/voices/Penelope/f450ce3aa652142e2421cdee62823143dc58ff6d.mp3",
+ 				"waiting": "https://media-web.aircall.io/companies/508035/numbers/846098/tracks/library/1728493060/New-Recording-11.mp3",
+ 				"welcome": "https://media-web.aircall.io/tracks/tts/languages/es/voices/Penelope/068fd49cb41fc672f3551907a1b78d8aa65daa28.mp3"
+ 			},
+ 			"name": "IVR",
+ 			"open": true,
+ 			"time_zone": "America/Mexico_City"
+ 		},
+ 		"raw_digits": "+52 341 585 4220",
+ 		"recording": null,
+ 		"started_at": 1738249423,
+ 		"status": "initial",
+ 		"tags": [],
+ 		"teams": [],
+ 		"voicemail": null
+ 	},
+ 	"event": "call.created",
+ 	"resource": "call",
+ 	"timestamp": 1738249423,
+ 	"token": "b60964baa6474e1cade0bad30f1c4fe5"
+ }{
+ 	"data": {
+ 		"answered_at": null,
+ 		"archived": false,
+ 		"asset": null,
+ 		"call_uuid": "CA2146fef4b917b05a2fa165edb48099b5",
+ 		"comments": [],
+ 		"contact": {
+ 			"company_name": "",
+ 			"created_at": 1721926970,
+ 			"direct_link": "https://api.aircall.io/v1/contacts/258264453",
+ 			"emails": [],
+ 			"first_name": "523415854220",
+ 			"id": 258264453,
+ 			"information": null,
+ 			"is_shared": true,
+ 			"last_name": "",
+ 			"phone_numbers": [
+ 				{
+ 					"id": 507851050,
+ 					"label": "Work",
+ 					"value": "+523415854220"
+ 				}
+ 			],
+ 			"updated_at": 1721926970
+ 		},
+ 		"cost": "0",
+ 		"direct_link": "https://api.aircall.io/v1/calls/2555905936",
+ 		"direction": "inbound",
+ 		"duration": 3,
+ 		"ended_at": 1738249427,
+ 		"hangup_cause": null,
+ 		"id": 2555905936,
+ 		"ivr_options": [],
+ 		"missed_call_reason": "short_abandoned",
+ 		"number": {
+ 			"availability_status": "open",
+ 			"country": "MX",
+ 			"digits": "+52 33 4164 7703",
+ 			"direct_link": "https://api.aircall.io/v1/numbers/846098",
+ 			"e164_digits": "+523341647703",
+ 			"id": 846098,
+ 			"is_ivr": false,
+ 			"live_recording_activated": true,
+ 			"messages": {
+ 				"callback_later": "https://media-web.aircall.io/tts/languages/es/voices/Penelope/f11e65d724c771400eb11278bc9bb11a60ddc436.mp3",
+ 				"closed": "https://media-web.aircall.io/tracks/tts/languages/es/voices/Penelope/46c9f46eb778632df89e47373568396d8ff2bffe.mp3",
+ 				"ivr": "https://media-web.aircall.io/tts/languages/es/voices/Penelope/fb42e8ffaa4271e39fc0e7ed9c199cceb9831bdd.mp3",
+ 				"voicemail": "https://media-web.aircall.io/tracks/tts/languages/es/voices/Penelope/f450ce3aa652142e2421cdee62823143dc58ff6d.mp3",
+ 				"waiting": "https://media-web.aircall.io/companies/508035/numbers/846098/tracks/library/1728493060/New-Recording-11.mp3",
+ 				"welcome": "https://media-web.aircall.io/tracks/tts/languages/es/voices/Penelope/068fd49cb41fc672f3551907a1b78d8aa65daa28.mp3"
+ 			},
+ 			"name": "IVR",
+ 			"open": true,
+ 			"time_zone": "America/Mexico_City"
+ 		},
+ 		"raw_digits": "+52 341 585 4220",
+ 		"recording": null,
+ 		"started_at": 1738249423,
+ 		"status": "done",
+ 		"tags": [],
+ 		"teams": [],
+ 		"voicemail": null
+ 	},
+ 	"event": "call.hungup",
+ 	"resource": "call",
+ 	"timestamp": 1738249428,
+ 	"token": "b60964baa6474e1cade0bad30f1c4fe5"
+ }
