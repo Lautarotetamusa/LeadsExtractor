@@ -1,19 +1,26 @@
 package store
 
 import (
+	"database/sql"
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/numbers"
 	"strings"
-
-	"github.com/jmoiron/sqlx"
 )
 
-func (s *Store) Transaction() *sqlx.Tx {
-    return s.db.MustBegin()
+type LeadStorer interface {
+    GetAll() (*[]models.Lead, error)
+    GetOne(numbers.PhoneNumber) (*models.Lead, error)
+    Insert(*models.CreateLead) (*models.Lead, error)
+    Update(*models.Lead, numbers.PhoneNumber) error
+    UpdateLeadAsesor(numbers.PhoneNumber, *models.Asesor) error
 }
 
-func (s *Store) GetAll() (*[]models.Lead, error) {
+type LeadStore struct {
+    Store
+}
+
+func (s *LeadStore) GetAll() (*[]models.Lead, error) {
 	query := `SELECT 
         a.phone as "Asesor.phone", a.name as "Asesor.name",
         l.phone, l.name, l.email
@@ -28,7 +35,7 @@ func (s *Store) GetAll() (*[]models.Lead, error) {
 	return &leads, nil
 }
 
-func (s *Store) GetOne(phone numbers.PhoneNumber) (*models.Lead, error) {
+func (s *LeadStore) GetOne(phone numbers.PhoneNumber) (*models.Lead, error) {
 	query := `SELECT 
         a.phone as "Asesor.phone", a.name as "Asesor.name", a.email as "Asesor.email",
         l.phone, l.name, l.email, l.cotizacion
@@ -44,7 +51,7 @@ func (s *Store) GetOne(phone numbers.PhoneNumber) (*models.Lead, error) {
 	return &lead, nil
 }
 
-func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
+func (s *LeadStore) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 	query := "INSERT INTO Leads (name, phone, email, asesor) VALUES (:name, :phone, :email, :asesor)"
 	if _, err := s.db.NamedExec(query, createLead); err != nil {
 		if strings.Contains(err.Error(), "Error 1452") {
@@ -56,7 +63,38 @@ func (s *Store) Insert(createLead *models.CreateLead) (*models.Lead, error) {
 	return lead, nil
 }
 
-func (s *Store) Update(lead *models.Lead, phone numbers.PhoneNumber) error {
+// InsertOrGetLead get the lead with phone c.Telefono in case that exists, otherwise creates one
+func (s *LeadStore) InsertOrGetLead(rr *RoundRobin, c *models.Communication) (*models.Lead, error) {
+	lead, err := s.GetOne(c.Telefono)
+
+    // The lead does not exists
+	if err == sql.ErrNoRows {
+		c.IsNew = true
+		c.Asesor = rr.Next()
+
+		lead, err = s.Insert(&models.CreateLead{
+			Name:        c.Nombre,
+			Phone:       c.Telefono,
+			Email:       c.Email,
+			AsesorPhone: c.Asesor.Phone,
+            Cotizacion:  c.Cotizacion,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+        if err := s.Update(lead, lead.Phone); err != nil {
+            s.logger.Warn("error actualizando lead", "lead", lead.Phone)
+        }
+
+		return nil, err
+	}
+
+	return lead, nil
+}
+
+func (s *LeadStore) Update(lead *models.Lead, phone numbers.PhoneNumber) error {
     s.logger.Debug("Actualizando lead", "cotizacion", lead.Cotizacion)
 	query := "UPDATE Leads SET name=:name, cotizacion=:cotizacion WHERE phone=:phone"
 	res, err := s.db.NamedExec(query, lead);
@@ -68,7 +106,7 @@ func (s *Store) Update(lead *models.Lead, phone numbers.PhoneNumber) error {
 	return nil
 }
 
-func (s *Store) UpdateLeadAsesor(phone numbers.PhoneNumber, a *models.Asesor) error {
+func (s *LeadStore) UpdateLeadAsesor(phone numbers.PhoneNumber, a *models.Asesor) error {
 	query := "UPDATE Leads SET asesor=:asesor WHERE phone=:phone"
 	_, err := s.db.NamedExec(query, map[string]interface{}{
         "asesor": a.Phone,

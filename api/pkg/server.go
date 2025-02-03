@@ -16,6 +16,7 @@ type Server struct {
     listenAddr  string
     roundRobin  *store.RoundRobin
     Store       *store.Store
+    leadStore   *store.LeadStore
     logger      *slog.Logger
 
     flowHandler *FlowHandler
@@ -23,7 +24,13 @@ type Server struct {
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
 type HandlerFn func(w http.ResponseWriter, r *http.Request)
 
-func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB, fh *FlowHandler) *Server {
+func NewServer(
+    listenAddr string, 
+    logger *slog.Logger, 
+    db *sqlx.DB, 
+    fh *FlowHandler,
+    leadStore   *store.LeadStore,
+) *Server {
 	s := store.NewStore(db, logger)
 
     var asesores []models.Asesor
@@ -36,6 +43,7 @@ func NewServer(listenAddr string, logger *slog.Logger, db *sqlx.DB, fh *FlowHand
 		listenAddr: listenAddr,
 		roundRobin: rr,
 		Store:      s,
+        leadStore: leadStore,
         logger:     logger,
         flowHandler: fh,
     }
@@ -54,11 +62,6 @@ func (s *Server) SetRoutes(router *mux.Router) {
 	router.HandleFunc("/utm", HandleErrors(s.InsertUtm)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/utm/{id}", HandleErrors(s.UpdateUtm)).Methods("PUT", "OPTIONS")
 
-	router.HandleFunc("/lead", HandleErrors(s.GetAll)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/lead/{phone}", HandleErrors(s.GetOne)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/lead", HandleErrors(s.Insert)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/lead/{phone}", HandleErrors(s.Update)).Methods("PUT", "OPTIONS")
-
 	router.HandleFunc("/communication", HandleErrors(s.HandleNewCommunication)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/communications", HandleErrors(s.GetCommunications)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/communication-csv", HandleErrors(s.HandleCSVUpload)).Methods("POST", "OPTIONS")
@@ -76,6 +79,6 @@ func (s *Server) SetRoutes(router *mux.Router) {
 func (s *Server) Run(router *mux.Router) {
 	s.logger.Info(fmt.Sprintf("Server started at %s", s.listenAddr))
 	if err := http.ListenAndServe(s.listenAddr, router); err != nil {
-		s.logger.Error("No se pudo iniciar el server", err)
+		s.logger.Error("No se pudo iniciar el server", "err", err.Error())
 	}
 }

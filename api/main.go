@@ -85,8 +85,12 @@ func main() {
 
 	storer := store.NewStore(db, logger)
 
+    leadStore := store.LeadStore{Store: *storer}
+
+    leadHandler := pkg.NewLeadHandler(&leadStore)
+
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
-	flow.DefineActions(wpp, pipedriveApi, infobipApi, storer)
+	flow.DefineActions(wpp, pipedriveApi, infobipApi, storer, &leadStore)
 
 	flowManager.MustLoad()
 
@@ -99,10 +103,12 @@ func main() {
 
 	router.Use(loggingMiddleware)
 
+    leadHandler.RegisterRoutes(router)
+
 	flowHandler := pkg.NewFlowHandler(flowManager)
 
 	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
-	server := pkg.NewServer(host, logger, db, flowHandler)
+	server := pkg.NewServer(host, logger, db, flowHandler, &leadStore)
 	server.SetRoutes(router)
 
 	go webhook.ConsumeEntries(server.NewCommunication)

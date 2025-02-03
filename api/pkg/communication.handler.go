@@ -118,7 +118,7 @@ func (s *Server) StoreCommunication(c *models.Communication) error {
 		return err
 	}
 
-	lead, err := s.Store.InsertOrGetLead(s.roundRobin, c)
+	lead, err := s.leadStore.InsertOrGetLead(s.roundRobin, c)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (s *Server) HandleNewCommunication(w http.ResponseWriter, r *http.Request) 
 func getCommunicationsFromCSV(r *http.Request, comms *[]models.Communication) error {
     file, _, err := r.FormFile("csv_file")
     if err != nil {
-        return fmt.Errorf("error reading the csv_file", err.Error())
+        return fmt.Errorf("error reading the csv_file %v", err.Error())
     }
     defer file.Close()
 

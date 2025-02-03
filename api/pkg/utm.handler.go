@@ -37,7 +37,7 @@ func (s *Server) GetOneUtm(w http.ResponseWriter, r *http.Request) error {
     id, err := strconv.Atoi(idStr)
     utm, err := s.Store.GetOneUtm(id)
 	if err != nil {
-        return fmt.Errorf("no se encontro el utm con id %s", id)
+        return fmt.Errorf("no se encontro el utm con id %d", id)
 	}
 
 	dataResponse(w, utm)
@@ -82,7 +82,7 @@ func (s *Server) UpdateUtm(w http.ResponseWriter, r *http.Request) error {
     id, err := strconv.Atoi(idStr)
     utm, err := s.Store.GetOneUtm(id)
     if err != nil {
-        return fmt.Errorf("no existe utm con id %s", id)
+        return fmt.Errorf("no existe utm con id %d", id)
     }
 
     defer r.Body.Close()

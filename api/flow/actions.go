@@ -17,7 +17,13 @@ import (
 )
 
 //Definimos las acciones permitidas dentro de un flow
-func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, infobipApi *infobip.InfobipApi, store *store.Store) {
+func DefineActions(
+    wpp * whatsapp.Whatsapp, 
+    pipedriveApi *pipedrive.Pipedrive, 
+    infobipApi *infobip.InfobipApi, 
+    store *store.Store,
+    leadStorer store.LeadStorer,
+) {
     cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
     cotizacion2 := mustReadFile("../messages/plantilla_cotizacion_2.txt")
     jotformApi := jotform.NewJotform(
@@ -94,7 +100,7 @@ func DefineActions(wpp * whatsapp.Whatsapp, pipedriveApi *pipedrive.Pipedrive, i
                     Phone: c.Telefono,
                     Cotizacion: c.Cotizacion,
                 }
-                if err := store.Update(&lead, c.Telefono); err != nil {
+                if err := leadStorer.Update(&lead, c.Telefono); err != nil {
                     return err
                 }
                 slog.Info("Cotizacion generada con exito")
