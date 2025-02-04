@@ -127,7 +127,7 @@ func reasignAsesor(phone string) error {
         wpp.SendMessage(asesor.Phone, msg)
 
         logger.Debug("Actualizando en base de datos")
-        s.UpdateLeadAsesor(lead.Phone, &asesor)
+        s.UpdateAsesor(lead.Phone, &asesor)
     }
 
     return nil

@@ -31,11 +31,23 @@ type FlowResponse struct {
     Uuid    uuid.UUID   `json:"uuid"`
 }
 
+func (h FlowHandler) RegisterRoutes(router *mux.Router) {
+	router.HandleFunc("/flows", HandleErrors(h.NewFlow)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/flows/{uuid}", HandleErrors(h.UpdateFlow)).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/flows", HandleErrors(h.GetFlows)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/flows/main", HandleErrors(h.GetMainFlow)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/flows/{uuid}", HandleErrors(h.GetFlow)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/flows/{uuid}", HandleErrors(h.DeleteFlow)).Methods("DELETE", "OPTIONS")
+
+	router.HandleFunc("/actions", HandleErrors(h.GetConfig)).Methods("GET", "OPTIONS")
+}
+
 func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
     return &FlowHandler{
         manager: m,
     }
 }
+
 func (h *FlowHandler) GetConfig(w http.ResponseWriter, r *http.Request) error {
     actions := h.manager.GetActions()
     dataResponse(w, actions)
@@ -140,7 +152,7 @@ func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
    
-	comms, err := s.Store.GetAllDistinctCommunications(&body.Condition)
+	comms, err := s.comms.Comms.GetDistinct(&body.Condition)
 	if err != nil {
         return err
 	}

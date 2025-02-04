@@ -102,7 +102,7 @@ func (s *Server) Reasign(w http.ResponseWriter, r *http.Request) error {
     }
     for _, lead := range *leads{
         nextAsesor := s.roundRobin.Next()
-        if err = s.leadStore.UpdateLeadAsesor(lead.Phone, &nextAsesor); err != nil {
+        if err = s.leads.UpdateAsesor(lead.Phone, &nextAsesor); err != nil {
             return fmt.Errorf("no fue posible reasignar a %s", lead.Phone)
         }
     }

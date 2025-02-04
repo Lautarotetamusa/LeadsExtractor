@@ -83,7 +83,7 @@ func main(){
                     continue
                 }
 
-                if err := s.UpdateLeadAsesor(dbLead.Phone, asesor); err != nil {
+                if err := s.UpdateAsesor(dbLead.Phone, asesor); err != nil {
                     logger.Error(err.Error())
                 }
             }

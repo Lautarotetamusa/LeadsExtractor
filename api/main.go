@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"leadsextractor/flow"
+	"leadsextractor/handlers"
 	"leadsextractor/infobip"
 	"leadsextractor/logs"
+	"leadsextractor/models"
 	"leadsextractor/pipedrive"
 	"leadsextractor/pkg"
 	"leadsextractor/store"
@@ -60,8 +62,6 @@ func main() {
 
 	db := store.ConnectDB(ctx)
 
-	apiPort := os.Getenv("API_PORT")
-
 	infobipApi := infobip.NewInfobipApi(
 		os.Getenv("INFOBIP_APIURL"),
 		os.Getenv("INFOBIP_APIKEY"),
@@ -83,35 +83,68 @@ func main() {
 		logger,
 	)
 
-	storer := store.NewStore(db, logger)
-
-    leadStore := store.LeadStore{Store: *storer}
-
-    leadHandler := pkg.NewLeadHandler(&leadStore)
-
-	flowManager := flow.NewFlowManager("actions.json", storer, logger)
-	flow.DefineActions(wpp, pipedriveApi, infobipApi, storer, &leadStore)
-
-	flowManager.MustLoad()
-
 	webhook := whatsapp.NewWebhook(
 		os.Getenv("WHATSAPP_VERIFY_TOKEN"),
 		logger,
 	)
 
+	storer := store.NewStore(db, logger)
+
+    // Round Robin
+    var asesores []models.Asesor
+    if err := storer.GetAllActiveAsesores(&asesores); err != nil{  
+        log.Fatal("No se pudo obtener la lista de asesores")
+    }
+    rr := store.NewRoundRobin(asesores)
+
+    // Stores
+    leadStore := store.LeadStore{Store: storer}
+    utmStore := store.UTMStore{Store: storer}
+    commStore := store.NewCommStore(db)
+
+	flowManager := flow.NewFlowManager("actions.json", storer, logger)
+	flow.DefineActions(wpp, pipedriveApi, infobipApi, storer, &leadStore)
+	flowManager.MustLoad()
+
+    // Services
+    commsService := handlers.CommunicationService{ 
+        RoundRobin: rr,
+        Logger: logger,
+        Flows: *flowManager,
+        Utms: &utmStore,
+        Comms: commStore,
+        Store: *storer,
+        Leads: &leadStore,
+    }
+
+    // Handlers
+    leadHandler := handlers.NewLeadHandler(&leadStore)
+    utmHandler := handlers.NewUTMHandler(&utmStore)
+	flowHandler := pkg.NewFlowHandler(flowManager)
+    commHandler := handlers.NewCommHandler(commsService)
+
 	router := mux.NewRouter()
 
-	router.Use(loggingMiddleware)
-
+    // Register routes
     leadHandler.RegisterRoutes(router)
+    utmHandler.RegisterRoutes(router)
+    flowHandler.RegisterRoutes(router)
+    commHandler.RegisterRoutes(router)
 
-	flowHandler := pkg.NewFlowHandler(flowManager)
-
+    // Server
+	apiPort := os.Getenv("API_PORT")
 	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
-	server := pkg.NewServer(host, logger, db, flowHandler, &leadStore)
+    server := pkg.NewServer(pkg.ServerOpts{
+        ListenAddr: host,
+        Logger: logger,
+        RoundRobin: rr,
+        FlowHandler: flowHandler,
+        LeadStore: &leadStore,
+        CommService: &commsService,
+    })
 	server.SetRoutes(router)
 
-	go webhook.ConsumeEntries(server.NewCommunication)
+	go webhook.ConsumeEntries(commsService.NewCommunication)
 	router.Use(CORS)
 
 	router.HandleFunc("/pipedrive", pkg.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
@@ -121,26 +154,10 @@ func main() {
 	router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/actions", pkg.HandleErrors(flowHandler.GetConfig)).Methods("GET", "OPTIONS")
-
-	router.HandleFunc("/flows", pkg.HandleErrors(flowHandler.NewFlow)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.UpdateFlow)).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/flows", pkg.HandleErrors(flowHandler.GetFlows)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/flows/main", pkg.HandleErrors(flowHandler.GetMainFlow)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.GetFlow)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/flows/{uuid}", pkg.HandleErrors(flowHandler.DeleteFlow)).Methods("DELETE", "OPTIONS")
-
 	// Logs
 	router.HandleFunc("/logs", pkg.HandleErrors(logsHandler.GetLogs)).Methods("GET", "OPTIONS")
 
 	server.Run(router)
-}
-
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//log.Println(r.Method, r.RequestURI)
-		next.ServeHTTP(w, r)
-	})
 }
 
 func CORS(next http.Handler) http.Handler {

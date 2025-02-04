@@ -6,14 +6,26 @@ import (
 	"strings"
 )
 
-func (s *Store) GetAllUtm(utms *[]models.UtmDefinition) error {
+type UTMStorer interface {
+    GetAll(*[]models.UtmDefinition) error
+    GetOne(int) (*models.UtmDefinition, error)
+    GetOneByCode(string) (*models.UtmDefinition, error)
+    Insert(*models.UtmDefinition) (int64, error)
+    Update(*models.UtmDefinition) error
+}
+
+type UTMStore struct {
+    *Store
+}
+
+func (s *UTMStore) GetAll(utms *[]models.UtmDefinition) error {
 	if err := s.db.Select(utms, "SELECT * FROM Utm ORDER BY id DESC"); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Store) GetOneUtm(id int) (*models.UtmDefinition, error) {
+func (s *UTMStore) GetOne(id int) (*models.UtmDefinition, error) {
 	utm := models.UtmDefinition{}
 	if err := s.db.Get(&utm, "SELECT * FROM Utm WHERE id=?", id); err != nil {
 		return nil, err
@@ -21,7 +33,7 @@ func (s *Store) GetOneUtm(id int) (*models.UtmDefinition, error) {
 	return &utm, nil
 }
 
-func (s *Store) GetOneUtmByCode(code string) (*models.UtmDefinition, error) {
+func (s *UTMStore) GetOneByCode(code string) (*models.UtmDefinition, error) {
 	utm := models.UtmDefinition{}
 	if err := s.db.Get(&utm, "SELECT * FROM Utm WHERE code=?", code); err != nil {
 		return nil, err
@@ -29,7 +41,7 @@ func (s *Store) GetOneUtmByCode(code string) (*models.UtmDefinition, error) {
 	return &utm, nil
 }
 
-func (s *Store) InsertUtm(utm *models.UtmDefinition) (int64, error) {
+func (s *UTMStore) Insert(utm *models.UtmDefinition) (int64, error) {
 	query := `
     INSERT INTO Utm 
             ( code,  utm_source, utm_medium,  utm_campaign,  utm_ad,  utm_channel) 
@@ -49,7 +61,7 @@ func (s *Store) InsertUtm(utm *models.UtmDefinition) (int64, error) {
 	return id, nil
 }
 
-func (s *Store) UpdateUtm(utm *models.UtmDefinition) error {
+func (s *UTMStore) Update(utm *models.UtmDefinition) error {
 	query := `
     UPDATE Utm 
     SET utm_source = :utm_source,
