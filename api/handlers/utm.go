@@ -19,6 +19,8 @@ type UTMHandler struct {
     storer  store.UTMStorer
 }
 
+var validChannels = []string{"ivr", "whatsapp", "inbox"}
+
 func NewUTMHandler(s store.UTMStorer) *UTMHandler {
     return &UTMHandler{
         storer: s,
@@ -32,10 +34,9 @@ func (h UTMHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/utm/{id}", HandleErrors(h.Update)).Methods("PUT", "OPTIONS")
 }
 
-var validChannels = []string{"ivr", "whatsapp", "inbox"}
 func validateChannel(utm *models.UtmDefinition) error {
     if !slices.Contains(validChannels, utm.Channel.String) {
-        return fmt.Errorf("el channel no es valido. validos: %s", strings.Join(validChannels, ", "))
+        return fmt.Errorf("the channel must be one of %s", strings.Join(validChannels, ", "))
     }
     return nil
 }
@@ -53,9 +54,12 @@ func (h UTMHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 func (h UTMHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
     id, err := strconv.Atoi(idStr)
+
     utm, err := h.storer.GetOne(id)
 	if err != nil {
-        return fmt.Errorf("no se encontro el utm con id %d", id)
+        if _, ok := err.(store.ErrStore); ok {
+            return ErrNotFound(err.Error())
+        }
 	}
 
 	dataResponse(w, utm)
@@ -66,11 +70,15 @@ func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var utm models.UtmDefinition
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
-        return err
+        return ErrBadRequest(err.Error())
     }
 
     if err := validateChannel(&utm); err != nil {
-        return err
+        return ErrBadRequest(err.Error())
+    }
+
+    if utm.Code == "" {
+        return ErrBadRequest("code is required")
     }
 
     isValid := true
@@ -81,17 +89,20 @@ func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
     }
 
     if !isValid {
-        return fmt.Errorf("el codigo solo puede contener caracteres alphanumericos")
+        return ErrBadRequest("code can only contains alphanumeric characters")
     }
     utm.Code = strings.ToUpper(utm.Code)
 
     id, err := h.storer.Insert(&utm); 
     if err != nil {
+        if _, ok := err.(store.ErrStore); ok {
+            return ErrDuplicated(err.Error())
+        }
 		return err
 	}
     utm.Id = int(id)
 
-	successResponse(w, "Utm creado correctamente", utm)
+	createdResponse(w, "utm created successfully", utm)
 	return nil
 }
 
@@ -100,22 +111,24 @@ func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
     id, err := strconv.Atoi(idStr)
     utm, err := h.storer.GetOne(id)
     if err != nil {
-        return fmt.Errorf("no existe utm con id %d", id)
+        if _, ok := err.(store.ErrStore); ok {
+            return ErrNotFound(err.Error())
+        }
     }
 
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
-		return err
+		return ErrBadRequest(err.Error())
     }
 
     if err := validateChannel(utm); err != nil {
-        return err
+		return ErrBadRequest(err.Error())
     }
 
     if err := h.storer.Update(utm); err != nil {
 		return err
 	}
 
-	successResponse(w, "Utm actualizado correctamente", utm)
+	createdResponse(w, "utm updated successfully", utm)
 	return nil
 }

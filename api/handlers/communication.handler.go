@@ -142,7 +142,7 @@ func (h CommunicationHandler) Insert(w http.ResponseWriter, r *http.Request) err
         return err
     }
 
-    successResponse(w, "communication created succesfuly", c)
+    createdResponse(w, "communication created succesfuly", c)
 	return nil
 }
 

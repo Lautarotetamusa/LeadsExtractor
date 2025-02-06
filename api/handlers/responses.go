@@ -33,6 +33,13 @@ func ErrBadRequest(msg string) APIError{
     }
 }
 
+func ErrDuplicated(msg string) APIError{
+    return APIError{
+        Status: http.StatusBadRequest,
+        Msg: msg,
+    }
+}
+
 var ErrInternal = APIError{
     Status: http.StatusInternalServerError,
     Msg:    "internal server error",
@@ -96,8 +103,10 @@ func dataResponse(w http.ResponseWriter, data interface{}) {
     })
 }
 
-func successResponse(w http.ResponseWriter, message string, data interface{}) {
+func createdResponse(w http.ResponseWriter, message string, data interface{}) {
     w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusCreated)
+
     json.NewEncoder(w).Encode(SuccessResponse{
         Success: true,
         Message: message,

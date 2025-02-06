@@ -1,10 +1,6 @@
 package store
 
-import (
-	"fmt"
-	"leadsextractor/models"
-	"strings"
-)
+import "leadsextractor/models"
 
 type UTMStorer interface {
     GetAll(*[]models.UtmDefinition) error
@@ -18,6 +14,22 @@ type UTMStore struct {
     *Store
 }
 
+const (
+    updateUTMQuery = `
+        UPDATE Utm 
+        SET utm_source = :utm_source,
+            utm_medium = :utm_medium ,
+            utm_campaign = :utm_campaign,
+            utm_ad = :utm_ad,
+            utm_channel = :utm_channel
+        WHERE id=:id`
+
+    insertUTMQuery = `
+    INSERT INTO Utm 
+            ( code,  utm_source, utm_medium,  utm_campaign,  utm_ad,  utm_channel) 
+    VALUES  (:code, :utm_source, :utm_medium, :utm_campaign, :utm_ad, :utm_channel)`
+)
+
 func (s *UTMStore) GetAll(utms *[]models.UtmDefinition) error {
 	if err := s.db.Select(utms, "SELECT * FROM Utm ORDER BY id DESC"); err != nil {
 		return err
@@ -28,7 +40,7 @@ func (s *UTMStore) GetAll(utms *[]models.UtmDefinition) error {
 func (s *UTMStore) GetOne(id int) (*models.UtmDefinition, error) {
 	utm := models.UtmDefinition{}
 	if err := s.db.Get(&utm, "SELECT * FROM Utm WHERE id=?", id); err != nil {
-		return nil, err
+		return nil, SQLNotFound(err, "utm not found")
 	}
 	return &utm, nil
 }
@@ -36,24 +48,17 @@ func (s *UTMStore) GetOne(id int) (*models.UtmDefinition, error) {
 func (s *UTMStore) GetOneByCode(code string) (*models.UtmDefinition, error) {
 	utm := models.UtmDefinition{}
 	if err := s.db.Get(&utm, "SELECT * FROM Utm WHERE code=?", code); err != nil {
-		return nil, err
+		return nil, SQLNotFound(err, "utm not found")
 	}
 	return &utm, nil
 }
 
 func (s *UTMStore) Insert(utm *models.UtmDefinition) (int64, error) {
-	query := `
-    INSERT INTO Utm 
-            ( code,  utm_source, utm_medium,  utm_campaign,  utm_ad,  utm_channel) 
-    VALUES  (:code, :utm_source, :utm_medium, :utm_campaign, :utm_ad, :utm_channel)`
-
-    res, err := s.db.NamedExec(query, utm)
+    res, err := s.db.NamedExec(insertUTMQuery, utm)
     if err != nil {
-        if strings.Contains(err.Error(), "Error 1062") {
-            return 0, fmt.Errorf("ya existe un utm con codigo %s", utm.Code)
-        }
-        return 0, err
+        return 0, SQLDuplicated(err, "utm with this code already exists")
     }
+
     id, err := res.LastInsertId()
     if err != nil {
         return 0, err
@@ -62,17 +67,8 @@ func (s *UTMStore) Insert(utm *models.UtmDefinition) (int64, error) {
 }
 
 func (s *UTMStore) Update(utm *models.UtmDefinition) error {
-	query := `
-    UPDATE Utm 
-    SET utm_source = :utm_source,
-        utm_medium = :utm_medium ,
-        utm_campaign = :utm_campaign,
-        utm_ad = :utm_ad,
-        utm_channel = :utm_channel
-    WHERE id=:id`
-
-	if _, err := s.db.NamedExec(query, utm); err != nil {
-		return err
+	if _, err := s.db.NamedExec(updateUTMQuery, utm); err != nil {
+        return SQLDuplicated(err, "utm with this code already exists")
 	}
 	return nil
 }

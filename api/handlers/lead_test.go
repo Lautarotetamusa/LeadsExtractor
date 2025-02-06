@@ -1,19 +1,14 @@
 package handlers_test
 
 import (
-	"bytes"
 	"database/sql"
 	"errors"
-	"io"
 	"leadsextractor/models"
 	"leadsextractor/numbers"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestLeadCRUD(t *testing.T) {
@@ -33,6 +28,16 @@ func TestLeadCRUD(t *testing.T) {
 
 type mockLeadStorer struct {
     leads []models.Lead
+}
+
+func (s *mockLeadStorer) mock() {
+    s.Insert(&models.CreateLead{
+        Name: "test",
+        Phone: numbers.PhoneNumber("5493415854220"),
+        Email: models.NullString{String: "test@gmail.com", Valid: true},
+        AsesorPhone: numbers.PhoneNumber("5493415854212"),
+        Cotizacion: "",
+    })
 }
 
 func (s mockLeadStorer) GetAll() (*[]models.Lead, error) {
@@ -80,33 +85,4 @@ func (s mockLeadStorer) UpdateAsesor(phone numbers.PhoneNumber, a *models.Asesor
         }
     }
     return errors.New("not found")
-}
-
-func Endpoint(t *testing.T, router *mux.Router, tc APITestCase) {
-	t.Run(tc.Name, func(t *testing.T) {
-		req, _ := http.NewRequest(tc.Method, tc.URL, bytes.NewBufferString(tc.Body))
-		if tc.Header != nil {
-			req.Header = tc.Header
-		}
-		w := httptest.NewRecorder()
-		if req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", "application/json")
-		}
-
-        router.ServeHTTP(w, req)
-        res := w.Result()
-        defer res.Body.Close()
-        response, _ := io.ReadAll(res.Body)
-
-		assert.Equal(t, tc.WantStatus, res.StatusCode, "status mismatch")
-		if tc.WantResponse != "" {
-			pattern := strings.Trim(tc.WantResponse, "*")
-
-			if pattern != tc.WantResponse {
-				assert.Contains(t, string(response), pattern, "response mismatch")
-			} else {
-				assert.JSONEq(t, tc.WantResponse, string(response), "mismatch")
-			}
-		}
-	})
 }

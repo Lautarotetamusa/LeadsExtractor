@@ -117,7 +117,7 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	}
 
     w.WriteHeader(http.StatusCreated)
-	successResponse(w, "Lead creado correctamente", lead)
+	createdResponse(w, "Lead creado correctamente", lead)
 	return nil
 }
 
@@ -147,6 +147,6 @@ func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	successResponse(w, "Lead actualizado correctamente", lead)
+	createdResponse(w, "Lead actualizado correctamente", lead)
 	return nil
 }
