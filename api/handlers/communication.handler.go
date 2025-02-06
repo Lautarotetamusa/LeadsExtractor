@@ -29,11 +29,12 @@ type CommunicationService struct {
     RoundRobin  *store.RoundRobin
     Logger  *slog.Logger
 
+    Leads   LeadService
+
     Flows   flow.FlowManager
     Utms    store.UTMStorer
     Comms   store.CommunicationStorer
     Store   store.Store
-    Leads   store.LeadStorer
 }
 
 const maxUploadCsvComms = 200
@@ -58,7 +59,7 @@ func (s CommunicationService) StoreCommunication(c *models.Communication) error 
 		return err
 	}
 
-	lead, err := s.Leads.InsertOrGet(s.RoundRobin, c)
+	lead, err := s.Leads.GetOrInsert(s.RoundRobin, c)
 	if err != nil {
 		return err
 	}

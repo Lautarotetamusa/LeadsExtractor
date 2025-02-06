@@ -19,9 +19,10 @@ import (
 func TestLeadCRUD(t *testing.T) {
     tests := []APITestCase{
         {"bad phone number", "POST", "/lead", `{"phone": "12345","name": "a","asesor_phone": "11"}}`, nil, http.StatusBadRequest, `*isn't a valid number*`,},
-        {"no name", "POST", "/lead", `{"phone": "+5493415854220","asesor_phone": "+5493415854221"}}`, nil, http.StatusBadRequest, `*no tiene nombre*`,},
+        {"no name", "POST", "/lead", `{"phone": "+5493415854220","asesor_phone": "+5493415854221"}}`, nil, http.StatusBadRequest, `*'Name' failed on the 'required'*`,},
         {"create", "POST", "/lead", `{"phone": "+5493415854220","name": "a","asesor_phone": "+5493415854221"}}`, nil, http.StatusCreated, `*Lead creado correctamente*`,},
-        {"get one no exists", "GET", "/lead/5493415854222", "", nil, http.StatusNotFound, `*no rows in result set`,}, }
+        {"get one no exists", "GET", "/lead/5493415854222", "", nil, http.StatusNotFound, `*does not exists`,},
+    }
 
     router := mux.Router{}
     leadHandler.RegisterRoutes(&router)

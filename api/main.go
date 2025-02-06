@@ -107,6 +107,7 @@ func main() {
 	flowManager.MustLoad()
 
     // Services
+    leadService := handlers.NewLeadService(&leadStore)
     commsService := handlers.CommunicationService{ 
         RoundRobin: rr,
         Logger: logger,
@@ -114,11 +115,11 @@ func main() {
         Utms: &utmStore,
         Comms: commStore,
         Store: *storer,
-        Leads: &leadStore,
+        Leads: *leadService,
     }
 
     // Handlers
-    leadHandler := handlers.NewLeadHandler(&leadStore)
+    leadHandler := handlers.NewLeadHandler(leadService)
     utmHandler := handlers.NewUTMHandler(&utmStore)
 	flowHandler := pkg.NewFlowHandler(flowManager)
     commHandler := handlers.NewCommHandler(commsService)

@@ -12,10 +12,10 @@ type Lead struct {
 }
 
 type CreateLead struct {
-    Name        string              `json:"name" db:"name"`
-    Phone       numbers.PhoneNumber `json:"phone" db:"phone"`
+    Name        string              `json:"name" db:"name" validate:"required"`
+    Phone       numbers.PhoneNumber `json:"phone" db:"phone" validate:"required"`
     Email       NullString          `json:"email" db:"email"`
-    AsesorPhone numbers.PhoneNumber `json:"asesor_phone" db:"asesor"`
+    AsesorPhone numbers.PhoneNumber `json:"asesor_phone" db:"asesor" validate:"required"`
     Cotizacion  string              `db:"cotizacion" json:"cotizacion"`
 }
 

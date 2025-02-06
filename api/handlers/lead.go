@@ -14,12 +14,22 @@ import (
 )
 
 type LeadHandler struct {
+    service *LeadService
+}
+
+type LeadService struct {
     storer store.LeadStorer
 }
 
-func NewLeadHandler(s store.LeadStorer) *LeadHandler {
-    return &LeadHandler{
+func NewLeadService(s store.LeadStorer) *LeadService {
+    return &LeadService{
         storer: s,
+    }
+}
+
+func NewLeadHandler(s *LeadService) *LeadHandler {
+    return &LeadHandler{
+        service: s,
     }
 }
 
@@ -31,15 +41,15 @@ func (h LeadHandler) RegisterRoutes(router *mux.Router) {
 }
 
 // GetOrInsert get the lead with phone c.Telefono in case that exists, otherwise creates one
-func (h *LeadHandler) GetOrInsert(rr *store.RoundRobin, c *models.Communication) (*models.Lead, error) {
-	lead, err := h.storer.GetOne(c.Telefono)
+func (s *LeadService) GetOrInsert(rr *store.RoundRobin, c *models.Communication) (*models.Lead, error) {
+	lead, err := s.storer.GetOne(c.Telefono)
 
     // The lead does not exists
 	if err == sql.ErrNoRows {
 		c.IsNew = true
 		c.Asesor = rr.Next()
 
-		lead, err = h.storer.Insert(&models.CreateLead{
+		lead, err = s.storer.Insert(&models.CreateLead{
 			Name:        c.Nombre,
 			Phone:       c.Telefono,
 			Email:       c.Email,
@@ -51,7 +61,7 @@ func (h *LeadHandler) GetOrInsert(rr *store.RoundRobin, c *models.Communication)
 			return nil, err
 		}
 	} else if err != nil {
-        if err := h.storer.Update(lead, lead.Phone); err != nil {
+        if err := s.storer.Update(lead, lead.Phone); err != nil {
             return nil, err
         }
 
@@ -62,7 +72,7 @@ func (h *LeadHandler) GetOrInsert(rr *store.RoundRobin, c *models.Communication)
 }
 
 func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
-	leads, err := h.storer.GetAll()
+	leads, err := h.service.storer.GetAll()
 	if err != nil {
 		return err
 	}
@@ -77,8 +87,11 @@ func (h *LeadHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
         return fmt.Errorf("el numero %s no es un telefono valido", phone)
     }
 
-	lead, err := h.storer.GetOne(*phone)
+	lead, err := h.service.storer.GetOne(*phone)
 	if err != nil {
+        if err == sql.ErrNoRows {
+            return ErrNotFound(fmt.Sprintf("the lead with phone %s does not exists", phone))
+        }
 		return err
 	}
 
@@ -90,15 +103,15 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var createLead models.CreateLead
 	err := json.NewDecoder(r.Body).Decode(&createLead)
 	if err != nil {
-		return err
+		return ErrBadRequest(err.Error())
 	}
 
 	validate := validator.New()
 	if err = validate.Struct(createLead); err != nil {
-		return err
+		return ErrBadRequest(err.Error())
 	}
 
-	lead, err := h.storer.Insert(&createLead)
+	lead, err := h.service.storer.Insert(&createLead)
 	if err != nil {
 		return err
 	}
@@ -130,7 +143,7 @@ func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-    if err := h.storer.Update(&lead, *phone); err != nil {
+    if err := h.service.storer.Update(&lead, *phone); err != nil {
 		return err
 	}
 

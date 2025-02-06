@@ -17,12 +17,13 @@ type APITestCase struct {
 	WantResponse string
 }
 
-var utmHandler  handlers.UTMHandler
-var leadHandler handlers.LeadHandler
+var utmHandler  *handlers.UTMHandler
+var leadHandler *handlers.LeadHandler
 
 func TestMain(t *testing.M) {
-    leadHandler = *handlers.NewLeadHandler(mockLeadStorer{}) 
-    utmHandler = *handlers.NewUTMHandler(mockUTMStorer{})
+    service := handlers.NewLeadService(mockLeadStorer{})
+    leadHandler = handlers.NewLeadHandler(service) 
+    utmHandler = handlers.NewUTMHandler(mockUTMStorer{})
 
     t.Run()
 }

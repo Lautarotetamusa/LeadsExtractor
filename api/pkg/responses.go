@@ -2,12 +2,32 @@ package pkg
 
 import (
 	"encoding/json"
+	"fmt"
 	"leadsextractor/store"
 	"net/http"
 )
 
 type HandlerErrorFn func(w http.ResponseWriter, r *http.Request) error
 type HandlerFn func(w http.ResponseWriter, r *http.Request)
+
+type APIError struct {
+    Status  int
+    Msg     string
+}
+
+func (e APIError) Error() string {
+    return fmt.Sprintf("%d - %s", e.Status, e.Msg)
+}
+
+var ErrNotFound = APIError{
+    Status: http.StatusNotFound,
+    Msg: "the object %s does not exists",
+}
+
+var ErrInternal = APIError{
+    Status: http.StatusInternalServerError,
+    Msg:    "internal server error",
+}
 
 type ErrorResponseType struct {
     Success bool    `json:"success"`
@@ -25,7 +45,7 @@ type SuccessResponse struct {
     Data        interface{} `json:"data"` 
 }
 
-type ListResponse = struct {
+type ListResponse struct {
     Success     bool                    `json:"success"`
     Pagination  store.Pagination        `json:"pagination"`
     Data        interface{}             `json:"data"`
@@ -40,6 +60,10 @@ type MultipleError struct {
 func HandleErrors(fn HandlerErrorFn) HandlerFn {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
+            _, isApiErr := err.(APIError)
+            if !isApiErr {
+                err = ErrInternal 
+            }
 			ErrorResponse(w, r, err)
 		}
 	}
