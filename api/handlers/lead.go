@@ -84,15 +84,12 @@ func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 func (h *LeadHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
     if err != nil {
-        return fmt.Errorf("el numero %s no es un telefono valido", phone)
+        return ErrBadRequest(fmt.Sprintf("el numero %s no es un telefono valido", phone))
     }
 
 	lead, err := h.service.storer.GetOne(*phone)
 	if err != nil {
-        if err == sql.ErrNoRows {
-            return ErrNotFound(fmt.Sprintf("the lead with phone %s does not exists", phone))
-        }
-		return err
+        return err
 	}
 
 	dataResponse(w, lead)
@@ -113,7 +110,7 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 
 	lead, err := h.service.storer.Insert(&createLead)
 	if err != nil {
-		return err
+        return err
 	}
 
     w.WriteHeader(http.StatusCreated)

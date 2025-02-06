@@ -1,10 +1,9 @@
 package handlers_test
 
 import (
-	"database/sql"
-	"errors"
 	"leadsextractor/models"
 	"leadsextractor/numbers"
+	"leadsextractor/store"
 	"net/http"
 	"testing"
 
@@ -40,20 +39,24 @@ func (s *mockLeadStorer) mock() {
     })
 }
 
-func (s mockLeadStorer) GetAll() (*[]models.Lead, error) {
+func (s *mockLeadStorer) GetAll() (*[]models.Lead, error) {
     return &s.leads, nil
 }
 
-func (s mockLeadStorer) GetOne(phone numbers.PhoneNumber) (*models.Lead, error) {
+func (s *mockLeadStorer) GetOne(phone numbers.PhoneNumber) (*models.Lead, error) {
     for _, lead := range s.leads {
         if lead.Phone == phone {
             return &lead, nil
         }
     }
-    return nil, sql.ErrNoRows
+    return nil, store.NewErr("does not exists", store.StoreNotFoundErr)
 }
 
-func (s mockLeadStorer) Insert(createLead *models.CreateLead) (*models.Lead, error) {
+func (s *mockLeadStorer) Insert(createLead *models.CreateLead) (*models.Lead, error) {
+    if l, _ := s.GetOne(createLead.Phone); l != nil {
+        return nil, store.NewErr("already exists", store.StoreDuplicatedErr)
+    }
+
     lead := models.Lead{
         Name: createLead.Name,
         Phone: createLead.Phone,
@@ -69,20 +72,20 @@ func (s mockLeadStorer) Insert(createLead *models.CreateLead) (*models.Lead, err
     return &lead, nil
 }
 
-func (s mockLeadStorer) Update(uLead *models.Lead, phone numbers.PhoneNumber) error {
+func (s *mockLeadStorer) Update(uLead *models.Lead, phone numbers.PhoneNumber) error {
     for i, lead := range s.leads {
         if lead.Phone == phone {
             s.leads[i] = *uLead
         }
     }
-    return errors.New("not found")
+    return store.NewErr("not found", store.StoreNotFoundErr)
 }
 
-func (s mockLeadStorer) UpdateAsesor(phone numbers.PhoneNumber, a *models.Asesor) error {
+func (s *mockLeadStorer) UpdateAsesor(phone numbers.PhoneNumber, a *models.Asesor) error {
     for i, lead := range s.leads {
         if lead.Phone == phone {
             s.leads[i].Asesor = *a
         }
     }
-    return errors.New("not found")
+    return store.NewErr("not found", store.StoreNotFoundErr)
 }

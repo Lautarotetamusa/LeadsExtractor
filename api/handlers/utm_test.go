@@ -94,7 +94,7 @@ func (s *mockUTMStorer) GetOne(id int) (*models.UtmDefinition, error) {
             return &utm, nil
         }
     }
-    return nil, store.NewErr("not found") 
+    return nil, store.NewErr("not found", store.StoreNotFoundErr) 
 }
 
 // GetOneByCode(string) (*models.UtmDefinition, error)
@@ -104,7 +104,7 @@ func (s *mockUTMStorer) GetOneByCode(code string) (*models.UtmDefinition, error)
             return &utm, nil
         }
     }
-    return nil, store.NewErr("not found") 
+    return nil, store.NewErr("not found", store.StoreNotFoundErr) 
 }
 
 func (s *mockUTMStorer) Insert(utm *models.UtmDefinition) (int64, error) {
@@ -120,7 +120,7 @@ func (s *mockUTMStorer) Insert(utm *models.UtmDefinition) (int64, error) {
 // Update(*models.UtmDefinition) error
 func (s *mockUTMStorer) Update(uUTM *models.UtmDefinition) error {
     if u, _ := s.GetOneByCode(uUTM.Code); u != nil {
-        return store.NewErr("already exists")
+        return store.NewErr("already exists", store.StoreDuplicatedErr)
     }
 
     s.utms[uUTM.Id-1] = *uUTM

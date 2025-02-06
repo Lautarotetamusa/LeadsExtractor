@@ -57,9 +57,7 @@ func (h UTMHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 
     utm, err := h.storer.GetOne(id)
 	if err != nil {
-        if _, ok := err.(store.ErrStore); ok {
-            return ErrNotFound(err.Error())
-        }
+        return err
 	}
 
 	dataResponse(w, utm)
@@ -95,9 +93,6 @@ func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 
     id, err := h.storer.Insert(&utm); 
     if err != nil {
-        if _, ok := err.(store.ErrStore); ok {
-            return ErrDuplicated(err.Error())
-        }
 		return err
 	}
     utm.Id = int(id)
@@ -111,9 +106,7 @@ func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
     id, err := strconv.Atoi(idStr)
     utm, err := h.storer.GetOne(id)
     if err != nil {
-        if _, ok := err.(store.ErrStore); ok {
-            return ErrNotFound(err.Error())
-        }
+        return err
     }
 
     defer r.Body.Close()

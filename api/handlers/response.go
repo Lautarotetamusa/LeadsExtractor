@@ -76,23 +76,24 @@ type MultipleError struct {
 func HandleErrors(fn HandlerErrorFn) HandlerFn {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
-			ErrorResponse(w, err)
+            apiErr, isApiErr := err.(APIError)
+            if !isApiErr {
+                if storeErr, isStoreErr := err.(store.StoreError); isStoreErr {
+                    apiErr = store2APIErr(storeErr) 
+                }else{
+                    apiErr = ErrInternal
+                }
+            }
+
+            w.Header().Set("Content-Type", "application/json")
+            w.WriteHeader(apiErr.Status)
+
+            json.NewEncoder(w).Encode(ErrorResponseType{
+                Success: false,
+                Error: apiErr.Error(),
+            })
 		}
 	}
-}
-
-func ErrorResponse(w http.ResponseWriter, err error) {
-    apiErr, isApiErr := err.(APIError)
-    if !isApiErr {
-        apiErr = ErrInternal 
-    }
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(apiErr.Status)
-
-    json.NewEncoder(w).Encode(ErrorResponseType{
-        Success: false,
-        Error: apiErr.Error(),
-    })
 }
 
 func dataResponse(w http.ResponseWriter, data interface{}) {
@@ -124,4 +125,15 @@ func collectMultipleErrors(errorSet map[string]int) []MultipleError {
         })
     }
     return errors
+}
+
+// Converts the StoreError type to APIError
+func store2APIErr(s store.StoreError) APIError {
+    switch s.Typ {
+    case store.StoreNotFoundErr:
+        return ErrNotFound(s.Error())
+    case store.StoreDuplicatedErr:
+        return ErrDuplicated(s.Error())
+    }
+    return ErrInternal
 }

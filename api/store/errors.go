@@ -5,30 +5,45 @@ import (
 	"strings"
 )
 
-type ErrStore struct {
+type StoreErrorType int
+
+const (
+    StoreNotFoundErr StoreErrorType = iota
+    StoreDuplicatedErr
+)
+
+type StoreError struct {
     msg string
+    Typ StoreErrorType
 }
 
-func NewErr(msg string) ErrStore {
-    return ErrStore{
+func NewErr(msg string, typ StoreErrorType) StoreError {
+    return StoreError{
         msg: msg,
+        Typ: typ,
     }
 }
 
-func (e ErrStore) Error() string {
+func (e StoreError) Error() string {
     return e.msg
 }
 
 func SQLNotFound(err error, msg string) error {
     if err == sql.ErrNoRows {
-        return NewErr(msg) 
+        return StoreError{
+            msg: msg,
+            Typ: StoreNotFoundErr,
+        }
     }
     return err
 }
 
 func SQLDuplicated(err error, msg string) error {
     if strings.Contains(err.Error(), "Error 1062") {
-        return NewErr(msg)
+        return StoreError{
+            msg: msg,
+            Typ: StoreDuplicatedErr,
+        }
     }
     return err
 }

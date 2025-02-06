@@ -27,6 +27,7 @@ type APITestCase struct {
 
 var utmHandler  *handlers.UTMHandler
 var leadHandler *handlers.LeadHandler
+var commHandlers *handlers.CommunicationHandler
 
 func TestMain(t *testing.M) {
     leadStore := mockLeadStorer{}
@@ -34,7 +35,7 @@ func TestMain(t *testing.M) {
     leadStore.mock()
     utmStore.mock()
 
-    leadService := handlers.NewLeadService(leadStore)
+    leadService := handlers.NewLeadService(&leadStore)
 
     leadHandler = handlers.NewLeadHandler(leadService) 
     utmHandler = handlers.NewUTMHandler(&utmStore)
