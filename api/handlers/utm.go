@@ -42,8 +42,8 @@ func validateChannel(utm *models.UtmDefinition) error {
 }
 
 func (h UTMHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
-    var utms []models.UtmDefinition
-	if err := h.storer.GetAll(&utms); err != nil {
+    utms, err := h.storer.GetAll();
+	if err != nil {
 		return err
 	}
 

@@ -25,20 +25,35 @@ type APITestCase struct {
 	WantResponse string
 }
 
-var utmHandler  *handlers.UTMHandler
-var leadHandler *handlers.LeadHandler
-var commHandlers *handlers.CommunicationHandler
+var (
+    utmHandler  *handlers.UTMHandler
+    leadHandler *handlers.LeadHandler
+    commHandler *handlers.CommunicationHandler
+    asesorHandler *handlers.AsesorHandler
+
+    leadStore mockLeadStorer
+    utmStore mockUTMStorer
+)
 
 func TestMain(t *testing.M) {
-    leadStore := mockLeadStorer{}
-    utmStore := mockUTMStorer{}
+    leadStore = mockLeadStorer{}
+    utmStore = mockUTMStorer{}
+    // asesorStore := newMockAsesorStore()
     leadStore.mock()
     utmStore.mock()
+    // asesorStore.mock()
+    //
+    // var asesores []models.Asesor
+    // asesorStore.GetAll(&asesores)
+    // fmt.Printf("%#v\n", asesores)
+    // rr := store.NewRoundRobin(asesores)
 
     leadService := handlers.NewLeadService(&leadStore)
+    // asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
 
     leadHandler = handlers.NewLeadHandler(leadService) 
     utmHandler = handlers.NewUTMHandler(&utmStore)
+    // asesorHandler = handlers.NewAsesorHandler(asesorService)
 
     t.Run()
 }
@@ -72,11 +87,16 @@ func Endpoint(t *testing.T, router *mux.Router, tc APITestCase) {
 	})
 }
 
-func Stringify(d any) string {
-    body, _ := json.Marshal(d)
-    return string(body)
-}
+func GetResponse(router *mux.Router, tc APITestCase, data any) {
+    req, _ := http.NewRequest(tc.Method, tc.URL, bytes.NewBufferString(tc.Body))
+    if tc.Header != nil {
+        req.Header = tc.Header
+    }
+    w := httptest.NewRecorder()
+    req.Header.Set("Content-Type", "application/json")
 
-func Request(router *mux.Router) {
-    return
+    router.ServeHTTP(w, req)
+    res := w.Result()
+    defer res.Body.Close()
+    json.NewDecoder(res.Body).Decode(data)
 }

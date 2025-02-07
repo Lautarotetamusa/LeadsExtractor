@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"encoding/json"
 	"leadsextractor/handlers"
 	"leadsextractor/models"
 	"leadsextractor/store"
@@ -59,14 +60,21 @@ func TestUtmDefinitionCRUD(t *testing.T) {
     for _, tc := range tests {
         Endpoint(t, &router, tc)
     }
+    utmListResObj := handlers.DataResponse{
+        Success: true,
+        Data: utmStore.utms,
+    }
+    utmListRes, _ := json.Marshal(utmListResObj)
+    tc := APITestCase{"get all", "GET", "/utm", "", nil, http.StatusOK, string(utmListRes)}
+    Endpoint(t, &router, tc)
 
     // Cant not create other utm with the same code
-    tc := APITestCase{"same code", "POST", "/utm", valid, nil, http.StatusBadRequest, `*already exists*`}
+    tc = APITestCase{"same code", "POST", "/utm", valid, nil, http.StatusBadRequest, `*already exists*`}
     Endpoint(t, &router, tc)
 }
 
 type mockUTMStorer struct {
-    utms []models.UtmDefinition
+    utms []*models.UtmDefinition
 }
 
 func (s *mockUTMStorer) mock() {
@@ -82,16 +90,15 @@ func (s *mockUTMStorer) mock() {
 }
 
 // GetAll(*[]models.UtmDefinition) error
-func (s *mockUTMStorer) GetAll(utms *[]models.UtmDefinition) error {
-    utms = &s.utms
-    return nil
+func (s *mockUTMStorer) GetAll() ([]*models.UtmDefinition, error) {
+    return s.utms, nil
 }
 
 // GetOne(int) (*models.UtmDefinition, error)
 func (s *mockUTMStorer) GetOne(id int) (*models.UtmDefinition, error) {
     for _, utm := range s.utms {
         if utm.Id == id {
-            return &utm, nil
+            return utm, nil
         }
     }
     return nil, store.NewErr("not found", store.StoreNotFoundErr) 
@@ -101,7 +108,7 @@ func (s *mockUTMStorer) GetOne(id int) (*models.UtmDefinition, error) {
 func (s *mockUTMStorer) GetOneByCode(code string) (*models.UtmDefinition, error) {
     for _, utm := range s.utms {
         if utm.Code == code {
-            return &utm, nil
+            return utm, nil
         }
     }
     return nil, store.NewErr("not found", store.StoreNotFoundErr) 
@@ -111,7 +118,7 @@ func (s *mockUTMStorer) Insert(utm *models.UtmDefinition) (int64, error) {
     if u, _ := s.GetOneByCode(utm.Code); u != nil {
         return 0, handlers.ErrDuplicated("already exists")
     }
-    s.utms = append(s.utms, *utm)
+    s.utms = append(s.utms, utm)
     id := len(s.utms)
     s.utms[id-1].Id = id
     return int64(id), nil
@@ -123,6 +130,6 @@ func (s *mockUTMStorer) Update(uUTM *models.UtmDefinition) error {
         return store.NewErr("already exists", store.StoreDuplicatedErr)
     }
 
-    s.utms[uUTM.Id-1] = *uUTM
+    s.utms[uUTM.Id-1] = uUTM
     return nil
 }

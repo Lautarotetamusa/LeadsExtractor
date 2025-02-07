@@ -11,10 +11,10 @@ import (
 type CommunicationStorer interface {
     Insert(c *models.Communication, source *models.Source) error
     // Get all with pagination
-     GetAll(params *QueryParam) ([]models.Communication, error)
-     GetDistinct(params *QueryParam) ([]models.Communication, error)
-     Count(params *QueryParam) (int, error)
-     Exists(params *QueryParam) bool
+    GetAll(params *QueryParam) ([]models.Communication, error)
+    GetDistinct(params *QueryParam) ([]models.Communication, error)
+    Count(params *QueryParam) (int, error)
+    Exists(params *QueryParam) bool
 }
 
 type CommunicationStore struct {

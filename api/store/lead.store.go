@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/numbers"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type LeadStorer interface {
@@ -15,7 +17,13 @@ type LeadStorer interface {
 }
 
 type LeadStore struct {
-    *Store
+    db *sqlx.DB
+}
+
+func NewLeadStore(db *sqlx.DB) *LeadStore {
+    return &LeadStore{
+        db: db,
+    }
 }
 
 const (

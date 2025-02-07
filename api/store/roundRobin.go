@@ -26,6 +26,12 @@ func NewRoundRobin(asesores []models.Asesor) *RoundRobin {
 	return &r
 }
 
+// TODO
+// Remove the asesor from the list
+func (r *RoundRobin) Remove(a models.Asesor) {
+    return
+}
+
 func (r *RoundRobin) SetAsesores(asesores []models.Asesor) {
 	r.lock.RLock()
     r.asesores = asesores

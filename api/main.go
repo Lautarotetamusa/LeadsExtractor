@@ -88,41 +88,45 @@ func main() {
 		logger,
 	)
 
+    // Stores
 	storer := store.NewStore(db, logger)
+
+    leadStore := store.NewLeadStore(db)
+    utmStore := store.NewUTMStore(db)
+    commStore := store.NewCommStore(db)
+    asesorStore := store.NewAsesorDBStore(db)
 
     // Round Robin
     var asesores []models.Asesor
-    if err := storer.GetAllActiveAsesores(&asesores); err != nil{  
+    if err := asesorStore.GetAllActive(&asesores); err != nil{  
         log.Fatal("No se pudo obtener la lista de asesores")
     }
     rr := store.NewRoundRobin(asesores)
 
-    // Stores
-    leadStore := store.LeadStore{Store: storer}
-    utmStore := store.UTMStore{Store: storer}
-    commStore := store.NewCommStore(db)
-
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
-	flow.DefineActions(wpp, pipedriveApi, infobipApi, storer, &leadStore)
+	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore)
 	flowManager.MustLoad()
 
     // Services
-    leadService := handlers.NewLeadService(&leadStore)
+    leadService := handlers.NewLeadService(leadStore)
     commsService := handlers.CommunicationService{ 
         RoundRobin: rr,
         Logger: logger,
         Flows: *flowManager,
-        Utms: &utmStore,
-        Comms: commStore,
         Store: *storer,
-        Leads: *leadService,
+
+        Utms: utmStore,
+        Comms: commStore,
+        Leads: leadService,
     }
+    asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 
     // Handlers
     leadHandler := handlers.NewLeadHandler(leadService)
-    utmHandler := handlers.NewUTMHandler(&utmStore)
+    utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := pkg.NewFlowHandler(flowManager)
     commHandler := handlers.NewCommHandler(commsService)
+    asesorHandler := handlers.NewAsesorHandler(asesorService)
 
 	router := mux.NewRouter()
 
@@ -131,6 +135,7 @@ func main() {
     utmHandler.RegisterRoutes(router)
     flowHandler.RegisterRoutes(router)
     commHandler.RegisterRoutes(router)
+    asesorHandler.RegisterRoutes(router)
 
     // Server
 	apiPort := os.Getenv("API_PORT")
@@ -138,9 +143,7 @@ func main() {
     server := pkg.NewServer(pkg.ServerOpts{
         ListenAddr: host,
         Logger: logger,
-        RoundRobin: rr,
         FlowHandler: flowHandler,
-        LeadStore: &leadStore,
         CommService: &commsService,
     })
 	server.SetRoutes(router)

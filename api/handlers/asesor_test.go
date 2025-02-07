@@ -1,0 +1,111 @@
+package handlers_test
+
+import (
+	"fmt"
+	"leadsextractor/models"
+	"leadsextractor/numbers"
+	"leadsextractor/store"
+)
+
+type IAsesorStorer interface {
+    GetAll(asesores *[]models.Asesor) error
+    GetAllActive(asesores *[]models.Asesor) error
+    GetLeads(phone string) (*[]models.Lead, error)
+    GetOne(phone string) (*models.Asesor, error)
+    GetFromEmail(email string) (*models.Asesor, error)
+    Insert(*models.Asesor) error
+    Update(*models.Asesor) error
+    Delete(*models.Asesor) error
+}
+
+type mockAsesorStorer struct {
+    asesores []models.Asesor
+    leads map[string][]models.Lead
+}
+
+func newMockAsesorStore() mockAsesorStorer {
+    return mockAsesorStorer{
+        asesores: make([]models.Asesor, 0),
+        leads: make(map[string][]models.Lead),
+    }
+}
+
+func (s *mockAsesorStorer) mock() {
+    // Name   string `db:"name"   json:"name" validate:"required"`
+    // Phone  numbers.PhoneNumber `db:"phone"  json:"phone" validate:"required"`
+    // Email  string `db:"email"  json:"email" validate:"required"`
+    // Active bool   `db:"active" json:"active" validate:"required"`
+    s.asesores = []models.Asesor{
+        {"juan", numbers.PhoneNumber("5493415554444"), "juan@gmail.com", true},
+        {"carlos", numbers.PhoneNumber("5493415556666"), "carlos@gmail.com", true},
+        {"jose", numbers.PhoneNumber("5493415557777"), "", true},
+        {"maria", numbers.PhoneNumber("5493415558888"), "", false},
+        {"juana", numbers.PhoneNumber("5493415559999"), "juana@gmail.com", true},
+    }
+
+    email := models.NullString{String: "lead@gmail.com", Valid: true} 
+    s.leads["5493415554444"] = []models.Lead{
+        {"lead1", numbers.PhoneNumber("5493414449999"), email, s.asesores[0], ""},
+        {"lead2", numbers.PhoneNumber("5493414448888"), email, s.asesores[0], ""},
+        {"lead3", numbers.PhoneNumber("5493414447777"), email, s.asesores[0], ""},
+    }
+    s.leads["5493415559999"] = []models.Lead{
+        {"lead1", numbers.PhoneNumber("5493414449999"), email, s.asesores[4], ""},
+        {"lead2", numbers.PhoneNumber("5493414448888"), email, s.asesores[4], ""},
+        {"lead3", numbers.PhoneNumber("5493414447777"), email, s.asesores[4], ""},
+    }
+}
+
+func (s *mockAsesorStorer) GetAll(asesores *[]models.Asesor) error {
+    fmt.Printf("%#v\n", s.asesores)
+    asesores = &s.asesores
+    return nil
+}
+
+func (s *mockAsesorStorer) GetAllActive(asesores *[]models.Asesor) error {
+    asesores = &s.asesores
+    return nil
+}
+
+func (s *mockAsesorStorer) GetLeads(phone string) (*[]models.Lead, error) {
+    a, _ := s.GetOne(phone)
+    leads := s.leads[a.Phone.String()]
+    return &leads, nil
+}
+
+func (s *mockAsesorStorer) GetOne(phone string) (*models.Asesor, error) {
+    for _, a := range s.asesores {
+        if a.Phone.String() == phone {
+            return &a, nil
+        }
+    }
+    return nil, store.NewErr("not found", store.StoreNotFoundErr) 
+}
+
+func (s *mockAsesorStorer) GetFromEmail(email string) (*models.Asesor, error) {
+    for _, a := range s.asesores {
+        if a.Email == email {
+            return &a, nil
+        }
+    }
+    return nil, store.NewErr("not found", store.StoreNotFoundErr) 
+}
+
+func (s *mockAsesorStorer) Insert(asesor *models.Asesor) error {
+    s.asesores = append(s.asesores, *asesor)
+    return nil
+}
+
+func (s *mockAsesorStorer) Update(asesor *models.Asesor) error {
+    for i, a := range s.asesores {
+        if a.Phone.String() == asesor.Phone.String() {
+            s.asesores[i] = *asesor
+            return nil
+        }
+    }
+    return nil
+}
+
+func (s *mockAsesorStorer) Delete(asesor *models.Asesor) error {
+    return nil
+}

@@ -39,6 +39,8 @@ func (h FlowHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/flows/{uuid}", HandleErrors(h.GetFlow)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/flows/{uuid}", HandleErrors(h.DeleteFlow)).Methods("DELETE", "OPTIONS")
 
+	router.HandleFunc("/mainFlow", HandleErrors(h.SetFlowAsMain)).Methods("POST", "OPTIONS")
+
 	router.HandleFunc("/actions", HandleErrors(h.GetConfig)).Methods("GET", "OPTIONS")
 }
 

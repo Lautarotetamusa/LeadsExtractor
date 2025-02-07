@@ -1,6 +1,8 @@
 package handlers_test
 
 import (
+	"encoding/json"
+	"leadsextractor/handlers"
 	"leadsextractor/models"
 	"leadsextractor/numbers"
 	"leadsextractor/store"
@@ -23,6 +25,15 @@ func TestLeadCRUD(t *testing.T) {
     for _, tc := range tests {
         Endpoint(t, &router, tc)
     }
+
+    leadListResObj := handlers.DataResponse{
+        Success: true,
+        Data: leadStore.leads,
+    }
+    leadListRes, _ := json.Marshal(leadListResObj)
+
+    tc := APITestCase{"get all", "GET", "/lead", "", nil, http.StatusOK, string(leadListRes)}
+    Endpoint(t, &router, tc)
 }
 
 type mockLeadStorer struct {

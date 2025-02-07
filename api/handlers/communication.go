@@ -29,7 +29,7 @@ type CommunicationService struct {
     RoundRobin  *store.RoundRobin
     Logger  *slog.Logger
 
-    Leads   LeadService
+    Leads   *LeadService
 
     Flows   flow.FlowManager
     Utms    store.UTMStorer
@@ -270,8 +270,7 @@ func (s CommunicationService) runAction(c *models.Communication) {
 
 // find if the message have match with any utm
 func (s CommunicationService) findUtmInMessage(c *models.Communication) {
-    var Utms []models.UtmDefinition
-    err := s.Utms.GetAll(&Utms)
+    utms, err := s.Utms.GetAll()
     if err != nil {
         s.Logger.Error(err.Error())
         return 
@@ -281,7 +280,7 @@ func (s CommunicationService) findUtmInMessage(c *models.Communication) {
     }
 
     message := strings.ToUpper(c.Message.String)
-    for _, utm := range Utms {
+    for _, utm := range utms {
         if strings.Contains(message, utm.Code) {
             s.Logger.Info(fmt.Sprintf("found code %s in message", utm.Code))
             c.Utm = models.Utm{

@@ -1,9 +1,13 @@
 package store
 
-import "leadsextractor/models"
+import (
+	"leadsextractor/models"
+
+	"github.com/jmoiron/sqlx"
+)
 
 type UTMStorer interface {
-    GetAll(*[]models.UtmDefinition) error
+    GetAll() ([]*models.UtmDefinition, error)
     GetOne(int) (*models.UtmDefinition, error)
     GetOneByCode(string) (*models.UtmDefinition, error)
     Insert(*models.UtmDefinition) (int64, error)
@@ -11,7 +15,13 @@ type UTMStorer interface {
 }
 
 type UTMStore struct {
-    *Store
+    db *sqlx.DB
+}
+
+func NewUTMStore(db *sqlx.DB) *UTMStore {
+    return &UTMStore{
+        db: db,
+    }
 }
 
 const (
@@ -30,11 +40,12 @@ const (
     VALUES  (:code, :utm_source, :utm_medium, :utm_campaign, :utm_ad, :utm_channel)`
 )
 
-func (s *UTMStore) GetAll(utms *[]models.UtmDefinition) error {
+func (s *UTMStore) GetAll() ([]*models.UtmDefinition, error) {
+    var utms []*models.UtmDefinition
 	if err := s.db.Select(utms, "SELECT * FROM Utm ORDER BY id DESC"); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return utms, nil
 }
 
 func (s *UTMStore) GetOne(id int) (*models.UtmDefinition, error) {

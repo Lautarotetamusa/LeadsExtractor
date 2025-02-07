@@ -115,6 +115,16 @@ func createdResponse(w http.ResponseWriter, message string, data interface{}) {
     })
 }
 
+func messageResponse(w http.ResponseWriter, message string) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+
+    json.NewEncoder(w).Encode(SuccessResponse{
+        Success: true,
+        Message: message,
+    })
+}
+
 // Collect all the key-values (errors) into a []MultipleError
 func collectMultipleErrors(errorSet map[string]int) []MultipleError {
     var errors []MultipleError

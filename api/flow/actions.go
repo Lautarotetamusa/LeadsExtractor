@@ -18,10 +18,9 @@ import (
 
 //Definimos las acciones permitidas dentro de un flow
 func DefineActions(
-    wpp * whatsapp.Whatsapp, 
+    wpp *whatsapp.Whatsapp, 
     pipedriveApi *pipedrive.Pipedrive, 
     infobipApi *infobip.InfobipApi, 
-    store *store.Store,
     leadStorer store.LeadStorer,
 ) {
     cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
