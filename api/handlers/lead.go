@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
+	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"net/http"
 
@@ -43,7 +44,7 @@ func (h LeadHandler) RegisterRoutes(router *mux.Router) {
 }
 
 // GetOrInsert get the lead with phone c.Telefono in case that exists, otherwise creates one
-func (s *LeadService) GetOrInsert(rr *store.RoundRobin, c *models.Communication) (*models.Lead, error) {
+func (s *LeadService) GetOrInsert(rr *roundrobin.RoundRobin[models.Asesor], c *models.Communication) (*models.Lead, error) {
 	lead, err := s.storer.GetOne(c.Telefono)
 
     // The lead does not exists

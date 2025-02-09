@@ -7,6 +7,7 @@ import (
 	"io"
 	"leadsextractor/flow"
 	"leadsextractor/models"
+	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"log/slog"
 	"net/http"
@@ -26,7 +27,7 @@ type CommunicationHandler struct {
 }
 
 type CommunicationService struct {
-    RoundRobin  *store.RoundRobin
+    RoundRobin  *roundrobin.RoundRobin[models.Asesor]
     Logger  *slog.Logger
 
     Leads   *LeadService

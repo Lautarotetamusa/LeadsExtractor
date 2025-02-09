@@ -12,12 +12,13 @@ import (
 
 	"leadsextractor/flow"
 	"leadsextractor/handlers"
+	"leadsextractor/pkg"
 	"leadsextractor/pkg/infobip"
 	"leadsextractor/pkg/logs"
 	"leadsextractor/pkg/pipedrive"
-	"leadsextractor/pkg"
-	"leadsextractor/store"
+	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/pkg/whatsapp"
+	"leadsextractor/store"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -97,10 +98,10 @@ func main() {
 
     // Round Robin
     asesores, err := asesorStore.GetAllActive()
-    if ; err != nil{  
+    if err != nil{  
         log.Fatal("No se pudo obtener la lista de asesores")
     }
-    rr := store.NewRoundRobin(*asesores)
+    rr := roundrobin.New(*asesores)
 
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
 	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"leadsextractor/models"
+	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"net/http"
 
@@ -17,7 +18,7 @@ type AsesorHandler struct {
 }
 
 type AsesorService struct {
-    roundRobin  *store.RoundRobin
+    roundRobin  *roundrobin.RoundRobin[models.Asesor]
 
     asesor      store.AsesorStorer
     lead        store.LeadStorer
@@ -29,7 +30,7 @@ func NewAsesorHandler(s *AsesorService) *AsesorHandler {
     }
 }
 
-func NewAsesorService(asesor store.AsesorStorer, lead store.LeadStorer, rr *store.RoundRobin) *AsesorService {
+func NewAsesorService(asesor store.AsesorStorer, lead store.LeadStorer, rr *roundrobin.RoundRobin[models.Asesor]) *AsesorService {
     return &AsesorService{
         asesor: asesor,
         lead: lead,
@@ -64,7 +65,7 @@ func (s *AsesorService) ReasignLeads(a *models.Asesor) (int, error) {
     if len(*asesores) == 0 {
         return 0, ErrBadRequest("all the asesores are inactive")
     }
-    s.roundRobin.SetAsesores(*asesores)
+    s.roundRobin.Reasign(*asesores)
 
     leads, err := s.asesor.GetLeads(a.Phone.String())
     if err != nil {
@@ -193,7 +194,7 @@ func (h *AsesorHandler) Update(w http.ResponseWriter, r *http.Request) error {
         if err != nil {
             return fmt.Errorf("no fue posible obtener la lista de asesores")
         }
-        h.service.roundRobin.SetAsesores(*asesores)
+        h.service.roundRobin.Reasign(*asesores)
     }
 
 	createdResponse(w, "Asesor actualizado correctamente", asesor)
