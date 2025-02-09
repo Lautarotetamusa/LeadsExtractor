@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
-	"leadsextractor/whatsapp"
+	"leadsextractor/pkg/whatsapp"
 	"log/slog"
 	"reflect"
 	"time"

@@ -1,4 +1,4 @@
-package pkg
+package handlers
 
 import (
 	"encoding/json"
@@ -21,7 +21,8 @@ type NewBroadcastPayload struct {
 }
 
 type FlowHandler struct {
-    manager *flow.FlowManager
+    manager     *flow.FlowManager
+    commStore   store.CommunicationStorer
 }
 
 type FlowResponse struct {
@@ -32,6 +33,8 @@ type FlowResponse struct {
 }
 
 func (h FlowHandler) RegisterRoutes(router *mux.Router) {
+	router.HandleFunc("/broadcast", HandleErrors(h.NewBroadcast)).Methods("POST", "OPTIONS")
+
 	router.HandleFunc("/flows", HandleErrors(h.NewFlow)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/flows/{uuid}", HandleErrors(h.UpdateFlow)).Methods("PUT", "OPTIONS")
 	router.HandleFunc("/flows", HandleErrors(h.GetFlows)).Methods("GET", "OPTIONS")
@@ -147,22 +150,22 @@ func (h *FlowHandler) SetFlowAsMain(w http.ResponseWriter, r *http.Request) erro
     return nil
 }
 
-func (s *Server) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
+func (s *FlowHandler) NewBroadcast(w http.ResponseWriter, r *http.Request) error {
     var body NewBroadcastPayload
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return err
 	}
    
-	comms, err := s.comms.Comms.GetDistinct(&body.Condition)
+	comms, err := s.commStore.GetDistinct(&body.Condition)
 	if err != nil {
         return err
 	}
 
-    if _, err := s.flowHandler.manager.GetFlow(body.Uuid); err != nil {
+    if _, err := s.manager.GetFlow(body.Uuid); err != nil {
         return err
     }
-    go s.flowHandler.manager.Broadcast(comms, body.Uuid)
+    go s.manager.Broadcast(comms, body.Uuid)
 
 	w.Header().Set("Content-Type", "application/json")
 	res := struct {

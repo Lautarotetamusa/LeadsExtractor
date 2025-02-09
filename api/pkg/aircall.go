@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"leadsextractor/models"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 	"net/http"
 	"log/slog"
 

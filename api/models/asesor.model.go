@@ -1,6 +1,6 @@
 package models
 
-import "leadsextractor/numbers"
+import "leadsextractor/pkg/numbers"
 
 type Asesor struct {
     Name   string `db:"name"   json:"name" validate:"required"`

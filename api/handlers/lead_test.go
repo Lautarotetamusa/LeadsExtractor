@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"leadsextractor/handlers"
 	"leadsextractor/models"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 	"leadsextractor/store"
 	"net/http"
 	"testing"

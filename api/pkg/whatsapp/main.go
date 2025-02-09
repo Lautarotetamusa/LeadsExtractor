@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"leadsextractor/models"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 	"text/template"
 )
 

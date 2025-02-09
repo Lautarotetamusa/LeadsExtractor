@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
-	"leadsextractor/pipedrive"
+	"leadsextractor/pkg/pipedrive"
 	"log"
 	"log/slog"
 	"os"

@@ -2,7 +2,7 @@ package models
 
 import (
 	"database/sql"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 )
 
 type Source struct {

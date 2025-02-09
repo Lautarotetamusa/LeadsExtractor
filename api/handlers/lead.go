@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 	"leadsextractor/store"
 	"net/http"
 
@@ -34,10 +34,12 @@ func NewLeadHandler(s *LeadService) *LeadHandler {
 }
 
 func (h LeadHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/lead", HandleErrors(h.GetAll)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/lead/{phone}", HandleErrors(h.GetOne)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/lead", HandleErrors(h.Insert)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/lead/{phone}", HandleErrors(h.Update)).Methods("PUT", "OPTIONS")
+    r := router.PathPrefix("/lead").Subrouter()
+
+	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
+	r.HandleFunc("/{phone}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
+	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
+	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut)
 }
 
 // GetOrInsert get the lead with phone c.Telefono in case that exists, otherwise creates one

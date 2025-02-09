@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 	"strings"
 
 	"github.com/google/uuid"

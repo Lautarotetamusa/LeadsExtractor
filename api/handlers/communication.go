@@ -48,9 +48,9 @@ func NewCommHandler(s CommunicationService) *CommunicationHandler {
 }
 
 func (h CommunicationHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/communication", HandleErrors(h.Insert)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/communications", HandleErrors(h.GetAll)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/communication-csv", HandleErrors(h.HandleCSVUpload)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/communication", HandleErrors(h.Insert)).Methods(http.MethodPost)
+	router.HandleFunc("/communications", HandleErrors(h.GetAll)).Methods(http.MethodGet)
+	router.HandleFunc("/communication-csv", HandleErrors(h.HandleCSVUpload)).Methods(http.MethodPost)
 }
 
 func (s CommunicationService) StoreCommunication(c *models.Communication) error {

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"time"
-	"leadsextractor/pipedrive"
+	"leadsextractor/pkg/pipedrive"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"

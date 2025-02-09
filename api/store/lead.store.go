@@ -3,7 +3,7 @@ package store
 import (
 	"fmt"
 	"leadsextractor/models"
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 
 	"github.com/jmoiron/sqlx"
 )

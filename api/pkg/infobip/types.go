@@ -1,7 +1,7 @@
 package infobip
 
 import (
-	"leadsextractor/numbers"
+	"leadsextractor/pkg/numbers"
 	"log/slog"
 	"net/http"
 )

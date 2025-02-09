@@ -12,13 +12,12 @@ import (
 
 	"leadsextractor/flow"
 	"leadsextractor/handlers"
-	"leadsextractor/infobip"
-	"leadsextractor/logs"
-	"leadsextractor/models"
-	"leadsextractor/pipedrive"
+	"leadsextractor/pkg/infobip"
+	"leadsextractor/pkg/logs"
+	"leadsextractor/pkg/pipedrive"
 	"leadsextractor/pkg"
 	"leadsextractor/store"
-	"leadsextractor/whatsapp"
+	"leadsextractor/pkg/whatsapp"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -97,11 +96,11 @@ func main() {
     asesorStore := store.NewAsesorDBStore(db)
 
     // Round Robin
-    var asesores []models.Asesor
-    if err := asesorStore.GetAllActive(&asesores); err != nil{  
+    asesores, err := asesorStore.GetAllActive()
+    if ; err != nil{  
         log.Fatal("No se pudo obtener la lista de asesores")
     }
-    rr := store.NewRoundRobin(asesores)
+    rr := store.NewRoundRobin(*asesores)
 
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
 	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore)
@@ -124,7 +123,7 @@ func main() {
     // Handlers
     leadHandler := handlers.NewLeadHandler(leadService)
     utmHandler := handlers.NewUTMHandler(utmStore)
-	flowHandler := pkg.NewFlowHandler(flowManager)
+	flowHandler := handlers.NewFlowHandler(flowManager)
     commHandler := handlers.NewCommHandler(commsService)
     asesorHandler := handlers.NewAsesorHandler(asesorService)
 
@@ -143,23 +142,23 @@ func main() {
     server := pkg.NewServer(pkg.ServerOpts{
         ListenAddr: host,
         Logger: logger,
-        FlowHandler: flowHandler,
-        CommService: &commsService,
     })
-	server.SetRoutes(router)
 
 	go webhook.ConsumeEntries(commsService.NewCommunication)
 	router.Use(CORS)
 
-	router.HandleFunc("/pipedrive", pkg.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
+    aircall := pkg.NewAircall(commsService.NewCommunication, logger)
+    router.Handle("/aircall", aircall).Methods("POST", "OPTIONS")
 
-	router.HandleFunc("/wame", pkg.HandleErrors(whatsapp.GenerateWppLink)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/encode", pkg.HandleErrors(whatsapp.GenerateEncodeMsg)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/webhooks", pkg.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/pipedrive", handlers.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
+
+	router.HandleFunc("/wame", handlers.HandleErrors(whatsapp.GenerateWppLink)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/encode", handlers.HandleErrors(whatsapp.GenerateEncodeMsg)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
 
 	// Logs
-	router.HandleFunc("/logs", pkg.HandleErrors(logsHandler.GetLogs)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods("GET", "OPTIONS")
 
 	server.Run(router)
 }

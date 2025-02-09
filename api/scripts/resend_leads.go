@@ -9,7 +9,7 @@ import (
 
 	"leadsextractor/models"
 	"leadsextractor/store"
-	"leadsextractor/whatsapp"
+	"leadsextractor/pkg/whatsapp"
 
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
