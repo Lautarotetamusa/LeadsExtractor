@@ -1,32 +1,75 @@
 package handlers_test
 
 import (
-	"fmt"
+	"encoding/json"
+	"leadsextractor/handlers"
 	"leadsextractor/models"
 	"leadsextractor/numbers"
 	"leadsextractor/store"
-)
+	"net/http"
+	"testing"
 
-type IAsesorStorer interface {
-    GetAll(asesores *[]models.Asesor) error
-    GetAllActive(asesores *[]models.Asesor) error
-    GetLeads(phone string) (*[]models.Lead, error)
-    GetOne(phone string) (*models.Asesor, error)
-    GetFromEmail(email string) (*models.Asesor, error)
-    Insert(*models.Asesor) error
-    Update(*models.Asesor) error
-    Delete(*models.Asesor) error
-}
+	"github.com/gorilla/mux"
+)
 
 type mockAsesorStorer struct {
     asesores []models.Asesor
     leads map[string][]models.Lead
 }
 
-func newMockAsesorStore() mockAsesorStorer {
-    return mockAsesorStorer{
+func newMockAsesorStore() *mockAsesorStorer {
+    return &mockAsesorStorer{
         asesores: make([]models.Asesor, 0),
         leads: make(map[string][]models.Lead),
+    }
+}
+
+func Stringify(data any) string {
+    jsonData, _ := json.Marshal(data)
+    return string(jsonData)
+}
+
+func TestAsesorCRUD(t *testing.T) {
+    asesorList := handlers.NewDataResponse(asesorStore.asesores)
+    leadList := handlers.NewDataResponse(asesorStore.leads[asesorStore.asesores[0].Phone.String()])
+
+    badPhone := models.Asesor{
+        Name: "juan",
+        Phone: numbers.PhoneNumber("12345"),
+        Active: false,
+        Email: "juan@gmail.com",
+    }
+    noName := models.Asesor{
+        Phone: numbers.PhoneNumber("5493415854220"),
+        Active: false,
+        Email: "juan@gmail.com",
+    }
+    noEmail := models.Asesor{
+        Name: "juan",
+        Phone: numbers.PhoneNumber("5493415854220"),
+        Active: false,
+    }
+    valid := models.Asesor{
+        Name: "juan",
+        Phone: numbers.PhoneNumber("5493415854220"),
+        Active: true,
+        Email: "juan@gmail.com",
+    }
+
+    tests := []APITestCase{
+        {"get all", "GET", "/asesor", "", nil, http.StatusOK, Stringify(asesorList)},
+        {"bad phone", "POST", "/asesor", Stringify(badPhone), nil, http.StatusBadRequest, `*isn't a valid number*`,},
+        {"no name", "POST", "/asesor", Stringify(noName), nil, http.StatusBadRequest, `*'Name' failed on the 'required'*`,},
+        {"no email", "POST", "/asesor", Stringify(noEmail), nil, http.StatusBadRequest, `*'Email' failed on the 'required'*`,},
+        {"create", "POST", "/asesor", Stringify(valid), nil, http.StatusCreated, `*Asesor creado correctamente*`,},
+        {"get one no exists", "GET", "/asesor/5493415854222", "", nil, http.StatusNotFound, `*does not exists`,},
+        {"get leads", "GET", "/asesor/5493415554444/leads", "", nil, http.StatusOK, Stringify(leadList),},
+    }
+
+    router := mux.Router{}
+    asesorHandler.RegisterRoutes(&router)
+    for _, tc := range tests {
+        Endpoint(t, &router, tc)
     }
 }
 
@@ -56,15 +99,12 @@ func (s *mockAsesorStorer) mock() {
     }
 }
 
-func (s *mockAsesorStorer) GetAll(asesores *[]models.Asesor) error {
-    fmt.Printf("%#v\n", s.asesores)
-    asesores = &s.asesores
-    return nil
+func (s *mockAsesorStorer) GetAll() (*[]models.Asesor, error) {
+    return &s.asesores, nil
 }
 
-func (s *mockAsesorStorer) GetAllActive(asesores *[]models.Asesor) error {
-    asesores = &s.asesores
-    return nil
+func (s *mockAsesorStorer) GetAllActive() (*[]models.Asesor, error) {
+    return &s.asesores, nil
 }
 
 func (s *mockAsesorStorer) GetLeads(phone string) (*[]models.Lead, error) {
@@ -79,7 +119,7 @@ func (s *mockAsesorStorer) GetOne(phone string) (*models.Asesor, error) {
             return &a, nil
         }
     }
-    return nil, store.NewErr("not found", store.StoreNotFoundErr) 
+    return nil, store.NewErr("does not exists", store.StoreNotFoundErr) 
 }
 
 func (s *mockAsesorStorer) GetFromEmail(email string) (*models.Asesor, error) {

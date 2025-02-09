@@ -45,7 +45,9 @@ func (h *AsesorHandler) RegisterRoutes(router *mux.Router) {
 	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
 	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut)
 	r.HandleFunc("/{phone}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
+	r.HandleFunc("/{phone}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
     r.HandleFunc("/{phone}/reasign", HandleErrors(h.Reasign)).Methods(http.MethodPut)
+    r.HandleFunc("/{phone}/leads", HandleErrors(h.GetLeads)).Methods(http.MethodGet)
 }
 
 // Reasigns all the leads of an asesor to all the others active asesores with the round-robin method.
@@ -55,14 +57,14 @@ func (s *AsesorService) ReasignLeads(a *models.Asesor) (int, error) {
         return 0, fmt.Errorf("update asesor failed")
     }
 
-    var asesores []models.Asesor
-    if err := s.asesor.GetAllActive(&asesores); err != nil {
+    asesores, err := s.asesor.GetAllActive()
+    if err != nil {
         return 0, fmt.Errorf("impossible to get asesores list")
     }
-    if len(asesores) == 0 {
+    if len(*asesores) == 0 {
         return 0, ErrBadRequest("all the asesores are inactive")
     }
-    s.roundRobin.SetAsesores(asesores)
+    s.roundRobin.SetAsesores(*asesores)
 
     leads, err := s.asesor.GetLeads(a.Phone.String())
     if err != nil {
@@ -81,8 +83,8 @@ func (s *AsesorService) ReasignLeads(a *models.Asesor) (int, error) {
 }
 
 func (h *AsesorHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
-    var asesores []models.Asesor
-	if err := h.service.asesor.GetAll(&asesores); err != nil {
+    asesores, err := h.service.asesor.GetAll()
+	if err != nil {
 		return err
 	}
 
@@ -95,10 +97,22 @@ func (h *AsesorHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 
 	asesor, err := h.service.asesor.GetOne(phone)
 	if err != nil {
-        return fmt.Errorf("no se encontro el asesor con telefono %s", phone)
+        return err
 	}
 
 	dataResponse(w, asesor)
+	return nil
+}
+
+func (h *AsesorHandler) GetLeads(w http.ResponseWriter, r *http.Request) error {
+	phone := mux.Vars(r)["phone"]
+
+	leads, err := h.service.asesor.GetLeads(phone)
+	if err != nil {
+        return err
+	}
+
+	dataResponse(w, leads)
 	return nil
 }
 
@@ -121,12 +135,12 @@ func (h *AsesorHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var asesor models.Asesor
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&asesor); err != nil {
-        return err
+        return ErrBadRequest(err.Error())
     }
 
 	validate := validator.New()
     if err := validate.Struct(asesor); err != nil {
-		return err
+		return ErrBadRequest(err.Error())
 	}
 
     if err := h.service.asesor.Insert(&asesor); err != nil {
@@ -175,12 +189,11 @@ func (h *AsesorHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	}
 
     if updateAsesor.Active != nil {
-        var asesores []models.Asesor
-        err := h.service.asesor.GetAllActive(&asesores)
+        asesores, err := h.service.asesor.GetAllActive()
         if err != nil {
             return fmt.Errorf("no fue posible obtener la lista de asesores")
         }
-        h.service.roundRobin.SetAsesores(asesores)
+        h.service.roundRobin.SetAsesores(*asesores)
     }
 
 	createdResponse(w, "Asesor actualizado correctamente", asesor)

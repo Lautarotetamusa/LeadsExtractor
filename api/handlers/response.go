@@ -73,6 +73,13 @@ type MultipleError struct {
     Count int `json:"count"`
 }
 
+func NewDataResponse(data interface{}) *DataResponse {
+    return &DataResponse{
+        Success: true, 
+        Data: data,
+    }
+}
+
 func HandleErrors(fn HandlerErrorFn) HandlerFn {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
