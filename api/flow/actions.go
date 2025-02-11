@@ -99,7 +99,7 @@ func DefineActions(
                     Phone: c.Telefono,
                     Cotizacion: c.Cotizacion,
                 }
-                if err := leadStorer.Update(&lead, c.Telefono); err != nil {
+                if err := leadStorer.Update(&lead); err != nil {
                     return err
                 }
                 slog.Info("Cotizacion generada con exito")

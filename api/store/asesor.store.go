@@ -7,9 +7,9 @@ import (
 )
 
 type AsesorStorer interface {
-    GetAll() (*[]models.Asesor, error)
-    GetAllActive() (*[]models.Asesor, error)
-    GetLeads(phone string) (*[]models.Lead, error)
+    GetAll() ([]*models.Asesor, error)
+    GetAllActive() ([]*models.Asesor, error)
+    GetLeads(phone string) ([]*models.Lead, error)
     GetOne(phone string) (*models.Asesor, error)
     GetFromEmail(email string) (*models.Asesor, error)
     Insert(*models.Asesor) error
@@ -27,32 +27,32 @@ func NewAsesorDBStore(db *sqlx.DB) *AsesorDBStore {
     }
 }
 
-func (s *AsesorDBStore) GetAll() (*[]models.Asesor, error) {
-    var asesores *[]models.Asesor
-	if err := s.db.Select(asesores, "SELECT * FROM Asesor"); err != nil {
+func (s *AsesorDBStore) GetAll() ([]*models.Asesor, error) {
+    var asesores []*models.Asesor
+	if err := s.db.Select(&asesores, "SELECT * FROM Asesor"); err != nil {
 		return nil, err
 	}
 	return asesores, nil
 }
 
-func (s *AsesorDBStore) GetAllActive() (*[]models.Asesor, error) {
-    var asesores *[]models.Asesor
-	if err := s.db.Select(asesores, "SELECT * FROM Asesor where active=1"); err != nil {
+func (s *AsesorDBStore) GetAllActive() ([]*models.Asesor, error) {
+    var asesores []*models.Asesor
+	if err := s.db.Select(&asesores, "SELECT * FROM Asesor where active=1"); err != nil {
 		return nil, err
 	}
 	return asesores, nil
 }
 
-func (s *AsesorDBStore) GetLeads(phone string) (*[]models.Lead, error) {
+func (s *AsesorDBStore) GetLeads(phone string) ([]*models.Lead, error) {
 	query := `
         SELECT name, phone, email FROM Leads
         WHERE asesor=?
     `
-    var leads []models.Lead
+    var leads []*models.Lead
 	if err := s.db.Select(&leads, query, phone); err != nil {
 		return nil, err
 	}
-	return &leads, nil
+	return leads, nil
 }
 
 func (s *AsesorDBStore) GetOne(phone string) (*models.Asesor, error) {

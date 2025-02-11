@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
 	"leadsextractor/pkg/roundrobin"
@@ -50,7 +49,7 @@ func (s *LeadService) GetOrInsert(rr *roundrobin.RoundRobin[models.Asesor], c *m
     // The lead does not exists
 	if err == sql.ErrNoRows {
 		c.IsNew = true
-		c.Asesor = rr.Next()
+		c.Asesor = *rr.Next()
 
 		lead, err = s.storer.Insert(&models.CreateLead{
 			Name:        c.Nombre,
@@ -64,7 +63,7 @@ func (s *LeadService) GetOrInsert(rr *roundrobin.RoundRobin[models.Asesor], c *m
 			return nil, err
 		}
 	} else if err != nil {
-        if err := s.storer.Update(lead, lead.Phone); err != nil {
+        if err := s.storer.Update(lead); err != nil {
             return nil, err
         }
 
@@ -87,7 +86,7 @@ func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 func (h *LeadHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
     if err != nil {
-        return ErrBadRequest(fmt.Sprintf("el numero %s no es un telefono valido", phone))
+        return ErrBadRequest(err.Error())
     }
 
 	lead, err := h.service.storer.GetOne(*phone)
@@ -103,7 +102,7 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var createLead models.CreateLead
 	err := json.NewDecoder(r.Body).Decode(&createLead)
 	if err != nil {
-		return ErrBadRequest(err.Error())
+        return jsonErr(err)
 	}
 
 	validate := validator.New()
@@ -124,29 +123,41 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
     if err != nil {
-        return fmt.Errorf("el numero %s no es un telefono valido", phone.String())
+        return ErrBadRequest(err.Error())
+    }
+
+    lead, err := h.service.storer.GetOne(*phone)
+    if err != nil {
+        return err
     }
 
 	var updateLead models.UpdateLead
 	if err := json.NewDecoder(r.Body).Decode(&updateLead); err != nil {
-		return err
+        return jsonErr(err)
 	}
 
-	lead := models.Lead{
-		Phone: *phone,
-		Name:  updateLead.Name,
-		Email: updateLead.Email,
-	}
-
+    updateLeadsFields(lead, updateLead)
 	validate := validator.New()
-    if err := validate.Struct(lead); err != nil {
-		return err
+	   if err := validate.Struct(lead); err != nil {
+		return ErrBadRequest(err.Error())
 	}
 
-    if err := h.service.storer.Update(&lead, *phone); err != nil {
+    if err := h.service.storer.Update(lead); err != nil {
 		return err
 	}
 
 	createdResponse(w, "Lead actualizado correctamente", lead)
 	return nil
+}
+
+func updateLeadsFields(lead *models.Lead, update models.UpdateLead) {
+	if update.Name != "" {
+		lead.Name = update.Name
+	}
+	if update.Email.Valid {
+		lead.Email = update.Email
+	}
+	if update.Cotizacion != "" {
+		lead.Cotizacion = update.Cotizacion
+	}
 }

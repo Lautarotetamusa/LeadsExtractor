@@ -7,10 +7,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var rr *roundrobin.RoundRobin[string]
+var rr *roundrobin.RoundRobin[m]
+
+type m struct {
+    f string
+}
+
+func M(f string) *m{
+    return &m{
+        f: f,
+    }
+}
 
 func TestMain(t *testing.M) {
-    parcipants := []string{"AA", "BB", "CC", "DD"}
+    parcipants := []*m{M("AA"), M("BB"), M("CC"), M("DD")}
     rr = roundrobin.New(parcipants)
 
     t.Run()
@@ -18,25 +28,35 @@ func TestMain(t *testing.M) {
 
 func TestNext(t *testing.T) {
     bb := rr.Next()
-    assert.Equal(t, bb, "BB")
+    assert.Equal(t, bb.f, "BB")
     cc := rr.Next()
-    assert.Equal(t, cc, "CC")
+    assert.Equal(t, cc.f, "CC")
     dd := rr.Next()
-    assert.Equal(t, dd, "DD")
+    assert.Equal(t, dd.f, "DD")
     aa := rr.Next()
-    assert.Equal(t, aa, "AA")
+    assert.Equal(t, aa.f, "AA")
 }
 
 func TestRestart(t *testing.T) {
     rr.Next()
     rr.Restart()
     bb := rr.Next()
-    assert.Equal(t, bb, "BB")
+    assert.Equal(t, bb.f, "BB")
 }
 
 func TestReasign(t *testing.T) {
-    parcipants := []string{"aa", "bb", "cc", "dd"}
+    parcipants := []*m{M("aa"), M("bb"), M("cc"), M("dd")}
     rr.Reasign(parcipants)
     bb := rr.Next()
-    assert.Equal(t, bb, "bb")
+    assert.Equal(t, bb.f, "bb")
+}
+
+func TestContains(t *testing.T) {
+    assert.True(t, rr.Contains(M("aa")))
+    assert.False(t, rr.Contains(M("ee")))
+}
+
+func TestAdd(t *testing.T) {
+    rr.Add(M("EE"))
+    assert.True(t, rr.Contains(M("EE")))
 }

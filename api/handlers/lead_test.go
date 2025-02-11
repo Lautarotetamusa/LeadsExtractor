@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	"encoding/json"
 	"leadsextractor/handlers"
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
@@ -13,11 +12,39 @@ import (
 )
 
 func TestLeadCRUD(t *testing.T) {
+    leadListRes := handlers.NewDataResponse(leadStore.leads)
+
+    valid := map[string]any{
+        "phone": "5493415854220",
+        "name": "a",
+        "asesor_phone": "+5493415854221",
+    }
+    expected := map[string]any{
+        "phone": "+5493415854220",
+        "email": nil,
+        "name": "a",
+        "cotizacion": "",
+        "asesor": map[string]any{
+            "active": false,
+            "email": "test@gmail.com",
+            "name": "test",
+            "phone": "+5493415854221",
+        },
+    }
+
     tests := []APITestCase{
+        {"get all", "GET", "/lead", "", nil, http.StatusOK, Stringify(leadListRes)},
+        // Create
         {"bad phone number", "POST", "/lead", `{"phone": "12345","name": "a","asesor_phone": "11"}}`, nil, http.StatusBadRequest, `*isn't a valid number*`,},
         {"no name", "POST", "/lead", `{"phone": "+5493415854220","asesor_phone": "+5493415854221"}}`, nil, http.StatusBadRequest, `*'Name' failed on the 'required'*`,},
-        {"create", "POST", "/lead", `{"phone": "+5493415854220","name": "a","asesor_phone": "+5493415854221"}}`, nil, http.StatusCreated, `*Lead creado correctamente*`,},
+        {"create", "POST", "/lead", Stringify(valid), nil, http.StatusCreated, `*Lead creado correctamente*`,},
+        // Get
+        {"get one", "GET", "/lead/5493415854220", "", nil, http.StatusOK, Stringify(handlers.NewDataResponse(expected)),},
         {"get one no exists", "GET", "/lead/5493415854222", "", nil, http.StatusNotFound, `*does not exists`,},
+        // Update
+        {"no pass body", "PUT", "/lead/5493415854220", "", nil, http.StatusBadRequest, "",},
+        {"invalid json", "PUT", "/lead/5493415854220", `{"name": 99}`, nil, http.StatusBadRequest, "",},
+        {"update no exists", "PUT", "/lead/5493415854222", `{"name": "beatriz"}`, nil, http.StatusNotFound, "",},
     }
 
     router := mux.Router{}
@@ -26,13 +53,15 @@ func TestLeadCRUD(t *testing.T) {
         Endpoint(t, &router, tc)
     }
 
-    leadListResObj := handlers.DataResponse{
-        Success: true,
-        Data: leadStore.leads,
+    upd := map[string]any{
+        "name": "juan carlos",
     }
-    leadListRes, _ := json.Marshal(leadListResObj)
-
-    tc := APITestCase{"get all", "GET", "/lead", "", nil, http.StatusOK, string(leadListRes)}
+    expected["name"] = "juan carlos"
+    updateRes := handlers.NewSuccessResponse(expected, "Lead actualizado correctamente")
+    updatedres := handlers.NewDataResponse(expected)
+    updateTC := APITestCase{"update", "PUT", "/lead/5493415854220", Stringify(upd), nil, http.StatusCreated, Stringify(updateRes),}
+    Endpoint(t, &router, updateTC)
+    tc := APITestCase{"get updated", "GET", "/lead/5493415854220", "", nil, http.StatusOK, Stringify(updatedres),}
     Endpoint(t, &router, tc)
 }
 
@@ -76,6 +105,7 @@ func (s *mockLeadStorer) Insert(createLead *models.CreateLead) (*models.Lead, er
         Asesor: models.Asesor{
             Name: "test",
             Phone: createLead.AsesorPhone,
+            Email: "test@gmail.com", // Required field
         },
     }
 
@@ -83,10 +113,11 @@ func (s *mockLeadStorer) Insert(createLead *models.CreateLead) (*models.Lead, er
     return &lead, nil
 }
 
-func (s *mockLeadStorer) Update(uLead *models.Lead, phone numbers.PhoneNumber) error {
+func (s *mockLeadStorer) Update(uLead *models.Lead) error {
     for i, lead := range s.leads {
-        if lead.Phone == phone {
+        if lead.Phone.String() == uLead.Phone.String() {
             s.leads[i] = *uLead
+            return nil
         }
     }
     return store.NewErr("not found", store.StoreNotFoundErr)

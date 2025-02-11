@@ -6,7 +6,7 @@ type Asesor struct {
     Name   string `db:"name"   json:"name" validate:"required"`
     Phone  numbers.PhoneNumber `db:"phone"  json:"phone" validate:"required"`
     Email  string `db:"email"  json:"email" validate:"required"`
-    Active bool   `db:"active" json:"active" validate:"required"`
+    Active bool   `db:"active" json:"active"` // its not required. if its empty the default value its false
 }
 
 type UpdateAsesor struct {

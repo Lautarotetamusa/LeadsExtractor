@@ -99,9 +99,9 @@ func main() {
     // Round Robin
     asesores, err := asesorStore.GetAllActive()
     if err != nil{  
-        log.Fatal("No se pudo obtener la lista de asesores")
+        log.Fatal("No se pudo obtener la lista de asesores\nERROR: ", err.Error())
     }
-    rr := roundrobin.New(*asesores)
+    rr := roundrobin.New(asesores)
 
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
 	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore)

@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"leadsextractor/store"
+	"log/slog"
 	"net/http"
 )
 
@@ -73,6 +75,14 @@ type MultipleError struct {
     Count int `json:"count"`
 }
 
+func NewSuccessResponse(data interface{}, msg string) *SuccessResponse {
+    return &SuccessResponse{
+        Message: msg,
+        Success: true, 
+        Data: data,
+    }
+}
+
 func NewDataResponse(data interface{}) *DataResponse {
     return &DataResponse{
         Success: true, 
@@ -83,6 +93,8 @@ func NewDataResponse(data interface{}) *DataResponse {
 func HandleErrors(fn HandlerErrorFn) HandlerFn {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
+            slog.Error(fmt.Sprintf("%#v\n", err))
+
             apiErr, isApiErr := err.(APIError)
             if !isApiErr {
                 if storeErr, isStoreErr := err.(store.StoreError); isStoreErr {
@@ -153,4 +165,11 @@ func store2APIErr(s store.StoreError) APIError {
         return ErrDuplicated(s.Error())
     }
     return ErrInternal
+}
+
+func jsonErr(e error) APIError {
+    if e == io.EOF {
+        return ErrBadRequest("body its required")
+    }
+    return ErrBadRequest(e.Error())
 }

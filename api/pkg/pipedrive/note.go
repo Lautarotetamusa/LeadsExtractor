@@ -58,7 +58,7 @@ func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, erro
         c.Utm.Medium.String,
         c.Utm.Campaign.String,
         c.Utm.Ad.String,
-        c.Utm.Channel,
+        c.Utm.Channel.String,
 
         c.Asesor.Name,
     )

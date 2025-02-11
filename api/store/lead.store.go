@@ -12,7 +12,7 @@ type LeadStorer interface {
     GetAll() (*[]models.Lead, error)
     GetOne(numbers.PhoneNumber) (*models.Lead, error)
     Insert(*models.CreateLead) (*models.Lead, error)
-    Update(*models.Lead, numbers.PhoneNumber) error
+    Update(*models.Lead) error
     UpdateAsesor(numbers.PhoneNumber, *models.Asesor) error
 }
 
@@ -41,6 +41,11 @@ const (
         INNER JOIN Asesor a
             ON a.phone = l.asesor
         WHERE l.phone=?`
+
+    updateQ = `UPDATE Leads 
+        SET name=:name, 
+            cotizacion=:cotizacion 
+        WHERE phone=:phone`
 )
 
 func (s *LeadStore) GetAll() (*[]models.Lead, error) {
@@ -63,19 +68,17 @@ func (s *LeadStore) Insert(lead *models.CreateLead) (*models.Lead, error) {
 	query := "INSERT INTO Leads (name, phone, email, asesor) VALUES (:name, :phone, :email, :asesor)"
 
 	if _, err := s.db.NamedExec(query, lead); err != nil {
-        return nil, SQLNotFound(err, fmt.Sprintf("the asesor with phone %s does not exists", lead.AsesorPhone))
+        return nil, SQLNotFound(err, fmt.Sprintf("the asesor with phone %s does not exists", lead.AsesorPhone.String()))
 	}
 
     // to get the id of the lead
 	return s.GetOne(lead.Phone)
 }
 
-func (s *LeadStore) Update(lead *models.Lead, phone numbers.PhoneNumber) error {
-	query := "UPDATE Leads SET name=:name, cotizacion=:cotizacion WHERE phone=:phone"
-
-    _, err := s.db.NamedExec(query, lead);
+func (s *LeadStore) Update(lead *models.Lead) error {
+    _, err := s.db.NamedExec(updateQ, lead);
     if err != nil {
-        return SQLDuplicated(err, fmt.Sprintf("the lead with phone %s does not exists", phone))
+        return SQLNotFound(err, fmt.Sprintf("the lead with phone %s does not exists", lead.Phone.String()))
 	}
 
 	return nil
@@ -89,7 +92,7 @@ func (s *LeadStore) UpdateAsesor(phone numbers.PhoneNumber, a *models.Asesor) er
     });
 
     if err != nil {
-        return SQLNotFound(err, fmt.Sprintf("the asesor with phone %s does not exists", a.Phone))
+        return SQLNotFound(err, fmt.Sprintf("the asesor with phone %s does not exists", a.Phone.String()))
 	}	
 
     return nil

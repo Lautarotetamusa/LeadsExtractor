@@ -4,11 +4,11 @@ import "leadsextractor/pkg/numbers"
 
 
 type Lead struct {
-    Name   string       `db:"name"   json:"name"`
-    Phone  numbers.PhoneNumber       `db:"phone"  json:"phone"`
-    Email  NullString   `db:"email" json:"email"`
-    Asesor Asesor       `db:"Asesor" json:"asesor"`
-    Cotizacion string   `db:"cotizacion" json:"cotizacion"`
+    Name        string              `db:"name"       json:"name"`
+    Phone       numbers.PhoneNumber `db:"phone"      json:"phone"`
+    Email       NullString          `db:"email"      json:"email"`
+    Asesor      Asesor              `db:"Asesor"     json:"asesor"`
+    Cotizacion  string              `db:"cotizacion" json:"cotizacion"`
 }
 
 type CreateLead struct {
@@ -20,6 +20,7 @@ type CreateLead struct {
 }
 
 type UpdateLead struct {
-    Name   string       `db:"name"   json:"name" validate:"required"`
-    Email  NullString   `db:"email"  json:"email" validate:"required,email"`
+    Name   string       `db:"name"       json:"name"`
+    Email  NullString   `db:"email"      json:"email"`
+    Cotizacion string   `db:"cotizacion" json:"cotizacion"`
 }

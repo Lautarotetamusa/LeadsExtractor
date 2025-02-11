@@ -62,10 +62,10 @@ func (s *AsesorService) ReasignLeads(a *models.Asesor) (int, error) {
     if err != nil {
         return 0, fmt.Errorf("impossible to get asesores list")
     }
-    if len(*asesores) == 0 {
+    if len(asesores) == 0 {
         return 0, ErrBadRequest("all the asesores are inactive")
     }
-    s.roundRobin.Reasign(*asesores)
+    s.roundRobin.Reasign(asesores)
 
     leads, err := s.asesor.GetLeads(a.Phone.String())
     if err != nil {
@@ -74,13 +74,13 @@ func (s *AsesorService) ReasignLeads(a *models.Asesor) (int, error) {
 
     // Update all the leads of that asesor
     // TODO: Goroutines
-    for _, lead := range *leads {
+    for _, lead := range leads {
         nextAsesor := s.roundRobin.Next()
-        if err = s.lead.UpdateAsesor(lead.Phone, &nextAsesor); err != nil {
+        if err = s.lead.UpdateAsesor(lead.Phone, nextAsesor); err != nil {
             return 0, fmt.Errorf("no fue posible reasignar a %s", lead.Phone)
         }
     }
-    return len(*leads), nil
+    return len(leads), nil
 }
 
 func (h *AsesorHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
@@ -136,7 +136,7 @@ func (h *AsesorHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var asesor models.Asesor
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&asesor); err != nil {
-        return ErrBadRequest(err.Error())
+        return jsonErr(err)
     }
 
 	validate := validator.New()
@@ -147,6 +147,10 @@ func (h *AsesorHandler) Insert(w http.ResponseWriter, r *http.Request) error {
     if err := h.service.asesor.Insert(&asesor); err != nil {
 		return err
 	}
+
+    if asesor.Active {
+        h.service.roundRobin.Add(&asesor)
+    }
 
 	createdResponse(w, "Asesor creado correctamente", asesor)
 	return nil
@@ -175,26 +179,26 @@ func (h *AsesorHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	var updateAsesor models.UpdateAsesor
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&updateAsesor); err != nil {
-		return err
+		return jsonErr(err)
     }
 
     asesor, err := h.service.asesor.GetOne(phone)
     if err != nil {
-        return fmt.Errorf("no existe asesor con telefono %s", phone)
+        return err
     }
 
     updateFields(asesor, updateAsesor)
-
     if err := h.service.asesor.Update(asesor); err != nil {
 		return err
 	}
 
+    // if active field was updated, then assign all the active asesores to the round-robin
     if updateAsesor.Active != nil {
         asesores, err := h.service.asesor.GetAllActive()
         if err != nil {
-            return fmt.Errorf("no fue posible obtener la lista de asesores")
+            return fmt.Errorf("error getting the list of asesores")
         }
-        h.service.roundRobin.Reasign(*asesores)
+        h.service.roundRobin.Reasign(asesores)
     }
 
 	createdResponse(w, "Asesor actualizado correctamente", asesor)

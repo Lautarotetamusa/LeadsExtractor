@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"leadsextractor/handlers"
-	"leadsextractor/store"
+	"leadsextractor/models"
+	"leadsextractor/pkg/roundrobin"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -35,6 +36,7 @@ var (
     leadStore   mockLeadStorer
     utmStore    mockUTMStorer
     asesorStore mockAsesorStorer
+    rr  *roundrobin.RoundRobin[models.Asesor]
 )
 
 func TestMain(t *testing.M) {
@@ -46,7 +48,7 @@ func TestMain(t *testing.M) {
     asesorStore.mock()
 
     asesores, _ := asesorStore.GetAll()
-    rr := store.NewRoundRobin(*asesores)
+    rr = roundrobin.New(asesores)
 
     leadService := handlers.NewLeadService(&leadStore)
     asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
@@ -75,7 +77,7 @@ func Endpoint(t *testing.T, router *mux.Router, tc APITestCase) {
         response, _ := io.ReadAll(res.Body)
 
         if tc.WantStatus != res.StatusCode {
-            println(req.URL.String(), string(response))
+            println(req.Method, req.URL.String(), string(response))
         }
 		assert.Equal(t, tc.WantStatus, res.StatusCode, "status mismatch")
 		if tc.WantResponse != "" {

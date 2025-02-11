@@ -4,30 +4,47 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestObtainPdf(t *testing.T) {
-	if err := godotenv.Load("../../.env"); err != nil {
+var (
+    jotform *Jotform
+    form    *Form
+    submissionId string
+)
+
+func TestMain(t *testing.M) {
+    pwd, err := os.Getwd()
+    if err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
+    envPath := filepath.Join(pwd, "../../../", ".env")
+    fmt.Println(envPath)
+
+	if err := godotenv.Load(envPath); err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-    jotform := NewJotform(
+    jotform = NewJotform(
         os.Getenv("JOTFORM_API_KEY"),
         "http://localhost:8081",
     )
-    
-    form := jotform.AddForm(os.Getenv("JOTFORM_FORM_ID"))
-    submissionId := "6017823550128303377"
+
+    form = jotform.AddForm(os.Getenv("JOTFORM_FORM_ID"))
+    submissionId = "6017823550128303377"
     fmt.Printf("%#v\n", form)
 
+    t.Run()
+}
+
+func TestObtainPdf(t *testing.T) {
     res, err := jotform.ObtainPdf(submissionId, form)
-    if err != nil {
-        t.Error(err.Error())
-        fmt.Println(err.Error())
-    }
+    assert.NoError(t, err)
     fmt.Printf("%#v\n", res)
 }
 
