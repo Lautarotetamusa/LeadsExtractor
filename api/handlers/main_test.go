@@ -28,15 +28,17 @@ type APITestCase struct {
 }
 
 var (
-    utmHandler  *handlers.UTMHandler
-    leadHandler *handlers.LeadHandler
-    commHandler *handlers.CommunicationHandler
-    asesorHandler *handlers.AsesorHandler
+    utmHandler      *handlers.UTMHandler
+    leadHandler     *handlers.LeadHandler
+    commHandler     *handlers.CommunicationHandler
+    asesorHandler   *handlers.AsesorHandler
 
     leadStore   mockLeadStorer
     utmStore    mockUTMStorer
     asesorStore mockAsesorStorer
-    rr  *roundrobin.RoundRobin[models.Asesor]
+    rr          *roundrobin.RoundRobin[models.Asesor]
+
+    leadService *handlers.LeadService
 )
 
 func TestMain(t *testing.M) {
@@ -50,7 +52,7 @@ func TestMain(t *testing.M) {
     asesores, _ := asesorStore.GetAll()
     rr = roundrobin.New(asesores)
 
-    leadService := handlers.NewLeadService(&leadStore)
+    leadService = handlers.NewLeadService(&leadStore)
     asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
 
     leadHandler = handlers.NewLeadHandler(leadService) 

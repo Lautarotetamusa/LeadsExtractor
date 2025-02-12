@@ -5,7 +5,6 @@ go 1.22.1
 require (
 	atomicgo.dev/schedule v0.1.0
 	github.com/dinistavares/go-aircall-api v1.0.7
-	github.com/go-playground/assert/v2 v2.2.0
 	github.com/go-playground/validator/v10 v10.21.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gocarina/gocsv v0.0.0-20240520201108-78e41c74b4b1

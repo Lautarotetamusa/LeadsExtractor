@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
@@ -43,34 +42,36 @@ func (h LeadHandler) RegisterRoutes(router *mux.Router) {
 }
 
 // GetOrInsert get the lead with phone c.Telefono in case that exists, otherwise creates one
+// Must be in the CommunicationService
 func (s *LeadService) GetOrInsert(rr *roundrobin.RoundRobin[models.Asesor], c *models.Communication) (*models.Lead, error) {
 	lead, err := s.storer.GetOne(c.Telefono)
 
     // The lead does not exists
-	if err == sql.ErrNoRows {
+    if _, isStoreErr := err.(store.StoreError); isStoreErr{
 		c.IsNew = true
-		c.Asesor = *rr.Next()
+        c.Asesor = *rr.Next()
 
-		lead, err = s.storer.Insert(&models.CreateLead{
+		return s.storer.Insert(&models.CreateLead{
 			Name:        c.Nombre,
 			Phone:       c.Telefono,
 			Email:       c.Email,
 			AsesorPhone: c.Asesor.Phone,
             Cotizacion:  c.Cotizacion,
 		})
+	} else if lead != nil { // Duplicated lead
+        c.Asesor = lead.Asesor
 
-		if err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-        if err := s.storer.Update(lead); err != nil {
-            return nil, err
+        updateLead := models.UpdateLead{
+            Name: c.Nombre,
+            Cotizacion: c.Cotizacion,
+            Email: c.Email,
         }
+        updateLeadsFields(lead, updateLead)
+		return lead, s.storer.Update(lead)
+    }
 
-		return nil, err
-	}
-
-	return lead, nil
+    // another error in GetOne
+	return lead, err
 }
 
 func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {

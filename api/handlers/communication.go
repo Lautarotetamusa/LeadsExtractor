@@ -5,11 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"leadsextractor/flow"
 	"leadsextractor/models"
-	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
-	"log/slog"
 	"net/http"
 	"reflect"
 	"slices"
@@ -26,18 +23,6 @@ type CommunicationHandler struct {
     service CommunicationService
 }
 
-type CommunicationService struct {
-    RoundRobin  *roundrobin.RoundRobin[models.Asesor]
-    Logger  *slog.Logger
-
-    Leads   *LeadService
-
-    Flows   flow.FlowManager
-    Utms    store.UTMStorer
-    Comms   store.CommunicationStorer
-    Store   store.Store
-}
-
 const maxUploadCsvComms = 200
 
 var requiredCSVHeaders = []string{"fuente", "fecha", "propiedad.titulo", "propiedad.url", "propiedad.id", "propiedad.precio", "propiedad.ubicacion", "propiedad.habitaciones", "propiedad.banios", "propiedad.area", "nombre", "telefono", "email", "mensaje"}
@@ -52,47 +37,6 @@ func (h CommunicationHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/communication", HandleErrors(h.Insert)).Methods(http.MethodPost)
 	router.HandleFunc("/communications", HandleErrors(h.GetAll)).Methods(http.MethodGet)
 	router.HandleFunc("/communication-csv", HandleErrors(h.HandleCSVUpload)).Methods(http.MethodPost)
-}
-
-func (s CommunicationService) StoreCommunication(c *models.Communication) error {
-	source, err := s.Store.GetSource(c)
-	if err != nil {
-		return err
-	}
-
-	lead, err := s.Leads.GetOrInsert(s.RoundRobin, c)
-	if err != nil {
-		return err
-	}
-
-    s.findUtmInMessage(c)
-    
-	c.Asesor = lead.Asesor
-    c.Cotizacion = lead.Cotizacion
-    c.Email = lead.Email
-    c.Nombre = lead.Name
-
-    if err = s.Comms.Insert(c, source); err != nil {
-        s.Logger.Error(err.Error(), "path", "InsertCommunication")
-        return err
-    }
-    if c.Message.Valid && c.Message.String != "" {
-        if err = s.Store.InsertMessage(store.CommunicationToMessage(c)); err != nil {
-            return err
-        }
-    }
-    return nil
-}
-
-func (s CommunicationService) NewCommunication(c *models.Communication) error {
-    err := s.StoreCommunication(c)
-    if err != nil {
-        return err
-    }
-    
-    s.runAction(c)
-
-    return nil
 }
 
 func (h CommunicationHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
@@ -145,50 +89,6 @@ func (h CommunicationHandler) Insert(w http.ResponseWriter, r *http.Request) err
 
     createdResponse(w, "communication created succesfuly", c)
 	return nil
-}
-
-func getCommunicationsFromCSV(r *http.Request, comms *[]models.Communication) error {
-    file, _, err := r.FormFile("csv_file")
-    if err != nil {
-        return fmt.Errorf("error reading the csv_file %v", err.Error())
-    }
-    defer file.Close()
-
-    // Read the headers with encoding/csv
-    csvReader := csv.NewReader(file)
-    headers, err := csvReader.Read()
-    if err != nil {
-        return fmt.Errorf("error reading the CSV headers: %v", err)
-    }
-
-    if err := csvValidateHeaders(headers); err != nil {
-        return err
-    }
-
-    // Come back to the start of the file for the Unmarshall to work
-    file.Seek(0, io.SeekStart)
-
-    if err := gocsv.UnmarshalMultipartFile(&file, comms); err != nil {
-        return err
-    }
-
-    if len(*comms) > maxUploadCsvComms {
-        return fmt.Errorf("no se pueden cargar mas de %d comunicaciones de una sola vez", maxUploadCsvComms)
-    }
-    return nil
-}
-
-func csvValidateHeaders(headers []string) error {
-    missingFields := make([]string, 0)
-    for _, header := range requiredCSVHeaders {
-        if !slices.Contains(headers, header) {
-            missingFields = append(missingFields, header)
-        }
-    }
-    if len(missingFields) > 0 {
-        return fmt.Errorf("fields %s are missing", strings.Join(missingFields, ", "))
-    }
-    return nil
 }
 
 func (h CommunicationHandler) HandleCSVUpload(w http.ResponseWriter, r *http.Request) error {
@@ -256,43 +156,48 @@ func (h CommunicationHandler) HandleCSVUpload(w http.ResponseWriter, r *http.Req
     return nil
 }
 
-func (s CommunicationService) runAction(c *models.Communication) {
-    action, err := s.Store.GetLastActionFromLead(c.Telefono)
+func getCommunicationsFromCSV(r *http.Request, comms *[]models.Communication) error {
+    file, _, err := r.FormFile("csv_file")
     if err != nil {
-        s.Logger.Error("cannot get the lead last action", "err", err)
+        return fmt.Errorf("error reading the csv_file %v", err.Error())
+    }
+    defer file.Close()
+
+    // Read the headers with encoding/csv
+    csvReader := csv.NewReader(file)
+    headers, err := csvReader.Read()
+    if err != nil {
+        return fmt.Errorf("error reading the CSV headers: %v", err)
     }
 
-    if action != nil && action.OnResponse.Valid {
-        go s.Flows.RunFlow(c, action.OnResponse.UUID)
-    }else{
-        go s.Flows.RunMainFlow(c)
+    if err := csvValidateHeaders(headers); err != nil {
+        return err
     }
+
+    // Come back to the start of the file for the Unmarshall to work
+    file.Seek(0, io.SeekStart)
+
+    if err := gocsv.UnmarshalMultipartFile(&file, comms); err != nil {
+        return err
+    }
+
+    if len(*comms) > maxUploadCsvComms {
+        return fmt.Errorf("no se pueden cargar mas de %d comunicaciones de una sola vez", maxUploadCsvComms)
+    }
+    return nil
 }
 
-// find if the message have match with any utm
-func (s CommunicationService) findUtmInMessage(c *models.Communication) {
-    utms, err := s.Utms.GetAll()
-    if err != nil {
-        s.Logger.Error(err.Error())
-        return 
-    }
-    if !c.Message.Valid {
-        return 
-    }
-
-    message := strings.ToUpper(c.Message.String)
-    for _, utm := range utms {
-        if strings.Contains(message, utm.Code) {
-            s.Logger.Info(fmt.Sprintf("found code %s in message", utm.Code))
-            c.Utm = models.Utm{
-                Medium: utm.Medium,
-                Source: utm.Source,
-                Campaign: utm.Campaign,
-                Ad: utm.Ad,
-                Channel: utm.Channel,
-            }
+func csvValidateHeaders(headers []string) error {
+    missingFields := make([]string, 0)
+    for _, header := range requiredCSVHeaders {
+        if !slices.Contains(headers, header) {
+            missingFields = append(missingFields, header)
         }
     }
+    if len(missingFields) > 0 {
+        return fmt.Errorf("fields %s are missing", strings.Join(missingFields, ", "))
+    }
+    return nil
 }
 
 // 2 de enero del 2006, se usa siempre esta fecha por algun motivo extraño xd

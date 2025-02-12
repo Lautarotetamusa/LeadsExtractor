@@ -5,6 +5,7 @@ import (
 	"leadsextractor/store"
 )
 
+
 type mockCommStorer struct {
     comms []models.Communication
 }
