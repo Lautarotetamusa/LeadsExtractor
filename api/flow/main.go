@@ -12,6 +12,22 @@ import (
 	"github.com/google/uuid"
 )
 
+type flowManager interface {
+    GetAll() map[uuid.UUID]Flow
+    GetMainUUID() uuid.UUID
+    GetOne(uuid uuid.UUID) (*Flow, error)
+    GetMain() (*Flow, error)
+
+    SetMain(uuid uuid.UUID) error
+    Add(flow *Flow) (*uuid.UUID, error)
+    Update(flow *Flow, uuid uuid.UUID) error
+    Delete(uuid uuid.UUID) error
+
+    Broadcast(comms []models.Communication, uuid uuid.UUID) error
+    RunMain(c *models.Communication)
+    Run(c *models.Communication, uuid uuid.UUID)
+}
+
 func (f *FlowManager) MustLoad() {
     file, err := os.Open(f.filename)
     if err != nil {
@@ -38,15 +54,15 @@ func (f *FlowManager) Save() error {
     return nil
 }
 
-func (f *FlowManager) GetFlows() map[uuid.UUID]Flow {
+func (f *FlowManager) GetAll() map[uuid.UUID]Flow {
     return f.Flows 
 }
 
-func (f *FlowManager) GetMain() uuid.UUID {
+func (f *FlowManager) GetMainUUID() uuid.UUID {
     return f.Main 
 }
 
-func (f *FlowManager) GetFlow(uuid uuid.UUID) (*Flow, error){
+func (f *FlowManager) GetOne(uuid uuid.UUID) (*Flow, error){
     flow, ok := f.Flows[uuid] 
     if !ok{
         return nil, fmt.Errorf("el flow con uuid %s no existe", uuid)
@@ -54,7 +70,7 @@ func (f *FlowManager) GetFlow(uuid uuid.UUID) (*Flow, error){
     return &flow, nil
 }
 
-func (f *FlowManager) GetMainFlow() (*Flow, error){
+func (f *FlowManager) GetMain() (*Flow, error){
     flow, ok := f.Flows[f.Main] 
     if !ok{
         return nil, fmt.Errorf("no hay ningun flow main")
@@ -71,20 +87,7 @@ func (f *FlowManager) SetMain(uuid uuid.UUID) error {
     return nil
 }
 
-func (f *FlowManager) validateOnResponse(flow *Flow) error {
-    for _, rule := range flow.Rules {
-        if !rule.OnResponse.Valid{
-            continue
-        }
-        _, ok := f.Flows[rule.OnResponse.UUID]
-        if !ok {
-            return fmt.Errorf("on_respose=%s no corresponde a ningun flow", rule.OnResponse.UUID)
-        }
-    }
-    return nil
-}
-
-func (f *FlowManager) AddFlow(flow *Flow) (*uuid.UUID, error) {
+func (f *FlowManager) Add(flow *Flow) (*uuid.UUID, error) {
     uuid, err := uuid.NewRandom()
     if err != nil {
         return nil, fmt.Errorf("no se pudo generar una uuid: %s", err)
@@ -102,7 +105,7 @@ func (f *FlowManager) AddFlow(flow *Flow) (*uuid.UUID, error) {
     return &uuid, nil
 }
 
-func (f *FlowManager) UpdateFlow(flow *Flow, uuid uuid.UUID) error {
+func (f *FlowManager) Update(flow *Flow, uuid uuid.UUID) error {
     f.Flows[uuid] = *flow
     if err := f.Save(); err != nil {
         return err
@@ -111,7 +114,7 @@ func (f *FlowManager) UpdateFlow(flow *Flow, uuid uuid.UUID) error {
     return nil
 }
 
-func (f *FlowManager) DeleteFlow(uuid uuid.UUID) error {
+func (f *FlowManager) Delete(uuid uuid.UUID) error {
     if uuid == f.Main {
         return fmt.Errorf("no se puede eliminar el flow principal")
     }
@@ -180,4 +183,17 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
             })
         }
     }
+}
+
+func (f *FlowManager) validateOnResponse(flow *Flow) error {
+    for _, rule := range flow.Rules {
+        if !rule.OnResponse.Valid{
+            continue
+        }
+        _, ok := f.Flows[rule.OnResponse.UUID]
+        if !ok {
+            return fmt.Errorf("on_respose=%s no corresponde a ningun flow", rule.OnResponse.UUID)
+        }
+    }
+    return nil
 }

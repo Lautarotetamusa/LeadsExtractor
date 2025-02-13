@@ -13,6 +13,7 @@ type Message struct {
     Text            string  `db:"text"`
     Wamid           models.NullString  `db:"wamid"`
 }
+
 var insertFields = []string{"id_communication", "text", "wamid"};
 const tableName = "Message";
 

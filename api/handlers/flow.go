@@ -33,18 +33,17 @@ type FlowResponse struct {
 }
 
 func (h FlowHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/broadcast", HandleErrors(h.NewBroadcast)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/broadcast", HandleErrors(h.NewBroadcast)).Methods(http.MethodPost)
+	router.HandleFunc("/mainFlow", HandleErrors(h.SetFlowAsMain)).Methods(http.MethodPost)
+	router.HandleFunc("/actions", HandleErrors(h.GetConfig)).Methods(http.MethodGet)
 
-	router.HandleFunc("/flows", HandleErrors(h.NewFlow)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/flows/{uuid}", HandleErrors(h.UpdateFlow)).Methods("PUT", "OPTIONS")
-	router.HandleFunc("/flows", HandleErrors(h.GetFlows)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/flows/main", HandleErrors(h.GetMainFlow)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/flows/{uuid}", HandleErrors(h.GetFlow)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/flows/{uuid}", HandleErrors(h.DeleteFlow)).Methods("DELETE", "OPTIONS")
-
-	router.HandleFunc("/mainFlow", HandleErrors(h.SetFlowAsMain)).Methods("POST", "OPTIONS")
-
-	router.HandleFunc("/actions", HandleErrors(h.GetConfig)).Methods("GET", "OPTIONS")
+    r := router.PathPrefix("/flows").Subrouter()
+	r.HandleFunc("", HandleErrors(h.NewFlow)).Methods(http.MethodPost)
+	r.HandleFunc("/{uuid}", HandleErrors(h.UpdateFlow)).Methods(http.MethodPut)
+	r.HandleFunc("", HandleErrors(h.GetFlows)).Methods(http.MethodGet)
+	r.HandleFunc("/main", HandleErrors(h.GetMainFlow)).Methods(http.MethodGet)
+	r.HandleFunc("/{uuid}", HandleErrors(h.GetFlow)).Methods(http.MethodGet)
+	r.HandleFunc("/{uuid}", HandleErrors(h.DeleteFlow)).Methods(http.MethodDelete)
 }
 
 func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
@@ -60,18 +59,18 @@ func (h *FlowHandler) GetConfig(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *FlowHandler) GetFlows(w http.ResponseWriter, r *http.Request) error {
-    flows := h.manager.GetFlows()
+    flows := h.manager.GetAll()
     dataResponse(w, h.parseFlows(flows))
     return nil
 }
 
 func (h *FlowHandler) GetMainFlow(w http.ResponseWriter, r *http.Request) error {
-    flow, err := h.manager.GetMainFlow()
+    flow, err := h.manager.GetMain()
     if err != nil {
         return err
     }
 
-    uuid := h.manager.GetMain()
+    uuid := h.manager.GetMainUUID()
     dataResponse(w, h.parseFlow(flow, &uuid))
     return nil
 }
@@ -81,7 +80,7 @@ func (h *FlowHandler) GetFlow(w http.ResponseWriter, r *http.Request) error {
     if err != nil {
         return err
     }
-    flow, err := h.manager.GetFlow(*uuid)
+    flow, err := h.manager.GetOne(*uuid)
     if err != nil {
         return err
     }
@@ -96,7 +95,7 @@ func (h *FlowHandler) NewFlow(w http.ResponseWriter, r *http.Request) error {
         return err
     }
 
-    uuid, err := h.manager.AddFlow(&f); 
+    uuid, err := h.manager.Add(&f); 
     if err != nil {
         return err
     }
@@ -110,11 +109,11 @@ func (h *FlowHandler) DeleteFlow(w http.ResponseWriter, r *http.Request) error {
     if err != nil {
         return err
     }
-    if err := h.manager.DeleteFlow(*uuid); err != nil {
+    if err := h.manager.Delete(*uuid); err != nil {
         return err
     }
 
-    dataResponse(w, h.parseFlows(h.manager.GetFlows()))
+    dataResponse(w, h.parseFlows(h.manager.GetAll()))
     return nil
 }
 
@@ -129,11 +128,11 @@ func (h *FlowHandler) UpdateFlow(w http.ResponseWriter, r *http.Request) error {
         return err
     }
 
-    if err := h.manager.UpdateFlow(&f, *uuid); err != nil {
+    if err := h.manager.Update(&f, *uuid); err != nil {
         return err
     }
 
-    flow, _ := h.manager.GetFlow(*uuid)
+    flow, _ := h.manager.GetOne(*uuid)
     dataResponse(w, h.parseFlow(flow, uuid))
     return nil
 }
@@ -144,7 +143,7 @@ func (h *FlowHandler) SetFlowAsMain(w http.ResponseWriter, r *http.Request) erro
         return err
     }
     h.manager.SetMain(*uuid)
-    flow, _ := h.manager.GetFlow(*uuid)
+    flow, _ := h.manager.GetOne(*uuid)
 
     dataResponse(w, h.parseFlow(flow, uuid))
     return nil
@@ -162,7 +161,7 @@ func (s *FlowHandler) NewBroadcast(w http.ResponseWriter, r *http.Request) error
         return err
 	}
 
-    if _, err := s.manager.GetFlow(body.Uuid); err != nil {
+    if _, err := s.manager.GetOne(body.Uuid); err != nil {
         return err
     }
     go s.manager.Broadcast(comms, body.Uuid)
@@ -184,7 +183,7 @@ func (h *FlowHandler) getUUIDFromBody(r *http.Request) (*uuid.UUID, error) {
 		return nil, err
 	}
 
-    if _, err := h.manager.GetFlow(body.Uuid.UUID); err != nil{
+    if _, err := h.manager.GetOne(body.Uuid.UUID); err != nil{
         return nil, err
     }
 
@@ -200,7 +199,7 @@ func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
     if err != nil {
         return nil, err
     }
-    if _, err := h.manager.GetFlow(uuid); err != nil{
+    if _, err := h.manager.GetOne(uuid); err != nil{
         return nil, err
     }
 
@@ -209,7 +208,7 @@ func (h *FlowHandler) getUUIDFromParam(r *http.Request) (*uuid.UUID, error) {
 
 func (h *FlowHandler) parseFlow(f *flow.Flow, uuid *uuid.UUID) *FlowResponse {
     return &FlowResponse{
-        IsMain: h.manager.GetMain() == *uuid,
+        IsMain: h.manager.GetMainUUID() == *uuid,
         Uuid: *uuid,
         Rules: f.Rules,
         Name: f.Name,
