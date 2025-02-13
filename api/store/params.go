@@ -9,21 +9,21 @@ import (
 )
 
 type QueryParam struct {
-    DateFrom    time.Time `schema:"fecha_from" json:"fecha_from,omitempty" db:"dateFrom" select:"C.created_at"`
-    DateTo      time.Time `schema:"fecha_to" json:"fecha_to,omitempty" db:"dateTo" select:"C.created_at"`
+    DateFrom    time.Time `schema:"fecha_from"  json:"fecha_from,omitempty,omitzero" db:"dateFrom" select:"C.created_at"`
+    DateTo      time.Time `schema:"fecha_to"    json:"fecha_to,omitempty,omitzero" db:"dateTo" select:"C.created_at"`
     AsesorPhone string    `schema:"asesor_phone" json:"asesor_phone,omitempty" db:"asesorPhone" select:"A.phone"`
     AsesorName  string    `schema:"asesor_name" json:"asesor_name,omitempty" db:"asesorName" select:"A.name"`
-    Fuente      string    `schema:"fuente" json:"fuente,omitempty" db:"fuente" select:"IF(S.type = 'property', P.portal, S.type)"`
-    Nombre      string    `schema:"nombre" json:"nombre,omitempty" db:"nombre" select:"L.name"`
-    Telefono    string    `schema:"telefono" json:"telefono,omitempty" db:"telefono" select:"L.phone"`
-    IsNew       *bool     `schema:"is_new" json:"is_new,omitempty" db:"isNew" select:"C.new_lead"`
-    Page        int       `schema:"page" json:"page,omitempty" db:"page"`
-    PageSize    int       `schema:"page_size" json:"page_size,omitempty"`
-    Message     string    `schema:"message" db:"message" json:"message" select:"M.text"`
-    UtmSource   string    `schema:"utm_source" json:"utm_source,omitempty" db:"utm_source" select:"C.utm_source"`
-    UtmMedium   string    `schema:"utm_medium" json:"utm_medium,omitempty" db:"utm_medium" select:"C.utm_medium"`
+    Fuente      string    `schema:"fuente"      json:"fuente,omitempty" db:"fuente" select:"IF(S.type = 'property', P.portal, S.type)"`
+    Nombre      string    `schema:"nombre"      json:"nombre,omitempty" db:"nombre" select:"L.name"`
+    Telefono    string    `schema:"telefono"    json:"telefono,omitempty" db:"telefono" select:"L.phone"`
+    IsNew       *bool     `schema:"is_new"      json:"is_new,omitempty" db:"isNew" select:"C.new_lead"`
+    Page        int       `schema:"page"        json:"page,omitempty" db:"page"`
+    PageSize    int       `schema:"page_size"   json:"page_size,omitempty"`
+    Message     string    `schema:"message"     json:"message,omitempty,omitzero" db:"message" select:"M.text"`
+    UtmSource   string    `schema:"utm_source"  json:"utm_source,omitempty" db:"utm_source" select:"C.utm_source"`
+    UtmMedium   string    `schema:"utm_medium"  json:"utm_medium,omitempty" db:"utm_medium" select:"C.utm_medium"`
     UtmCampaign string    `schema:"utm_campaign" json:"utm_campaign,omitempty" db:"utm_campaign" select:"C.utm_campaign"`
-    UtmAd       string    `schema:"utm_ad" json:"utm_ad,omitempty" db:"utm_ad" select:"C.utm_ad"`
+    UtmAd       string    `schema:"utm_ad"      json:"utm_ad,omitempty" db:"utm_ad" select:"C.utm_ad"`
     UtmChannel  string    `schema:"utm_channel" json:"utm_channel,omitempty" db:"utm_channel" select:"C.utm_channel"`
 }
 

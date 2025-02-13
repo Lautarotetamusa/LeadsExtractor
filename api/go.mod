@@ -1,6 +1,6 @@
 module leadsextractor
 
-go 1.22.1
+go 1.24.0
 
 require (
 	atomicgo.dev/schedule v0.1.0
