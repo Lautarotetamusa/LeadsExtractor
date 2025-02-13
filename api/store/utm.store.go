@@ -12,6 +12,7 @@ type UTMStorer interface {
     GetOneByCode(string) (*models.UtmDefinition, error)
     Insert(*models.UtmDefinition) (int64, error)
     Update(*models.UtmDefinition) error
+    Delete(int) error
 }
 
 type UTMStore struct {
@@ -80,6 +81,15 @@ func (s *UTMStore) Insert(utm *models.UtmDefinition) (int64, error) {
 func (s *UTMStore) Update(utm *models.UtmDefinition) error {
 	if _, err := s.db.NamedExec(updateUTMQuery, utm); err != nil {
         return SQLDuplicated(err, "utm with this code already exists")
+	}
+	return nil
+}
+
+func (s *UTMStore) Delete(id int) error {
+    query := "DELETE FROM Utm Where id=$1"
+
+	if _, err := s.db.Exec(query, id); err != nil {
+		return SQLNotFound(err, "utm not found")
 	}
 	return nil
 }

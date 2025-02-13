@@ -34,6 +34,7 @@ func (h UTMHandler) RegisterRoutes(router *mux.Router) {
 	r.HandleFunc("/{id}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
 	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
 	r.HandleFunc("/{id}", HandleErrors(h.Update)).Methods(http.MethodPut)
+	r.HandleFunc("/{id}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
 }
 
 func validateChannel(utm *models.UtmDefinition) error {
@@ -70,7 +71,7 @@ func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var utm models.UtmDefinition
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
-        return ErrBadRequest(err.Error())
+        return jsonErr(err)
     }
 
     if err := validateChannel(&utm); err != nil {
@@ -105,7 +106,7 @@ func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 
 func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
-    id, err := strconv.Atoi(idStr)
+    id, _ := strconv.Atoi(idStr)
     utm, err := h.storer.GetOne(id)
     if err != nil {
         return err
@@ -113,7 +114,7 @@ func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
 
     defer r.Body.Close()
     if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
-		return ErrBadRequest(err.Error())
+		return jsonErr(err)
     }
 
     if err := validateChannel(utm); err != nil {
@@ -125,5 +126,17 @@ func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	createdResponse(w, "utm updated successfully", utm)
+	return nil
+}
+
+func (h UTMHandler) Delete(w http.ResponseWriter, r *http.Request) error {
+	idStr := mux.Vars(r)["id"]
+    id, _ := strconv.Atoi(idStr)
+
+    if err := h.storer.Delete(id); err != nil {
+		return err
+	}
+
+    messageResponse(w, "utm deleted successfully")
 	return nil
 }
