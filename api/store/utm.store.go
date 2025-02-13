@@ -86,7 +86,7 @@ func (s *UTMStore) Update(utm *models.UtmDefinition) error {
 }
 
 func (s *UTMStore) Delete(id int) error {
-    query := "DELETE FROM Utm Where id=$1"
+    query := "DELETE FROM Utm where id=?"
 
 	if _, err := s.db.Exec(query, id); err != nil {
 		return SQLNotFound(err, "utm not found")
