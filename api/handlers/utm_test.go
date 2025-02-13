@@ -49,10 +49,12 @@ func TestUtmDefinitionCRUD(t *testing.T) {
     }`
 
     tests := []APITestCase{
+        // Create
         {"only alphanumeric", "POST", "/utm", noAlphanumeric, nil, http.StatusBadRequest, `*only contains alphanumeric characters*`,},
         {"no code", "POST", "/utm", noCode, nil, http.StatusBadRequest, `*code is required*`,},
         {"invalid channel", "POST", "/utm", invalidChannel, nil, http.StatusBadRequest, `*channel must be one of*`,},
         {"create", "POST", "/utm", valid, nil, http.StatusCreated, `*created successfully*`,},
+        // Get
         {"get not exists", "GET", "/utm/999", "", nil, http.StatusNotFound, "*not found*"},
         {"get one", "GET", "/utm/1", "", nil, http.StatusOK, utm1},
     }
@@ -69,7 +71,7 @@ func TestUtmDefinitionCRUD(t *testing.T) {
     Endpoint(t, &router, tc)
 
     // Cant not create other utm with the same code
-    tc = APITestCase{"same code", "POST", "/utm", valid, nil, http.StatusBadRequest, `*already exists*`}
+    tc = APITestCase{"same code", "POST", "/utm", valid, nil, http.StatusConflict, `*already exists*`}
     Endpoint(t, &router, tc)
 }
 

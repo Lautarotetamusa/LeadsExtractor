@@ -77,6 +77,7 @@ func TestAsesorCRUD(t *testing.T) {
         {"no email", "POST", "/asesor", Stringify(noEmail), nil, http.StatusBadRequest, "*'Email' failed on the 'required'*",},
         {"inactive", "POST", "/asesor", Stringify(inactive), nil, http.StatusCreated, "*Asesor creado correctamente*",},
         {"create", "POST", "/asesor", Stringify(valid), nil, http.StatusCreated, "*Asesor creado correctamente*",},
+        {"already exists", "POST", "/asesor", Stringify(valid), nil, http.StatusConflict, "*already exists*",},
         // Retrieve
         {"get one no exists", "GET", "/asesor/5493415854222", "", nil, http.StatusNotFound, `*does not exists`,},
         {"get leads", "GET", "/asesor/5493415554444/leads", "", nil, http.StatusOK, Stringify(leadList),},
@@ -166,6 +167,10 @@ func (s *mockAsesorStorer) GetFromEmail(email string) (*models.Asesor, error) {
 }
 
 func (s *mockAsesorStorer) Insert(asesor *models.Asesor) error {
+    if l, _ := s.GetOne(asesor.Phone.String()); l != nil {
+        return store.NewErr("already exists", store.StoreDuplicatedErr)
+    }
+
     s.asesores = append(s.asesores, asesor)
     return nil
 }

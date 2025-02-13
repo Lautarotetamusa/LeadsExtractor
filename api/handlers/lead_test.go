@@ -40,9 +40,10 @@ func TestLeadCRUD(t *testing.T) {
         {"bad phone number", "POST", "/lead", `{"phone": "12345","name": "a","asesor_phone": "11"}}`, nil, http.StatusBadRequest, `*isn't a valid number*`,},
         {"no name", "POST", "/lead", `{"phone": "+5493415854220","asesor_phone": "+5493415854221"}}`, nil, http.StatusBadRequest, `*'Name' failed on the 'required'*`,},
         {"create", "POST", "/lead", Stringify(valid), nil, http.StatusCreated, `*Lead creado correctamente*`,},
+        {"already exists", "POST", "/lead", Stringify(valid), nil, http.StatusConflict, "*already exists*"},
         // Get
         {"get one", "GET", "/lead/5493415854220", "", nil, http.StatusOK, Stringify(handlers.NewDataResponse(expected)),},
-        {"get one no exists", "GET", "/lead/5493415854222", "", nil, http.StatusNotFound, `*does not exists`,},
+        {"get one no exists", "GET", "/lead/5493415854222", "", nil, http.StatusNotFound, "*does not exists*",},
         // Update
         {"no pass body", "PUT", "/lead/5493415854220", "", nil, http.StatusBadRequest, "",},
         {"invalid json", "PUT", "/lead/5493415854220", `{"name": 99}`, nil, http.StatusBadRequest, "",},

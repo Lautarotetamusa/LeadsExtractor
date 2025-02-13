@@ -42,7 +42,7 @@ const (
 
 func (s *UTMStore) GetAll() ([]*models.UtmDefinition, error) {
     var utms []*models.UtmDefinition
-	if err := s.db.Select(utms, "SELECT * FROM Utm ORDER BY id DESC"); err != nil {
+	if err := s.db.Select(&utms, "SELECT * FROM Utm ORDER BY id DESC"); err != nil {
 		return nil, err
 	}
 	return utms, nil

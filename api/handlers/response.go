@@ -37,7 +37,7 @@ func ErrBadRequest(msg string) APIError{
 
 func ErrDuplicated(msg string) APIError{
     return APIError{
-        Status: http.StatusBadRequest,
+        Status: http.StatusConflict,
         Msg: msg,
     }
 }

@@ -149,17 +149,15 @@ func main() {
 	router.Use(CORS)
 
     aircall := pkg.NewAircall(commsService.NewCommunication, logger)
-    router.Handle("/aircall", aircall).Methods("POST", "OPTIONS")
+    router.Handle("/aircall", aircall).Methods(http.MethodPost)
 
-	router.HandleFunc("/pipedrive", handlers.HandleErrors(pipedriveApi.HandleOAuth)).Methods("GET")
+	router.HandleFunc("/pipedrive", handlers.HandleErrors(pipedriveApi.HandleOAuth)).Methods(http.MethodGet)
 
-	router.HandleFunc("/wame", handlers.HandleErrors(whatsapp.GenerateWppLink)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/encode", handlers.HandleErrors(whatsapp.GenerateEncodeMsg)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.ReciveNotificaction)).Methods("POST", "OPTIONS")
-	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.ReciveNotificaction)).Methods(http.MethodPost)
+	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods(http.MethodGet)
 
 	// Logs
-	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods(http.MethodGet)
 
 	server.Run(router)
 }
