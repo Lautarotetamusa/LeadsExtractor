@@ -79,8 +79,8 @@ func (h CommunicationHandler) GetAll(w http.ResponseWriter, r *http.Request) err
 func (h CommunicationHandler) Insert(w http.ResponseWriter, r *http.Request) error {
     var c models.Communication
 	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(c); err != nil {
-		return err
+	if err := json.NewDecoder(r.Body).Decode(&c); err != nil {
+		return jsonErr(err)
 	}
     
     if err := h.service.NewCommunication(&c); err != nil {
