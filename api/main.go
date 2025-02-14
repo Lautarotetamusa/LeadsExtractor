@@ -89,12 +89,13 @@ func main() {
 	)
 
     // Stores
-	storer := store.NewStore(db, logger)
+	storer := store.NewStore(db)
 
     leadStore := store.NewLeadStore(db)
     utmStore := store.NewUTMStore(db)
     commStore := store.NewCommStore(db)
     asesorStore := store.NewAsesorDBStore(db)
+    sourceStore := store.NewSourceDBStore(db)
 
     // Round Robin
     asesores, err := asesorStore.GetAllActive()
@@ -108,21 +109,21 @@ func main() {
 	flowManager.MustLoad()
 
     // Services
-    leadService := handlers.NewLeadService(leadStore)
     commsService := handlers.CommunicationService{ 
         RoundRobin: rr,
         Logger: logger,
         Flows: *flowManager,
-        Store: *storer,
+        Store: storer,
 
+        Source: sourceStore,
         Utms: utmStore,
         Comms: commStore,
-        Leads: leadService,
+        Leads: leadStore,
     }
     asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 
     // Handlers
-    leadHandler := handlers.NewLeadHandler(leadService)
+    leadHandler := handlers.NewLeadHandler(leadStore)
     utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := handlers.NewFlowHandler(flowManager)
     commHandler := handlers.NewCommHandler(commsService)

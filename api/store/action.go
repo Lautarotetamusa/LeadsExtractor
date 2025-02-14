@@ -32,7 +32,6 @@ var insertFieldsAction = []string{"name", "nro", "flow_uuid", "lead_phone", "on_
 const tableNameAction = "Action";
 
 func (s *Store) SaveAction(a *ActionSave) error {
-    s.logger.Debug("saving action")
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
         tableNameAction,
         strings.Join(insertFieldsAction, ", "), 
@@ -41,7 +40,6 @@ func (s *Store) SaveAction(a *ActionSave) error {
 	if _, err := s.db.NamedExec(query, a); err != nil {
 		return err
 	}
-    s.logger.Info("action saved succesfully")
 	return nil
 }
 

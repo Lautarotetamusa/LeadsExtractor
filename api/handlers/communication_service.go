@@ -7,6 +7,7 @@ import (
 	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"log/slog"
+	"slices"
 	"strings"
 )
 
@@ -14,31 +15,26 @@ type CommunicationService struct {
     RoundRobin  *roundrobin.RoundRobin[models.Asesor]
     Logger  *slog.Logger
 
-    Leads   *LeadService
-
+    Leads   store.LeadStorer
     Flows   flow.FlowManager
     Utms    store.UTMStorer
     Comms   store.CommunicationStorer
-    Store   store.Store
+    Source  store.SourceStorer
+    Store   store.Storer
 }
 
 func (s CommunicationService) StoreCommunication(c *models.Communication) error {
-	source, err := s.Store.GetSource(c)
+	source, err := s.getOrInsertSource(c)
 	if err != nil {
 		return err
 	}
 
-	lead, err := s.Leads.GetOrInsert(s.RoundRobin, c)
+	_, err = s.SaveLead(c)
 	if err != nil {
 		return err
 	}
 
     s.findUtmInMessage(c)
-    
-	c.Asesor = lead.Asesor
-    c.Cotizacion = lead.Cotizacion
-    c.Email = lead.Email
-    c.Nombre = lead.Name
 
     // Insert the communication
     if err = s.Comms.Insert(c, source); err != nil {
@@ -46,7 +42,7 @@ func (s CommunicationService) StoreCommunication(c *models.Communication) error 
         return err
     }
 
-    // Insert the communication
+    // Insert the message
     if c.Message.Valid && c.Message.String != "" {
         if err = s.Store.InsertMessage(store.CommunicationToMessage(c)); err != nil {
             return err
@@ -66,17 +62,60 @@ func (s CommunicationService) NewCommunication(c *models.Communication) error {
     return nil
 }
 
-// GetOrInsert get the lead with phone c.Telefono in case that exists, otherwise creates one
-// Must be in the CommunicationService
-func (s *CommunicationService) saveLead(c *models.Communication) (*models.Lead, error) {
-	lead, err := s.Leads.storer.GetOne(c.Telefono)
+//  
+func (s CommunicationService) getOrInsertSource(c *models.Communication) (*models.Source, error) {
+    if err := store.ValidateSource(c.Fuente); err != nil {
+        return nil, err
+    }
+
+	if slices.Contains([]string{"whatsapp", "ivr", "viewphone"}, c.Fuente) {
+        return s.Source.GetSource(c.Fuente)
+	}
+
+	property, err := s.getOrInsertProperty(c)
+	if err != nil {
+		return nil, err
+	}
+
+    return s.Source.GetPropertySource(property.ID.Int32)
+}
+
+// If alredy exists a property with that portal_id in the db, retrieves its
+// otherwise, creates a new property and insert a source with the generated prop id
+func (s CommunicationService) getOrInsertProperty(c *models.Communication) (*models.Propiedad, error) {
+    property, err := s.Source.GetProperty(c.Propiedad.PortalId.String, c.Fuente)
+
+    // If the property doesnt exists, create it
+	if property == nil {
+        c.Propiedad.Portal = c.Fuente
+        property = &c.Propiedad
+
+        // Insert the property and get the property db auto generated id
+        err = s.Source.InsertProperty(property)
+        if err != nil {
+            return nil, err
+        }
+
+        // Insert the source with the generated id
+        err = s.Source.InsertSource(int(property.ID.Int32))
+        if err != nil {
+            return nil, err
+        }
+	}
+
+	return property, err
+}
+
+// saveLead get the lead with phone c.Telefono in case that exists, otherwise creates one
+func (s *CommunicationService) SaveLead(c *models.Communication) (*models.Lead, error) {
+	lead, err := s.Leads.GetOne(c.Telefono)
 
     // The lead does not exists
     if _, isStoreErr := err.(store.StoreError); isStoreErr{
 		c.IsNew = true
         c.Asesor = *s.RoundRobin.Next()
 
-		return s.Leads.storer.Insert(&models.CreateLead{
+        lead, err = s.Leads.Insert(&models.CreateLead{
 			Name:        c.Nombre,
 			Phone:       c.Telefono,
 			Email:       c.Email,
@@ -93,9 +132,14 @@ func (s *CommunicationService) saveLead(c *models.Communication) (*models.Lead, 
         }
 
         updateLeadsFields(lead, updateLead)
-		return lead, s.Leads.storer.Update(lead)
+		err = s.Leads.Update(lead)
     }
 
+    // Update the communication Lead fields
+	c.Cotizacion = lead.Cotizacion
+	c.Email = lead.Email
+	c.Nombre = lead.Name
+	
     // another error in GetOne
 	return lead, err
 }
@@ -109,7 +153,7 @@ func (s CommunicationService) runAction(c *models.Communication) {
     if action != nil && action.OnResponse.Valid {
         go s.Flows.RunFlow(c, action.OnResponse.UUID)
     }else{
-        go s.Flows.RunMainFlow(c)
+        go s.Flows.RunMain(c)
     }
 }
 

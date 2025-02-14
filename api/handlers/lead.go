@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
-	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"net/http"
 
@@ -13,22 +12,12 @@ import (
 )
 
 type LeadHandler struct {
-    service *LeadService
-}
-
-type LeadService struct {
     storer store.LeadStorer
 }
 
-func NewLeadService(s store.LeadStorer) *LeadService {
-    return &LeadService{
-        storer: s,
-    }
-}
-
-func NewLeadHandler(s *LeadService) *LeadHandler {
+func NewLeadHandler(s store.LeadStorer) *LeadHandler {
     return &LeadHandler{
-        service: s,
+        storer: s,
     }
 }
 
@@ -41,41 +30,8 @@ func (h LeadHandler) RegisterRoutes(router *mux.Router) {
 	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut)
 }
 
-// GetOrInsert get the lead with phone c.Telefono in case that exists, otherwise creates one
-// Must be in the CommunicationService
-func (s *LeadService) GetOrInsert(rr *roundrobin.RoundRobin[models.Asesor], c *models.Communication) (*models.Lead, error) {
-	lead, err := s.storer.GetOne(c.Telefono)
-
-    // The lead does not exists
-    if _, isStoreErr := err.(store.StoreError); isStoreErr{
-		c.IsNew = true
-        c.Asesor = *rr.Next()
-
-		return s.storer.Insert(&models.CreateLead{
-			Name:        c.Nombre,
-			Phone:       c.Telefono,
-			Email:       c.Email,
-			AsesorPhone: c.Asesor.Phone,
-            Cotizacion:  c.Cotizacion,
-		})
-	} else if lead != nil { // Duplicated lead
-        c.Asesor = lead.Asesor
-
-        updateLead := models.UpdateLead{
-            Name: c.Nombre,
-            Cotizacion: c.Cotizacion,
-            Email: c.Email,
-        }
-        updateLeadsFields(lead, updateLead)
-		return lead, s.storer.Update(lead)
-    }
-
-    // another error in GetOne
-	return lead, err
-}
-
 func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
-	leads, err := h.service.storer.GetAll()
+	leads, err := h.storer.GetAll()
 	if err != nil {
 		return err
 	}
@@ -90,7 +46,7 @@ func (h *LeadHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
         return ErrBadRequest(err.Error())
     }
 
-	lead, err := h.service.storer.GetOne(*phone)
+	lead, err := h.storer.GetOne(*phone)
 	if err != nil {
         return err
 	}
@@ -111,7 +67,7 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return ErrBadRequest(err.Error())
 	}
 
-	lead, err := h.service.storer.Insert(&createLead)
+	lead, err := h.storer.Insert(&createLead)
 	if err != nil {
         return err
 	}
@@ -127,7 +83,7 @@ func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
         return ErrBadRequest(err.Error())
     }
 
-    lead, err := h.service.storer.GetOne(*phone)
+    lead, err := h.storer.GetOne(*phone)
     if err != nil {
         return err
     }
@@ -143,7 +99,7 @@ func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 		return ErrBadRequest(err.Error())
 	}
 
-    if err := h.service.storer.Update(lead); err != nil {
+    if err := h.storer.Update(lead); err != nil {
 		return err
 	}
 

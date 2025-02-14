@@ -142,7 +142,7 @@ func (f * FlowManager) Broadcast(comms []models.Communication, uuid uuid.UUID) e
     return nil
 }
 
-func (f *FlowManager) RunMainFlow(c *models.Communication) {
+func (f *FlowManager) RunMain(c *models.Communication) {
     f.RunFlow(c, f.Main)
 }
 

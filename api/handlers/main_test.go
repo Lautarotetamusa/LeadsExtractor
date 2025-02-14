@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"io"
 	"leadsextractor/handlers"
+	"leadsextractor/mocks"
 	"leadsextractor/models"
 	"leadsextractor/pkg/roundrobin"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,29 +35,38 @@ var (
     commHandler     *handlers.CommunicationHandler
     asesorHandler   *handlers.AsesorHandler
 
-    leadStore   mockLeadStorer
-    utmStore    mockUTMStorer
-    asesorStore mockAsesorStorer
+    leadStore   mocks.MockLeadStorer
+    utmStore    mocks.MockUTMStorer
+    asesorStore mocks.MockAsesorStorer
     rr          *roundrobin.RoundRobin[models.Asesor]
 
-    leadService *handlers.LeadService
+    commService *handlers.CommunicationService
 )
 
 func TestMain(t *testing.M) {
-    leadStore = mockLeadStorer{}
-    utmStore = mockUTMStorer{}
-    asesorStore = *newMockAsesorStore()
-    leadStore.mock()
-    utmStore.mock()
-    asesorStore.mock()
+    leadStore = mocks.MockLeadStorer{}
+    utmStore = mocks.MockUTMStorer{}
+    sourceStore := mocks.MockSourceStorer{}
+    asesorStore = *mocks.NewMockAsesorStore()
+
+    leadStore.Mock()
+    utmStore.Mock()
+    asesorStore.Mock()
 
     asesores, _ := asesorStore.GetAll()
     rr = roundrobin.New(asesores)
 
-    leadService = handlers.NewLeadService(&leadStore)
     asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
 
-    leadHandler = handlers.NewLeadHandler(leadService) 
+    commService = &handlers.CommunicationService{
+        RoundRobin: rr,
+        Logger: slog.Default(),
+        Leads: &leadStore,
+        Utms: &utmStore,
+        Source: &sourceStore,
+    }
+
+    leadHandler = handlers.NewLeadHandler(&leadStore) 
     utmHandler = handlers.NewUTMHandler(&utmStore)
     asesorHandler = handlers.NewAsesorHandler(asesorService)
 
