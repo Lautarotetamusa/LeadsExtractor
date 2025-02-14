@@ -9,20 +9,20 @@ import (
 )
 
 type Server struct {
-    listenAddr  string
-    logger      *slog.Logger
+	listenAddr string
+	logger     *slog.Logger
 }
 
 type ServerOpts struct {
-    ListenAddr  string
-    Logger      *slog.Logger
+	ListenAddr string
+	Logger     *slog.Logger
 }
 
 func NewServer(opts ServerOpts) *Server {
 	return &Server{
 		listenAddr: opts.ListenAddr,
-        logger:     opts.Logger,
-    }
+		logger:     opts.Logger,
+	}
 }
 
 func (s *Server) Run(router *mux.Router) {

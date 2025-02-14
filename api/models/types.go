@@ -10,10 +10,10 @@ import (
 type NullString sql.NullString
 
 func (s *NullString) MarshalJSON() ([]byte, error) {
-    if !s.Valid {
-        return []byte("null"), nil
-    }
-    return json.Marshal(s.String)
+	if !s.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(s.String)
 }
 
 func (ns *NullString) Scan(value interface{}) error {
@@ -32,10 +32,10 @@ func (ns *NullString) Scan(value interface{}) error {
 }
 
 func (ns NullString) Value() (driver.Value, error) {
-    if !ns.Valid {
-        return nil, nil
-    }
-    return ns.String, nil
+	if !ns.Valid {
+		return nil, nil
+	}
+	return ns.String, nil
 }
 
 func (ns *NullString) UnmarshalJSON(b []byte) error {
@@ -45,6 +45,7 @@ func (ns *NullString) UnmarshalJSON(b []byte) error {
 }
 
 type NullInt16 sql.NullInt16
+
 func (ni *NullInt16) MarshalJSON() ([]byte, error) {
 	if !ni.Valid {
 		return []byte("null"), nil
@@ -69,6 +70,7 @@ func (ni *NullInt16) Scan(value interface{}) error {
 }
 
 type NullInt32 sql.NullInt32
+
 func (ni *NullInt32) MarshalJSON() ([]byte, error) {
 	if !ni.Valid {
 		return []byte("null"), nil
@@ -84,7 +86,7 @@ func (ni *NullInt32) Scan(value interface{}) error {
 	}
 
 	// if nil then make Valid false
-	if reflect.TypeOf(value) == nil || value == ""{
+	if reflect.TypeOf(value) == nil || value == "" {
 		*ni = NullInt32{i.Int32, false}
 	} else {
 		*ni = NullInt32{i.Int32, true}

@@ -6,7 +6,7 @@ import (
 )
 
 type MockCommStorer struct {
-    comms []models.Communication
+	comms []models.Communication
 }
 
 const mockComm = `{
@@ -52,21 +52,21 @@ const mockComm = `{
 }`
 
 func (s *MockCommStorer) Insert(c *models.Communication, source *models.Source) error {
-    return nil
+	return nil
 }
 
 func (s *MockCommStorer) GetAll(params *store.QueryParam) ([]models.Communication, error) {
-    return s.comms, nil
+	return s.comms, nil
 }
 
 func (s *MockCommStorer) GetDistinct(params *store.QueryParam) ([]models.Communication, error) {
-    return nil, store.NewErr("does not exists", store.StoreNotFoundErr)
+	return nil, store.NewErr("does not exists", store.StoreNotFoundErr)
 }
 
 func (s *MockCommStorer) Count(params *store.QueryParam) (int, error) {
-    return len(s.comms), nil
+	return len(s.comms), nil
 }
 
 func (s *MockCommStorer) Exists(params *store.QueryParam) bool {
-    return true
+	return true
 }

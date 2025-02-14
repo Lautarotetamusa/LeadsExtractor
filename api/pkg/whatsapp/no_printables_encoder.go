@@ -18,13 +18,13 @@ func encodeString(s string) string {
 	var encoded strings.Builder
 	for _, r := range s {
 		encodedChar := encode(int(r))
-        // Restamos uno porque len(encodedChar) nunca será menor a 1. 
-        // entonces encodeamos len=1 como len=0. Esto nos da 5 veces mas combinaciones
-        length := (len(encodedChar)-1) / RUNE_LEN
+		// Restamos uno porque len(encodedChar) nunca será menor a 1.
+		// entonces encodeamos len=1 como len=0. Esto nos da 5 veces mas combinaciones
+		length := (len(encodedChar) - 1) / RUNE_LEN
 
-        // Añade prefijo indicando la longitud
-        // El prefijo ocupa RUNE_LEN caracteres
-		encoded.WriteString(encode(length)) 
+		// Añade prefijo indicando la longitud
+		// El prefijo ocupa RUNE_LEN caracteres
+		encoded.WriteString(encode(length))
 		encoded.WriteString(encodedChar)
 	}
 	return encoded.String()
@@ -37,25 +37,25 @@ func decodeString(s string) (string, error) {
 
 	for i < len(s) {
 		// Decodifica el prefijo para obtener la longitud del carácter codificado
-        if (i+RUNE_LEN > len(s)){
-            return "", fmt.Errorf("decoded string out of index")
-        }
+		if i+RUNE_LEN > len(s) {
+			return "", fmt.Errorf("decoded string out of index")
+		}
 
 		lengthStr := s[i : i+RUNE_LEN]
 		length := decode(lengthStr)
 		if length == -1 {
-            return "", fmt.Errorf("error decoding runes %q", lengthStr)
+			return "", fmt.Errorf("error decoding runes %q", lengthStr)
 		}
 		i += RUNE_LEN
 
-        strLen := (length+1)*RUNE_LEN
-        if (i+strLen > len(s)){
-            return "", fmt.Errorf("decoded string out of index")
-        }
+		strLen := (length + 1) * RUNE_LEN
+		if i+strLen > len(s) {
+			return "", fmt.Errorf("decoded string out of index")
+		}
 		encodedChar := s[i : i+strLen]
 		decodedChar := decode(encodedChar)
 		if decodedChar == -1 {
-            return "", fmt.Errorf("error decoding runes %q", encodedChar)
+			return "", fmt.Errorf("error decoding runes %q", encodedChar)
 		}
 		decoded.WriteRune(rune(decodedChar))
 		i += strLen
@@ -93,7 +93,7 @@ func decode(s string) int {
 				break
 			}
 		}
-        if idx == -1 {
+		if idx == -1 {
 			return -1 // Error: caracter no encontrado
 		}
 		output = output*base + idx
@@ -105,9 +105,9 @@ func decode(s string) int {
 func filterNonPrintables(msg string) string {
 	var result strings.Builder
 	for _, char := range msg {
-        if slices.Contains(RUNES, char) {
+		if slices.Contains(RUNES, char) {
 			result.WriteRune(char)
-        }
+		}
 	}
 	return result.String()
 }

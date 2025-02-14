@@ -8,25 +8,25 @@ import (
 type MessageType int
 
 const (
-    TextMessage MessageType = iota
-    InteractiveMessage
-    ButtonMessage
-    OrderMessage
+	TextMessage MessageType = iota
+	InteractiveMessage
+	ButtonMessage
+	OrderMessage
 )
 
 var (
-    messageTypeName = map[MessageType]string{
-        InteractiveMessage: "interactive",
-        TextMessage: "text",
-        ButtonMessage: "button",
-        OrderMessage: "order", //TODO
-    }
-    messageTypeValue = map[string]MessageType{
-        "text" : 0,
-        "interactive": 1,
-        "button": 2,
-        "order": 3,
-    }
+	messageTypeName = map[MessageType]string{
+		InteractiveMessage: "interactive",
+		TextMessage:        "text",
+		ButtonMessage:      "button",
+		OrderMessage:       "order", //TODO
+	}
+	messageTypeValue = map[string]MessageType{
+		"text":        0,
+		"interactive": 1,
+		"button":      2,
+		"order":       3,
+	}
 )
 
 func ParseMessageType(s string) (MessageType, error) {

@@ -18,7 +18,7 @@ type Whatsapp struct {
 	numberId    string
 	client      *http.Client
 	url         string
-    logger      *slog.Logger
+	logger      *slog.Logger
 }
 
 type Response struct {
@@ -47,22 +47,22 @@ type DocumentPayload struct {
 }
 
 type TemplatePayload struct {
-	Name       string        `json:"name"`
-    Language   Language     `json:"language"`
+	Name       string       `json:"name"`
+	Language   Language     `json:"language"`
 	Components []Components `json:"components"`
 }
 
 type Parameter struct {
-    Type        string           `json:"type" jsonschema:"enum=text,enum=image,enum=video,enum=document"`
-    Text        string           `json:"text,omitempty" jsonschema:"oneof_required=text"`
-	Image       *MediaPayload    `json:"image,omitempty" jsonschema:"oneof_required=image"`
-	Video       *MediaPayload    `json:"video,omitempty" jsonschema:"oneof_required=video"`
-	Document    *DocumentPayload `json:"document,omitempty" jsonschema:"oneof_required=document"`
+	Type     string           `json:"type" jsonschema:"enum=text,enum=image,enum=video,enum=document"`
+	Text     string           `json:"text,omitempty" jsonschema:"oneof_required=text"`
+	Image    *MediaPayload    `json:"image,omitempty" jsonschema:"oneof_required=image"`
+	Video    *MediaPayload    `json:"video,omitempty" jsonschema:"oneof_required=video"`
+	Document *DocumentPayload `json:"document,omitempty" jsonschema:"oneof_required=document"`
 }
 
 type Components struct {
-    Type       string       `json:"type" jsonschema:"enum=body,enum=header"`
-	Parameters []Parameter  `json:"parameters"`
+	Type       string      `json:"type" jsonschema:"enum=body,enum=header"`
+	Parameters []Parameter `json:"parameters"`
 }
 
 type Language struct {
@@ -89,12 +89,12 @@ func NewWhatsapp(accesToken string, numberId string, l *slog.Logger) *Whatsapp {
 		accessToken: accesToken,
 		numberId:    numberId,
 		url:         fmt.Sprintf(baseUrl, numberId),
-        logger:      l.With("module", "whatsapp"),
+		logger:      l.With("module", "whatsapp"),
 	}
 	return w
 }
 
-//TODO: use MessageType
+// TODO: use MessageType
 func newPayload(to string, tipo string) *Payload {
 	return &Payload{
 		MessagingProduct: "whatsapp",
@@ -186,7 +186,7 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
 	}
 
-    w.logger.Info("Mensaje enviando correctamente", "to", payload.To, "type", payload.Type, "id", data.Messages[0].Id)
+	w.logger.Info("Mensaje enviando correctamente", "to", payload.To, "type", payload.Type, "id", data.Messages[0].Id)
 	return &data, nil
 }
 
@@ -207,4 +207,3 @@ func (w *Whatsapp) SendImage(to string, imageId string) {
 func (w *Whatsapp) SendVideo(to string, videoId string) {
 	w.Send(NewMediaPayload(to, videoId, "video"))
 }
-

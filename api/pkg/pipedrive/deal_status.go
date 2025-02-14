@@ -8,24 +8,25 @@ import (
 type DealStatus int
 
 const (
-    Open DealStatus = iota
-    Won
-    Lost
-    Deleted
+	Open DealStatus = iota
+	Won
+	Lost
+	Deleted
 )
+
 var (
-    dealStatusName = map[DealStatus]string{
-        Open: "open",
-        Won: "won",
-        Lost: "lost",
-        Deleted: "deleted",
-    }
-    dealStatusValue = map[string]DealStatus{
-        "open" : 0,
-        "won": 1,
-        "lost": 2,
-        "delted": 3,
-    }
+	dealStatusName = map[DealStatus]string{
+		Open:    "open",
+		Won:     "won",
+		Lost:    "lost",
+		Deleted: "deleted",
+	}
+	dealStatusValue = map[string]DealStatus{
+		"open":   0,
+		"won":    1,
+		"lost":   2,
+		"delted": 3,
+	}
 )
 
 func ParseDealStatus(s string) (DealStatus, error) {

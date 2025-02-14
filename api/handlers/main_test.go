@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type RouterFunc func (w http.ResponseWriter, r *http.Request) error
+type RouterFunc func(w http.ResponseWriter, r *http.Request) error
 
 type APITestCase struct {
 	Name         string
@@ -30,47 +30,47 @@ type APITestCase struct {
 }
 
 var (
-    utmHandler      *handlers.UTMHandler
-    leadHandler     *handlers.LeadHandler
-    commHandler     *handlers.CommunicationHandler
-    asesorHandler   *handlers.AsesorHandler
+	utmHandler    *handlers.UTMHandler
+	leadHandler   *handlers.LeadHandler
+	commHandler   *handlers.CommunicationHandler
+	asesorHandler *handlers.AsesorHandler
 
-    leadStore   mocks.MockLeadStorer
-    utmStore    mocks.MockUTMStorer
-    asesorStore mocks.MockAsesorStorer
-    rr          *roundrobin.RoundRobin[models.Asesor]
+	leadStore   mocks.MockLeadStorer
+	utmStore    mocks.MockUTMStorer
+	asesorStore mocks.MockAsesorStorer
+	rr          *roundrobin.RoundRobin[models.Asesor]
 
-    commService *handlers.CommunicationService
+	commService *handlers.CommunicationService
 )
 
 func TestMain(t *testing.M) {
-    leadStore = mocks.MockLeadStorer{}
-    utmStore = mocks.MockUTMStorer{}
-    sourceStore := mocks.MockSourceStorer{}
-    asesorStore = *mocks.NewMockAsesorStore()
+	leadStore = mocks.MockLeadStorer{}
+	utmStore = mocks.MockUTMStorer{}
+	sourceStore := mocks.MockSourceStorer{}
+	asesorStore = *mocks.NewMockAsesorStore()
 
-    leadStore.Mock()
-    utmStore.Mock()
-    asesorStore.Mock()
+	leadStore.Mock()
+	utmStore.Mock()
+	asesorStore.Mock()
 
-    asesores, _ := asesorStore.GetAll()
-    rr = roundrobin.New(asesores)
+	asesores, _ := asesorStore.GetAll()
+	rr = roundrobin.New(asesores)
 
-    asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
+	asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
 
-    commService = &handlers.CommunicationService{
-        RoundRobin: rr,
-        Logger: slog.Default(),
-        Leads: &leadStore,
-        Utms: &utmStore,
-        Source: &sourceStore,
-    }
+	commService = &handlers.CommunicationService{
+		RoundRobin: rr,
+		Logger:     slog.Default(),
+		Leads:      &leadStore,
+		Utms:       &utmStore,
+		Source:     &sourceStore,
+	}
 
-    leadHandler = handlers.NewLeadHandler(&leadStore) 
-    utmHandler = handlers.NewUTMHandler(&utmStore)
-    asesorHandler = handlers.NewAsesorHandler(asesorService)
+	leadHandler = handlers.NewLeadHandler(&leadStore)
+	utmHandler = handlers.NewUTMHandler(&utmStore)
+	asesorHandler = handlers.NewAsesorHandler(asesorService)
 
-    t.Run()
+	t.Run()
 }
 
 func Endpoint(t *testing.T, router *mux.Router, tc APITestCase) {
@@ -84,14 +84,14 @@ func Endpoint(t *testing.T, router *mux.Router, tc APITestCase) {
 			req.Header.Set("Content-Type", "application/json")
 		}
 
-        router.ServeHTTP(w, req)
-        res := w.Result()
-        defer res.Body.Close()
-        response, _ := io.ReadAll(res.Body)
+		router.ServeHTTP(w, req)
+		res := w.Result()
+		defer res.Body.Close()
+		response, _ := io.ReadAll(res.Body)
 
-        if tc.WantStatus != res.StatusCode {
-            println(req.Method, req.URL.String(), string(response))
-        }
+		if tc.WantStatus != res.StatusCode {
+			println(req.Method, req.URL.String(), string(response))
+		}
 		assert.Equal(t, tc.WantStatus, res.StatusCode, "status mismatch")
 		if tc.WantResponse != "" {
 			pattern := strings.Trim(tc.WantResponse, "*")
@@ -106,15 +106,15 @@ func Endpoint(t *testing.T, router *mux.Router, tc APITestCase) {
 }
 
 func GetResponse(router *mux.Router, tc APITestCase, data any) {
-    req, _ := http.NewRequest(tc.Method, tc.URL, bytes.NewBufferString(tc.Body))
-    if tc.Header != nil {
-        req.Header = tc.Header
-    }
-    w := httptest.NewRecorder()
-    req.Header.Set("Content-Type", "application/json")
+	req, _ := http.NewRequest(tc.Method, tc.URL, bytes.NewBufferString(tc.Body))
+	if tc.Header != nil {
+		req.Header = tc.Header
+	}
+	w := httptest.NewRecorder()
+	req.Header.Set("Content-Type", "application/json")
 
-    router.ServeHTTP(w, req)
-    res := w.Result()
-    defer res.Body.Close()
-    json.NewDecoder(res.Body).Decode(data)
+	router.ServeHTTP(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+	json.NewDecoder(res.Body).Decode(data)
 }

@@ -42,7 +42,7 @@ func (h *FanoutHandler) Handle(ctx context.Context, r slog.Record) error {
 			if err != nil {
 				errs = append(errs, err)
 			}
-        }
+		}
 	}
 
 	// If errs is empty, or contains only nil errors, this returns nil

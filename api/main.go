@@ -88,69 +88,69 @@ func main() {
 		logger,
 	)
 
-    // Stores
+	// Stores
 	storer := store.NewStore(db)
 
-    leadStore := store.NewLeadStore(db)
-    utmStore := store.NewUTMStore(db)
-    commStore := store.NewCommStore(db)
-    asesorStore := store.NewAsesorDBStore(db)
-    sourceStore := store.NewSourceDBStore(db)
+	leadStore := store.NewLeadStore(db)
+	utmStore := store.NewUTMStore(db)
+	commStore := store.NewCommStore(db)
+	asesorStore := store.NewAsesorDBStore(db)
+	sourceStore := store.NewSourceDBStore(db)
 
-    // Round Robin
-    asesores, err := asesorStore.GetAllActive()
-    if err != nil{  
-        log.Fatal("No se pudo obtener la lista de asesores\nERROR: ", err.Error())
-    }
-    rr := roundrobin.New(asesores)
+	// Round Robin
+	asesores, err := asesorStore.GetAllActive()
+	if err != nil {
+		log.Fatal("No se pudo obtener la lista de asesores\nERROR: ", err.Error())
+	}
+	rr := roundrobin.New(asesores)
 
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
 	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore)
 	flowManager.MustLoad()
 
-    // Services
-    commsService := handlers.CommunicationService{ 
-        RoundRobin: rr,
-        Logger: logger,
-        Flows: *flowManager,
-        Store: storer,
+	// Services
+	commsService := handlers.CommunicationService{
+		RoundRobin: rr,
+		Logger:     logger,
+		Flows:      *flowManager,
+		Store:      storer,
 
-        Source: sourceStore,
-        Utms: utmStore,
-        Comms: commStore,
-        Leads: leadStore,
-    }
-    asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
+		Source: sourceStore,
+		Utms:   utmStore,
+		Comms:  commStore,
+		Leads:  leadStore,
+	}
+	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 
-    // Handlers
-    leadHandler := handlers.NewLeadHandler(leadStore)
-    utmHandler := handlers.NewUTMHandler(utmStore)
+	// Handlers
+	leadHandler := handlers.NewLeadHandler(leadStore)
+	utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := handlers.NewFlowHandler(flowManager)
-    commHandler := handlers.NewCommHandler(commsService)
-    asesorHandler := handlers.NewAsesorHandler(asesorService)
+	commHandler := handlers.NewCommHandler(commsService)
+	asesorHandler := handlers.NewAsesorHandler(asesorService)
 
 	router := mux.NewRouter()
 
-    // Register routes
-    leadHandler.RegisterRoutes(router)
-    utmHandler.RegisterRoutes(router)
-    flowHandler.RegisterRoutes(router)
-    commHandler.RegisterRoutes(router)
-    asesorHandler.RegisterRoutes(router)
+	// Register routes
+	leadHandler.RegisterRoutes(router)
+	utmHandler.RegisterRoutes(router)
+	flowHandler.RegisterRoutes(router)
+	commHandler.RegisterRoutes(router)
+	asesorHandler.RegisterRoutes(router)
 
-    // Server
+	// Server
 	apiPort := os.Getenv("API_PORT")
 	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
-    server := pkg.NewServer(pkg.ServerOpts{
-        ListenAddr: host,
-        Logger: logger,
-    })
+	server := pkg.NewServer(pkg.ServerOpts{
+		ListenAddr: host,
+		Logger:     logger,
+	})
 
 	go webhook.ConsumeEntries(commsService.NewCommunication)
 	router.Use(CORS)
 
-    aircall := pkg.NewAircall(commsService.NewCommunication, logger)
-    router.Handle("/aircall", aircall).Methods(http.MethodPost)
+	aircall := pkg.NewAircall(commsService.NewCommunication, logger)
+	router.Handle("/aircall", aircall).Methods(http.MethodPost)
 
 	router.HandleFunc("/pipedrive", handlers.HandleErrors(pipedriveApi.HandleOAuth)).Methods(http.MethodGet)
 

@@ -12,17 +12,17 @@ import (
 )
 
 type LeadHandler struct {
-    storer store.LeadStorer
+	storer store.LeadStorer
 }
 
 func NewLeadHandler(s store.LeadStorer) *LeadHandler {
-    return &LeadHandler{
-        storer: s,
-    }
+	return &LeadHandler{
+		storer: s,
+	}
 }
 
 func (h LeadHandler) RegisterRoutes(router *mux.Router) {
-    r := router.PathPrefix("/lead").Subrouter()
+	r := router.PathPrefix("/lead").Subrouter()
 
 	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
 	r.HandleFunc("/{phone}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
@@ -42,13 +42,13 @@ func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 
 func (h *LeadHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
-    if err != nil {
-        return ErrBadRequest(err.Error())
-    }
+	if err != nil {
+		return ErrBadRequest(err.Error())
+	}
 
 	lead, err := h.storer.GetOne(*phone)
 	if err != nil {
-        return err
+		return err
 	}
 
 	dataResponse(w, lead)
@@ -59,7 +59,7 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var createLead models.CreateLead
 	err := json.NewDecoder(r.Body).Decode(&createLead)
 	if err != nil {
-        return jsonErr(err)
+		return jsonErr(err)
 	}
 
 	validate := validator.New()
@@ -69,37 +69,37 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 
 	lead, err := h.storer.Insert(&createLead)
 	if err != nil {
-        return err
+		return err
 	}
 
-    w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusCreated)
 	createdResponse(w, "Lead creado correctamente", lead)
 	return nil
 }
 
 func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	phone, err := numbers.NewPhoneNumber(mux.Vars(r)["phone"])
-    if err != nil {
-        return ErrBadRequest(err.Error())
-    }
-
-    lead, err := h.storer.GetOne(*phone)
-    if err != nil {
-        return err
-    }
-
-	var updateLead models.UpdateLead
-	if err := json.NewDecoder(r.Body).Decode(&updateLead); err != nil {
-        return jsonErr(err)
-	}
-
-    updateLeadsFields(lead, updateLead)
-	validate := validator.New()
-	   if err := validate.Struct(lead); err != nil {
+	if err != nil {
 		return ErrBadRequest(err.Error())
 	}
 
-    if err := h.storer.Update(lead); err != nil {
+	lead, err := h.storer.GetOne(*phone)
+	if err != nil {
+		return err
+	}
+
+	var updateLead models.UpdateLead
+	if err := json.NewDecoder(r.Body).Decode(&updateLead); err != nil {
+		return jsonErr(err)
+	}
+
+	updateLeadsFields(lead, updateLead)
+	validate := validator.New()
+	if err := validate.Struct(lead); err != nil {
+		return ErrBadRequest(err.Error())
+	}
+
+	if err := h.storer.Update(lead); err != nil {
 		return err
 	}
 

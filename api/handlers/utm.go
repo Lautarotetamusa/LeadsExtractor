@@ -16,19 +16,19 @@ import (
 )
 
 type UTMHandler struct {
-    storer  store.UTMStorer
+	storer store.UTMStorer
 }
 
 var validChannels = []string{"ivr", "whatsapp", "inbox"}
 
 func NewUTMHandler(s store.UTMStorer) *UTMHandler {
-    return &UTMHandler{
-        storer: s,
-    }
+	return &UTMHandler{
+		storer: s,
+	}
 }
 
 func (h UTMHandler) RegisterRoutes(router *mux.Router) {
-    r := router.PathPrefix("/utm").Subrouter()
+	r := router.PathPrefix("/utm").Subrouter()
 
 	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
 	r.HandleFunc("/{id}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
@@ -38,14 +38,14 @@ func (h UTMHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func validateChannel(utm *models.UtmDefinition) error {
-    if !slices.Contains(validChannels, utm.Channel.String) {
-        return fmt.Errorf("the channel must be one of %s", strings.Join(validChannels, ", "))
-    }
-    return nil
+	if !slices.Contains(validChannels, utm.Channel.String) {
+		return fmt.Errorf("the channel must be one of %s", strings.Join(validChannels, ", "))
+	}
+	return nil
 }
 
 func (h UTMHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
-    utms, err := h.storer.GetAll();
+	utms, err := h.storer.GetAll()
 	if err != nil {
 		return err
 	}
@@ -56,11 +56,11 @@ func (h UTMHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 
 func (h UTMHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
-    id, err := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(idStr)
 
-    utm, err := h.storer.GetOne(id)
+	utm, err := h.storer.GetOne(id)
 	if err != nil {
-        return err
+		return err
 	}
 
 	dataResponse(w, utm)
@@ -69,36 +69,36 @@ func (h UTMHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 
 func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	var utm models.UtmDefinition
-    defer r.Body.Close()
-    if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
-        return jsonErr(err)
-    }
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
+		return jsonErr(err)
+	}
 
-    if err := validateChannel(&utm); err != nil {
-        return ErrBadRequest(err.Error())
-    }
+	if err := validateChannel(&utm); err != nil {
+		return ErrBadRequest(err.Error())
+	}
 
-    if utm.Code == "" {
-        return ErrBadRequest("code is required")
-    }
+	if utm.Code == "" {
+		return ErrBadRequest("code is required")
+	}
 
-    isValid := true
-    for _, r := range utm.Code {
-        if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
-            isValid = false
-        }
-    }
+	isValid := true
+	for _, r := range utm.Code {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			isValid = false
+		}
+	}
 
-    if !isValid {
-        return ErrBadRequest("code can only contains alphanumeric characters")
-    }
-    utm.Code = strings.ToUpper(utm.Code)
+	if !isValid {
+		return ErrBadRequest("code can only contains alphanumeric characters")
+	}
+	utm.Code = strings.ToUpper(utm.Code)
 
-    id, err := h.storer.Insert(&utm); 
-    if err != nil {
+	id, err := h.storer.Insert(&utm)
+	if err != nil {
 		return err
 	}
-    utm.Id = int(id)
+	utm.Id = int(id)
 
 	createdResponse(w, "utm created successfully", utm)
 	return nil
@@ -106,22 +106,22 @@ func (h UTMHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 
 func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
-    id, _ := strconv.Atoi(idStr)
-    utm, err := h.storer.GetOne(id)
-    if err != nil {
-        return err
-    }
+	id, _ := strconv.Atoi(idStr)
+	utm, err := h.storer.GetOne(id)
+	if err != nil {
+		return err
+	}
 
-    defer r.Body.Close()
-    if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&utm); err != nil {
 		return jsonErr(err)
-    }
+	}
 
-    if err := validateChannel(utm); err != nil {
+	if err := validateChannel(utm); err != nil {
 		return ErrBadRequest(err.Error())
-    }
+	}
 
-    if err := h.storer.Update(utm); err != nil {
+	if err := h.storer.Update(utm); err != nil {
 		return err
 	}
 
@@ -131,12 +131,12 @@ func (h UTMHandler) Update(w http.ResponseWriter, r *http.Request) error {
 
 func (h UTMHandler) Delete(w http.ResponseWriter, r *http.Request) error {
 	idStr := mux.Vars(r)["id"]
-    id, _ := strconv.Atoi(idStr)
+	id, _ := strconv.Atoi(idStr)
 
-    if err := h.storer.Delete(id); err != nil {
+	if err := h.storer.Delete(id); err != nil {
 		return err
 	}
 
-    messageResponse(w, "utm deleted successfully")
+	messageResponse(w, "utm deleted successfully")
 	return nil
 }

@@ -7,26 +7,26 @@ import (
 )
 
 type UTMStorer interface {
-    GetAll() ([]*models.UtmDefinition, error)
-    GetOne(int) (*models.UtmDefinition, error)
-    GetOneByCode(string) (*models.UtmDefinition, error)
-    Insert(*models.UtmDefinition) (int64, error)
-    Update(*models.UtmDefinition) error
-    Delete(int) error
+	GetAll() ([]*models.UtmDefinition, error)
+	GetOne(int) (*models.UtmDefinition, error)
+	GetOneByCode(string) (*models.UtmDefinition, error)
+	Insert(*models.UtmDefinition) (int64, error)
+	Update(*models.UtmDefinition) error
+	Delete(int) error
 }
 
 type UTMStore struct {
-    db *sqlx.DB
+	db *sqlx.DB
 }
 
 func NewUTMStore(db *sqlx.DB) *UTMStore {
-    return &UTMStore{
-        db: db,
-    }
+	return &UTMStore{
+		db: db,
+	}
 }
 
 const (
-    updateUTMQuery = `
+	updateUTMQuery = `
         UPDATE Utm 
         SET utm_source = :utm_source,
             utm_medium = :utm_medium ,
@@ -35,14 +35,14 @@ const (
             utm_channel = :utm_channel
         WHERE id=:id`
 
-    insertUTMQuery = `
+	insertUTMQuery = `
     INSERT INTO Utm 
             ( code,  utm_source, utm_medium,  utm_campaign,  utm_ad,  utm_channel) 
     VALUES  (:code, :utm_source, :utm_medium, :utm_campaign, :utm_ad, :utm_channel)`
 )
 
 func (s *UTMStore) GetAll() ([]*models.UtmDefinition, error) {
-    var utms []*models.UtmDefinition
+	var utms []*models.UtmDefinition
 	if err := s.db.Select(&utms, "SELECT * FROM Utm ORDER BY id DESC"); err != nil {
 		return nil, err
 	}
@@ -66,27 +66,27 @@ func (s *UTMStore) GetOneByCode(code string) (*models.UtmDefinition, error) {
 }
 
 func (s *UTMStore) Insert(utm *models.UtmDefinition) (int64, error) {
-    res, err := s.db.NamedExec(insertUTMQuery, utm)
-    if err != nil {
-        return 0, SQLDuplicated(err, "utm with this code already exists")
-    }
+	res, err := s.db.NamedExec(insertUTMQuery, utm)
+	if err != nil {
+		return 0, SQLDuplicated(err, "utm with this code already exists")
+	}
 
-    id, err := res.LastInsertId()
-    if err != nil {
-        return 0, err
-    }
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
 	return id, nil
 }
 
 func (s *UTMStore) Update(utm *models.UtmDefinition) error {
 	if _, err := s.db.NamedExec(updateUTMQuery, utm); err != nil {
-        return SQLDuplicated(err, "utm with this code already exists")
+		return SQLDuplicated(err, "utm with this code already exists")
 	}
 	return nil
 }
 
 func (s *UTMStore) Delete(id int) error {
-    query := "DELETE FROM Utm where id=?"
+	query := "DELETE FROM Utm where id=?"
 
 	if _, err := s.db.Exec(query, id); err != nil {
 		return SQLNotFound(err, "utm not found")

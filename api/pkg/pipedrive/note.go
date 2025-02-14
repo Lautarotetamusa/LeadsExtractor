@@ -5,12 +5,12 @@ import (
 	"leadsextractor/models"
 )
 
-type CreateNote struct{
-    Content     string  `json:"content"`
-    DealId      uint32  `json:"deal_id"`
+type CreateNote struct {
+	Content string `json:"content"`
+	DealId  uint32 `json:"deal_id"`
 }
 
-type Note struct{
+type Note struct {
 }
 
 const noteContent = `
@@ -38,41 +38,41 @@ channel: %s
 @%s
 `
 
-func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, error){
-    content := fmt.Sprintf(noteContent, 
-        c.Fuente,
-        c.Fecha,
-        c.Message.String,
-        c.Link,
-        c.Propiedad.Titulo.String,
-        c.Propiedad.Link.String,
-        c.Propiedad.Precio.String,
-        c.Propiedad.Ubicacion.String,
-        c.Propiedad.Tipo.String,
-        c.Propiedad.Bedrooms,
-        c.Propiedad.Bathrooms,
-        c.Propiedad.TotalArea,
-        c.Propiedad.CoveredArea,
+func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, error) {
+	content := fmt.Sprintf(noteContent,
+		c.Fuente,
+		c.Fecha,
+		c.Message.String,
+		c.Link,
+		c.Propiedad.Titulo.String,
+		c.Propiedad.Link.String,
+		c.Propiedad.Precio.String,
+		c.Propiedad.Ubicacion.String,
+		c.Propiedad.Tipo.String,
+		c.Propiedad.Bedrooms,
+		c.Propiedad.Bathrooms,
+		c.Propiedad.TotalArea,
+		c.Propiedad.CoveredArea,
 
-        c.Utm.Source.String,
-        c.Utm.Medium.String,
-        c.Utm.Campaign.String,
-        c.Utm.Ad.String,
-        c.Utm.Channel.String,
+		c.Utm.Source.String,
+		c.Utm.Medium.String,
+		c.Utm.Campaign.String,
+		c.Utm.Ad.String,
+		c.Utm.Channel.String,
 
-        c.Asesor.Name,
-    )
+		c.Asesor.Name,
+	)
 
-    payload := &CreateNote{
-        Content: content,
-        DealId: dealId,
-    }
+	payload := &CreateNote{
+		Content: content,
+		DealId:  dealId,
+	}
 
-    var note Note
-    err := p.makeRequest("POST", "notes", payload, &note)
+	var note Note
+	err := p.makeRequest("POST", "notes", payload, &note)
 
-    if err != nil{
-        return nil, err
-    }
-    return &note, nil
+	if err != nil {
+		return nil, err
+	}
+	return &note, nil
 }

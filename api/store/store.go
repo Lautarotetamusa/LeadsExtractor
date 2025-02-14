@@ -10,12 +10,12 @@ import (
 // GetSource(c *models.Communication) (*models.Source, error)
 
 type Storer interface {
-    // Message storer
-    InsertMessage(*Message) error
+	// Message storer
+	InsertMessage(*Message) error
 
-    // Action storer
-    SaveAction(*ActionSave) error
-    GetLastActionFromLead(numbers.PhoneNumber) (*ActionSave, error)
+	// Action storer
+	SaveAction(*ActionSave) error
+	GetLastActionFromLead(numbers.PhoneNumber) (*ActionSave, error)
 }
 
 type Store struct {
