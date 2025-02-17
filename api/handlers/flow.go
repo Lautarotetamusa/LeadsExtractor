@@ -33,17 +33,17 @@ type FlowResponse struct {
 }
 
 func (h FlowHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/broadcast", HandleErrors(h.NewBroadcast)).Methods(http.MethodPost)
-	router.HandleFunc("/mainFlow", HandleErrors(h.SetFlowAsMain)).Methods(http.MethodPost)
-	router.HandleFunc("/actions", HandleErrors(h.GetConfig)).Methods(http.MethodGet)
+	router.HandleFunc("/broadcast", HandleErrors(h.NewBroadcast)).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/mainFlow", HandleErrors(h.SetFlowAsMain)).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/actions", HandleErrors(h.GetConfig)).Methods(http.MethodGet, http.MethodOptions)
 
 	r := router.PathPrefix("/flows").Subrouter()
-	r.HandleFunc("", HandleErrors(h.NewFlow)).Methods(http.MethodPost)
-	r.HandleFunc("/{uuid}", HandleErrors(h.UpdateFlow)).Methods(http.MethodPut)
-	r.HandleFunc("", HandleErrors(h.GetFlows)).Methods(http.MethodGet)
-	r.HandleFunc("/main", HandleErrors(h.GetMainFlow)).Methods(http.MethodGet)
-	r.HandleFunc("/{uuid}", HandleErrors(h.GetFlow)).Methods(http.MethodGet)
-	r.HandleFunc("/{uuid}", HandleErrors(h.DeleteFlow)).Methods(http.MethodDelete)
+	r.HandleFunc("", HandleErrors(h.NewFlow)).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/{uuid}", HandleErrors(h.UpdateFlow)).Methods(http.MethodPut, http.MethodOptions)
+	r.HandleFunc("", HandleErrors(h.GetFlows)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/main", HandleErrors(h.GetMainFlow)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/{uuid}", HandleErrors(h.GetFlow)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/{uuid}", HandleErrors(h.DeleteFlow)).Methods(http.MethodDelete, http.MethodOptions)
 }
 
 func NewFlowHandler(m *flow.FlowManager) *FlowHandler {

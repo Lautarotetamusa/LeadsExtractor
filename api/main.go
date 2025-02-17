@@ -130,6 +130,7 @@ func main() {
 	asesorHandler := handlers.NewAsesorHandler(asesorService)
 
 	router := mux.NewRouter()
+    router.Use(CORS)
 
 	// Register routes
 	leadHandler.RegisterRoutes(router)
@@ -147,7 +148,6 @@ func main() {
 	})
 
 	go webhook.ConsumeEntries(commsService.NewCommunication)
-	router.Use(CORS)
 
 	aircall := pkg.NewAircall(commsService.NewCommunication, logger)
 	router.Handle("/aircall", aircall).Methods(http.MethodPost)
@@ -158,7 +158,7 @@ func main() {
 	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods(http.MethodGet)
 
 	// Logs
-	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods(http.MethodGet)
+	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods(http.MethodGet, http.MethodOptions)
 
 	server.Run(router)
 }

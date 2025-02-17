@@ -30,11 +30,11 @@ func NewUTMHandler(s store.UTMStorer) *UTMHandler {
 func (h UTMHandler) RegisterRoutes(router *mux.Router) {
 	r := router.PathPrefix("/utm").Subrouter()
 
-	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
-	r.HandleFunc("/{id}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
-	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
-	r.HandleFunc("/{id}", HandleErrors(h.Update)).Methods(http.MethodPut)
-	r.HandleFunc("/{id}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
+	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/{id}", HandleErrors(h.GetOne)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/{id}", HandleErrors(h.Update)).Methods(http.MethodPut, http.MethodOptions)
+	r.HandleFunc("/{id}", HandleErrors(h.Delete)).Methods(http.MethodDelete, http.MethodOptions)
 }
 
 func validateChannel(utm *models.UtmDefinition) error {

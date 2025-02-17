@@ -41,14 +41,14 @@ func NewAsesorService(asesor store.AsesorStorer, lead store.LeadStorer, rr *roun
 func (h *AsesorHandler) RegisterRoutes(router *mux.Router) {
 	r := router.PathPrefix("/asesor").Subrouter()
 
-	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
-	r.HandleFunc("/{phone}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
-	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
-	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut)
-	r.HandleFunc("/{phone}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
-	r.HandleFunc("/{phone}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
-	r.HandleFunc("/{phone}/reasign", HandleErrors(h.Reasign)).Methods(http.MethodPut)
-	r.HandleFunc("/{phone}/leads", HandleErrors(h.GetLeads)).Methods(http.MethodGet)
+	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/{phone}", HandleErrors(h.GetOne)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut, http.MethodOptions)
+	r.HandleFunc("/{phone}", HandleErrors(h.Delete)).Methods(http.MethodDelete, http.MethodOptions)
+	r.HandleFunc("/{phone}", HandleErrors(h.Delete)).Methods(http.MethodDelete, http.MethodOptions)
+	r.HandleFunc("/{phone}/reasign", HandleErrors(h.Reasign)).Methods(http.MethodPut, http.MethodOptions)
+	r.HandleFunc("/{phone}/leads", HandleErrors(h.GetLeads)).Methods(http.MethodGet, http.MethodOptions)
 }
 
 // Reasigns all the leads of an asesor to all the others active asesores with the round-robin method.

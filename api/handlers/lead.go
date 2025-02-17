@@ -24,10 +24,10 @@ func NewLeadHandler(s store.LeadStorer) *LeadHandler {
 func (h LeadHandler) RegisterRoutes(router *mux.Router) {
 	r := router.PathPrefix("/lead").Subrouter()
 
-	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
-	r.HandleFunc("/{phone}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
-	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
-	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut)
+	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/{phone}", HandleErrors(h.GetOne)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/{phone}", HandleErrors(h.Update)).Methods(http.MethodPut, http.MethodOptions)
 }
 
 func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
