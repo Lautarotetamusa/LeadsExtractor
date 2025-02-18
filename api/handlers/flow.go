@@ -46,9 +46,10 @@ func (h FlowHandler) RegisterRoutes(router *mux.Router) {
 	r.HandleFunc("/{uuid}", HandleErrors(h.DeleteFlow)).Methods(http.MethodDelete, http.MethodOptions)
 }
 
-func NewFlowHandler(m *flow.FlowManager) *FlowHandler {
+func NewFlowHandler(m *flow.FlowManager, comm store.CommunicationStorer) *FlowHandler {
 	return &FlowHandler{
 		manager: m,
+        commStore: comm,
 	}
 }
 
@@ -109,6 +110,11 @@ func (h *FlowHandler) DeleteFlow(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+
+	if *uuid == h.manager.GetMainUUID(){
+	    return ErrBadRequest(fmt.Sprintf("no se puede eliminar el flow principal"))
+	}
+
 	if err := h.manager.Delete(*uuid); err != nil {
 		return err
 	}
@@ -153,7 +159,7 @@ func (s *FlowHandler) NewBroadcast(w http.ResponseWriter, r *http.Request) error
 	var body NewBroadcastPayload
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		return err
+		return jsonErr(err)
 	}
 
 	comms, err := s.commStore.GetDistinct(&body.Condition)

@@ -65,7 +65,7 @@ func (f *FlowManager) GetMainUUID() uuid.UUID {
 func (f *FlowManager) GetOne(uuid uuid.UUID) (*Flow, error) {
 	flow, ok := f.Flows[uuid]
 	if !ok {
-		return nil, fmt.Errorf("el flow con uuid %s no existe", uuid)
+		return nil, store.NewErr(fmt.Sprintf("el flow con uuid %s no existe", uuid), store.StoreNotFoundErr)
 	}
 	return &flow, nil
 }
@@ -73,7 +73,7 @@ func (f *FlowManager) GetOne(uuid uuid.UUID) (*Flow, error) {
 func (f *FlowManager) GetMain() (*Flow, error) {
 	flow, ok := f.Flows[f.Main]
 	if !ok {
-		return nil, fmt.Errorf("no hay ningun flow main")
+		return nil, store.NewErr(fmt.Sprintf("no hay ningun flow main"), store.StoreNotFoundErr)
 	}
 	return &flow, nil
 }
@@ -115,10 +115,6 @@ func (f *FlowManager) Update(flow *Flow, uuid uuid.UUID) error {
 }
 
 func (f *FlowManager) Delete(uuid uuid.UUID) error {
-	if uuid == f.Main {
-		return fmt.Errorf("no se puede eliminar el flow principal")
-	}
-
 	delete(f.Flows, uuid)
 
 	if err := f.Save(); err != nil {
@@ -132,7 +128,7 @@ func (f *FlowManager) Broadcast(comms []models.Communication, uuid uuid.UUID) er
 	f.logger.Info("Lanzando broadcast", "count", len(comms))
 	_, ok := f.Flows[uuid]
 	if !ok {
-		return fmt.Errorf("el flow con uuid %s no existe", uuid)
+		return store.NewErr(fmt.Sprintf("el flow con uuid %s no existe", uuid), store.StoreNotFoundErr)
 	}
 
 	for _, c := range comms {
@@ -192,7 +188,7 @@ func (f *FlowManager) validateOnResponse(flow *Flow) error {
 		}
 		_, ok := f.Flows[rule.OnResponse.UUID]
 		if !ok {
-			return fmt.Errorf("on_respose=%s no corresponde a ningun flow", rule.OnResponse.UUID)
+			return store.NewErr(fmt.Sprintf("on_respose=%s no corresponde a ningun flow", rule.OnResponse.UUID), store.StoreNotFoundErr)
 		}
 	}
 	return nil

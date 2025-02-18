@@ -88,7 +88,7 @@ func (h AircallTestHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf(string(output))
+	fmt.Println(string(output))
 }
 
 func callToCommunication(call *aircall.Call) (*models.Communication, error) {

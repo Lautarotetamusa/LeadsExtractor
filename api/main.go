@@ -125,7 +125,7 @@ func main() {
 	// Handlers
 	leadHandler := handlers.NewLeadHandler(leadStore)
 	utmHandler := handlers.NewUTMHandler(utmStore)
-	flowHandler := handlers.NewFlowHandler(flowManager)
+	flowHandler := handlers.NewFlowHandler(flowManager, commStore)
 	commHandler := handlers.NewCommHandler(commsService)
 	asesorHandler := handlers.NewAsesorHandler(asesorService)
 
