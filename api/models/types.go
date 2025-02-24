@@ -53,6 +53,12 @@ func (ni *NullInt16) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ni.Int16)
 }
 
+func (ni *NullInt16) UnmarshalJSON(b []byte) error {
+	err := json.Unmarshal(b, &ni.Int16)
+	ni.Valid = (err == nil)
+	return err
+}
+
 // Scan implements the Scanner interface for NullInt64
 func (ni *NullInt16) Scan(value interface{}) error {
 	var i sql.NullInt16
@@ -67,6 +73,14 @@ func (ni *NullInt16) Scan(value interface{}) error {
 		*ni = NullInt16{i.Int16, true}
 	}
 	return nil
+}
+
+// Value implements the [driver.Valuer] interface.
+func (n NullInt16) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return int64(n.Int16), nil
 }
 
 type NullInt32 sql.NullInt32

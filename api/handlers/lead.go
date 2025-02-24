@@ -72,7 +72,6 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	w.WriteHeader(http.StatusCreated)
 	createdResponse(w, "Lead creado correctamente", lead)
 	return nil
 }

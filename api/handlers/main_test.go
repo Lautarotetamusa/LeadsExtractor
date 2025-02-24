@@ -34,7 +34,9 @@ var (
 	leadHandler   *handlers.LeadHandler
 	commHandler   *handlers.CommunicationHandler
 	asesorHandler *handlers.AsesorHandler
+    propHandler   *handlers.PropertyHandler
 
+    propStore   mocks.MockPropertyStorer
 	leadStore   mocks.MockLeadStorer
 	utmStore    mocks.MockUTMStorer
 	asesorStore mocks.MockAsesorStorer
@@ -47,8 +49,10 @@ func TestMain(t *testing.M) {
 	leadStore = mocks.MockLeadStorer{}
 	utmStore = mocks.MockUTMStorer{}
 	sourceStore := mocks.MockSourceStorer{}
+    propStore = mocks.MockPropertyStorer{}
 	asesorStore = *mocks.NewMockAsesorStore()
 
+    propStore.Mock()
 	leadStore.Mock()
 	utmStore.Mock()
 	asesorStore.Mock()
@@ -66,6 +70,7 @@ func TestMain(t *testing.M) {
 		Source:     &sourceStore,
 	}
 
+    propHandler = handlers.NewPropertyHandler(&propStore)
 	leadHandler = handlers.NewLeadHandler(&leadStore)
 	utmHandler = handlers.NewUTMHandler(&utmStore)
 	asesorHandler = handlers.NewAsesorHandler(asesorService)

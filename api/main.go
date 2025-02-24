@@ -91,6 +91,7 @@ func main() {
 	// Stores
 	storer := store.NewStore(db)
 
+    propStore := store.NewPropertyPortalStore(db)
 	leadStore := store.NewLeadStore(db)
 	utmStore := store.NewUTMStore(db)
 	commStore := store.NewCommStore(db)
@@ -123,6 +124,7 @@ func main() {
 	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 
 	// Handlers
+    propHandler := handlers.NewPropertyHandler(propStore)
 	leadHandler := handlers.NewLeadHandler(leadStore)
 	utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := handlers.NewFlowHandler(flowManager, commStore)
@@ -133,6 +135,7 @@ func main() {
     router.Use(CORS)
 
 	// Register routes
+    propHandler.RegisterRoutes(router)
 	leadHandler.RegisterRoutes(router)
 	utmHandler.RegisterRoutes(router)
 	flowHandler.RegisterRoutes(router)

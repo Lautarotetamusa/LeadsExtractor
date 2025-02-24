@@ -17,7 +17,7 @@ func ConnectDB(ctx context.Context) *sqlx.DB {
 	dbPass := os.Getenv("DB_PASS")
 	dbName := os.Getenv("DB_NAME")
 
-	connectionStr := fmt.Sprintf("%s:%s@(%s:%s)/%s", dbUser, dbPass, host, dbPort, dbName)
+	connectionStr := fmt.Sprintf("%s:%s@(%s:%s)/%s?parseTime=true", dbUser, dbPass, host, dbPort, dbName)
 
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
