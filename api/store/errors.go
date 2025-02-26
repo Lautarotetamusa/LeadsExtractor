@@ -3,6 +3,8 @@ package store
 import (
 	"database/sql"
 	"strings"
+
+	"github.com/go-sql-driver/mysql"
 )
 
 type StoreErrorType int
@@ -46,4 +48,16 @@ func SQLDuplicated(err error, msg string) error {
 		}
 	}
 	return err
+}
+
+func SQLBadForeignKey(err error, msg string) error {
+    if sqlErr, is := err.(*mysql.MySQLError); is {
+        if strings.Contains(sqlErr.Message, "Cannot add or update a child row") {
+            return StoreError{
+                msg: msg,
+                Typ: StoreNotFoundErr,
+            }
+        }
+    }
+    return err
 }

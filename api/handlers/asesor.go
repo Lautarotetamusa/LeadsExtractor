@@ -31,6 +31,9 @@ func NewAsesorHandler(s *AsesorService) *AsesorHandler {
 }
 
 func NewAsesorService(asesor store.AsesorStorer, lead store.LeadStorer, rr *roundrobin.RoundRobin[models.Asesor]) *AsesorService {
+    // i know this is not a good spot to do this, but wathever
+    validate = validator.New(validator.WithRequiredStructEnabled())
+
 	return &AsesorService{
 		asesor:     asesor,
 		lead:       lead,
@@ -139,7 +142,6 @@ func (h *AsesorHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return jsonErr(err)
 	}
 
-	validate := validator.New()
 	if err := validate.Struct(asesor); err != nil {
 		return ErrBadRequest(err.Error())
 	}

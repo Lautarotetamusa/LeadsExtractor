@@ -7,6 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/gorilla/mux"
 )
 
@@ -25,6 +28,12 @@ func TestPropCRUD(t *testing.T) {
         "rooms": 2,
         "m2_total": 200,
         "m2_covered": 150,
+        "state": "Jalisco",
+        "municipality": "Zapopan",
+        "colony": "Zapopan centro",
+        "street": "Urquiza",
+        "number": "1159",
+        "zip_code": "2000",
     };
     expected := map[string]any {
         "success": true,
@@ -47,6 +56,13 @@ func TestPropCRUD(t *testing.T) {
             "virtual_route": nil,
             "updated_at": time.Time{},
             "created_at": time.Time{},
+            "state": "Jalisco",
+            "municipality": "Zapopan",
+            "colony": "Zapopan centro",
+            "neighborhood": nil,
+            "street": "Urquiza",
+            "number": "1159",
+            "zip_code": "2000",
         },
     };
 
@@ -54,11 +70,7 @@ func TestPropCRUD(t *testing.T) {
 		{"get all", "GET", "/property", "", nil, http.StatusOK, Stringify(propsListRes)},
 		// Create
 		{"no pass body", "POST", "/property", "", nil, http.StatusBadRequest, ""},
-        {"no title", "POST", "/property", `{"price": "999"}`, nil, http.StatusBadRequest, `*'Title' failed on the 'required'*`},
-        {"no price", "POST", "/property", `{"title": "hola"}`, nil, http.StatusBadRequest, `*'Price' failed*`},
         {"invalid price", "POST", "/property", `{"price": 99.4}`, nil, http.StatusBadRequest, `*number into Go struct field PortalProp.price of type string*`},
-        {"no currency", "POST", "/property", `{"title": "hola"}`, nil, http.StatusBadRequest, `*'Currency' failed on the 'required'*`},
-        {"no antiquity", "POST", "/property", `{"title": "hola"}`, nil, http.StatusBadRequest, `*'Antiquity' failed on the 'required'*`},
         {"invalid operation type", "POST", "/property", `{"operation_type": "invalid"}`, nil, http.StatusBadRequest, `*'OperationType' failed*`},
 		{"create", "POST", "/property", Stringify(valid), nil, http.StatusCreated, `*property created successfully*`},
 		{"get created", "GET", "/property/4", "", nil, http.StatusOK, Stringify(expected)},
@@ -70,6 +82,24 @@ func TestPropCRUD(t *testing.T) {
 		// {"invalid json", "PUT", "/property/5493415854220", `{"name": 99}`, nil, http.StatusBadRequest, ""},
 		// {"update no exists", "PUT", "/property/5493415854222", `{"name": "beatriz"}`, nil, http.StatusNotFound, ""},
 	}
+
+    // Validate required fields
+    requiredFields := []string{
+        "state", "municipality", "colony", 
+        "street", "number", "zip_code", 
+        "title", "price", "description",
+    }
+    requiredTC := APITestCase{"", "POST", "/property", "", nil, http.StatusBadRequest, ""}
+    for _, field := range requiredFields {
+        requiredTC.Name = fmt.Sprintf("empty %s", field)
+        requiredTC.Body = fmt.Sprintf(`{"%s": ""}`, field)
+        requiredTC.WantResponse = fmt.Sprintf(`*'%s' failed*`, cases.Title(language.Spanish).String(field))
+        tests = append(tests, requiredTC)
+
+        requiredTC.Name = fmt.Sprintf("no %s", field)
+        requiredTC.Body = "{}"
+        tests = append(tests, requiredTC)
+    }
 
 	router := mux.Router{}
 	propHandler.RegisterRoutes(&router)

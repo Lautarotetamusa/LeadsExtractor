@@ -7,7 +7,6 @@ import (
 	"leadsextractor/store"
 	"net/http"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 )
 
@@ -62,7 +61,6 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return jsonErr(err)
 	}
 
-	validate := validator.New()
 	if err = validate.Struct(createLead); err != nil {
 		return ErrBadRequest(err.Error())
 	}
@@ -93,7 +91,6 @@ func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	updateLeadsFields(lead, updateLead)
-	validate := validator.New()
 	if err := validate.Struct(lead); err != nil {
 		return ErrBadRequest(err.Error())
 	}

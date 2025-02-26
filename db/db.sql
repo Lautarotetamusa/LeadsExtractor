@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS PortalProp(
     title VARCHAR(256) NOT NULL,
     price VARCHAR(32) NOT NULL,
     currency CHAR(5) NOT NULL,
-    description VARCHAR(512), 
+    description VARCHAR(512) NOT NULL, 
     type VARCHAR(32) NOT NULL,
     antiquity INT NOT NULL,
     parkinglots INT DEFAULT NULL,
@@ -68,20 +68,42 @@ CREATE TABLE IF NOT EXISTS PortalProp(
     video_url VARCHAR(256) DEFAULT NULL,
     virtual_route VARCHAR(256) DEFAULT NULL,
 
+    /* Ubication fields */
+    state VARCHAR(128) NOT NULL,
+    municipality VARCHAR(128) NOT NULL,
+    colony VARCHAR(128) NOT NULL,
+    neighborhood VARCHAR(128) DEFAULT NULL,
+    street VARCHAR(256) NOT NULL,
+    number VARCHAR(32) NOT NULL,
+    zip_code VARCHAR(32) NOT NULL,
+
+    CHECK (title <> ""),
+    CHECK (price <> ""),
+    CHECK (currency <> ""),
+    CHECK (description <> ""),
+    CHECK (type <> ""),
+    CHECK (state <> ""),
+    CHECK (municipality <> ""),
+    CHECK (colony <> ""),
+    CHECK (neighborhood <> ""),
+    CHECK (street <> ""),
+    CHECK (number <> ""),
+    CHECK (zip_code <> ""),
+
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY(id)
 );
 
-DROP TABLE IF EXISTS ImageProp;
-CREATE TABLE IF NO EXISTS ImageProp(
+CREATE TABLE IF NOT EXISTS PropertyImages (
+    id INT NOT NULL AUTO_INCREMENT,
+
     property_id INT NOT NULL,
+    url VARCHAR(512) NOT NULL,
 
-    url VARCHAR(256),
-
-    PRIMARY KEY(property_id),
-    FOREIGN KEY(property_id) REFERENCES Property(id)
+    PRIMARY KEY (id),
+    FOREIGN KEY (property_id) REFERENCES PortalProp(id) ON DELETE CASCADE
 );
 
 DROP TABLE IF EXISTS Source;
