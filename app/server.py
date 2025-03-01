@@ -16,7 +16,10 @@ from src.lamudi.scraper import LamudiScraper
 from src.propiedades_com.scraper import PropiedadesScraper
 from src.casasyterrenos.scraper import CasasyterrenosScraper
 
-app = Flask(__name__)
+#cotizador
+from src.cotizadorpdf.cotizador import to_pdf
+
+app = Flask(__name__, static_folder='static')
 CORS(app)
 
 logger = Logger("Server")
@@ -50,6 +53,14 @@ def generate_pdf():
         return Response(err, status=400)
 
     return Response(pdf_url, status=200)
+
+@app.route('/generar_cotizacion', methods=['POST'])
+def generate_cotization_pdf():
+    data = request.get_json()
+    ret = to_pdf(data)
+    if (ret == "error"):
+        return Response(ret, status=400)
+    return Response(ret, status=200)
 
 
 @app.route('/execute', methods=['POST'])

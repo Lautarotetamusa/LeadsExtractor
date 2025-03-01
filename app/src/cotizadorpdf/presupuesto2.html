@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto Rebora</title> 
+    <link rel="stylesheet" href="./static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="bienvenido">
+            <div class="header">
+                <div class="logo-container">
+                    <img src="./static/images/logo_letras.png" alt="Rebora Arquitectura" class="logo">
+                </div>
+                <div class="content-wrapper">
+                    <div class="text-content">
+                        <h1>{{nombre}} Bienvenido a Rebora</h1>
+                        <h2>Te presentamos tu presupuesto</h2>
+                    </div>
+                    <img src="./static/images/dibujo.png" class="house-drawing">
+                </div>
+                <div class="fecha">
+                    <p>Fecha: {{ fecha }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="interiores">
+            <h2>Detalles del presupuesto</h2>
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Areas Interiores</th>
+                            <th>Unidad</th>
+                            <th>Cantidad</th>
+                            <th>PU</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Sótano</td>
+                            <td>M2</td>
+                            <td>{{ area_sotano }}</td>
+                            <td>${{ importe_calidad |formato_miles}}</td>
+                            <td>${{ (area_sotano * importe_calidad)|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Planta baja</td>
+                            <td>M2</td>
+                            <td>{{ area_planta_baja }}</td>
+                            <td>${{ importe_calidad |formato_miles}}</td>
+                            <td>${{ (area_planta_baja * importe_calidad) |formato_miles}}</td>
+                        </tr>
+                        <tr>
+                            <td>Planta alta</td>
+                            <td>M2</td>
+                            <td>{{ area_planta_alta }}</td>
+                            <td>${{ importe_calidad|formato_miles }}</td>
+                            <td>${{ (area_planta_alta * importe_calidad)|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Roof Garden (área techada)</td>
+                            <td>M2</td>
+                            <td>{{ area_roof }}</td>
+                            <td>${{ importe_calidad|formato_miles }}</td>
+                            <td>${{ (area_roof * importe_calidad)|formato_miles }}</td>
+                        </tr>
+                        <tr class = "total">
+                            <td colspan="4">Total</td>
+                            <td>${{ valor_interior|formato_miles }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="interiores">
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Areas Exteriores</th>
+                            <th>Unidad</th>
+                            <th>Cantidad</th>
+                            <th>PU</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Rampa, estacionamiento vehículos</td>
+                            <td>M2</td>
+                            <td>{{ area_rampa }}</td>
+                            <td>${{ valor_rampa|formato_miles }}</td>
+                            <td>${{ (area_rampa * valor_rampa)|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Jardín Exterior</td>
+                            <td>M2</td>
+                            <td>{{ area_jardin }}</td>
+                            <td>${{ valor_jardin|formato_miles }}</td>
+                            <td>${{ (area_jardin * valor_jardin)|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Alberca</td>
+                            <td>M2</td>
+                            <td>{{ area_alberca }}</td>
+                            <td>${{ valor_alberca|formato_miles }}</td>
+                            <td>${{ (area_rampa * valor_alberca)|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Muro perimetral</td>
+                            <td>M2</td>
+                            <td>{{ area_muro_perimetral }}</td>
+                            <td>${{ valor_muro_perimetral |formato_miles}}</td>
+                            <td>${{ (area_muro_perimetral * valor_muro_perimetral)|formato_miles }}</td>
+                        </tr>
+                        <tr class="total">
+                            <td colspan="4">Total</td>
+                            <td>{{ valor_exterior |formato_miles}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="interiores">
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Permisos y Preeliminares</th>
+                            <th>Unidad</th>
+                            <th>Cantidad</th>
+                            <th>PU</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Licencia municipal (precio por m2)</td>
+                            <td>M2</td>
+                            <td>{{ area_interior }}</td>
+                            <td>${{ valor_licencia|formato_miles }}</td>
+                            <td>${{ (area_interior * valor_licencia)|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Gestorias y peritaje</td>
+                            <td>M2</td>
+                            <td>{{area_interior}}</td>
+                            <td>${{valor_gestorias|formato_miles}}</td>
+                            <td>${{(area_interior * valor_gestorias)|formato_miles}}</td>
+                        </tr>
+                        <tr>
+                            <td>Topografia inicial</td>
+                            <td>Unidad</td>
+                            <td>1</td>
+                            <td>${{valor_topografia|formato_miles}}</td>
+                            <td>${{valor_topografia|formato_miles}}</td>
+                        </tr>
+                        <tr>
+                            <td>Mecanica del suelo</td>
+                            <td>Perforacion</td>
+                            <td>5800</td>
+                            <td>${{valor_mecanica|formato_miles}}</td>
+                            <td>${{(5800 * valor_mecanica)|formato_miles}}</td>
+                        </tr>
+                        <tr>
+                            <td>Calculo estructural</td>
+                            <td>M2</td>
+                            <td>{{area_interior}}</td>
+                            <td>${{valor_calculo|formato_miles}}</td>
+                            <td>${{(area_interior * valor_calculo)|formato_miles}}</td>
+                        </tr>
+                        <tr class = "total">
+                            <td colspan="4">Total</td>
+                            <td>${{valor_permisos|formato_miles}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="interiores">
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Gestion Rebora</th>
+                            <th>Pre-construccion</th>
+                            <th>Construccion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Valor</td>
+                            <td>${{valor_preconstruccion|formato_miles}}</td>
+                            <td>${{valor_construccion|formato_miles}}</td>
+                        </tr>
+                        <tr>
+                            <td>Duracion</td>
+                            <td>3 meses</td>
+                            <td>{{meses}} meses</td>
+                        </tr>
+                        <tr>
+                            <td>Incluye</td>
+                            <td>
+                                <table class="tabla_interiores">
+                                    <tbody>
+                                        <tr class="total">
+                                            <td>Actividad</th>
+                                            <td>Entregable</th>
+                                        </tr>
+                                        <tr>
+                                            <td>Planos ejecutivos</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Planos arquitectónicos</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Renders</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Interiorismo</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Selección acabados</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Cruce ingenierias</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Auditorias externas costos y diseño</td>
+                                            <td>Si</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                            <td>
+                                <table class="tabla_interiores">
+                                    <tbody>
+                                        <tr class="total">
+                                            <td>Actividad</td>
+                                            <td>Entregable</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Departamento de costos y presupuestos</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Departamento administrativo</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Planos arquitectónicos</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Medio mando de obra</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Estados de cuenta mensuales</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Auditoria externas</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Procesos en obra</td>
+                                            <td>Si</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Costos</td>
+                                            <td>Si</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr class = "total">
+                            <td>Total</td>
+                            <td colspan=2 >${{valor_rebora|formato_miles}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="interiores">
+            <h3>Monto total de inversión</h3>
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Monto total de inversion</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Áreas interiores</td>
+                            <td class="text-right">${{ valor_interior|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Áreas exteriores</td>
+                            <td class="text-right">${{ valor_exterior|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Permisos y Preliminares</td>
+                            <td class="text-right">${{ valor_permisos|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Gestion Rebora</td>
+                            <td class="text-right">${{valor_rebora|formato_miles}}</td>
+                        </tr>
+                        <tr class="total">
+                            <td>Total</td>
+                            <td class="text-right">${{ valor_total|formato_miles }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+        <div class="interiores">
+            <h3>Esquema de pagos</h3>
+            <div class="tabla_interiores">
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Monto total de inversion</th>
+                            <th> </th>
+                            <th>Importe</th>
+                        </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Anticipo</td>
+                        <td></td>
+                        <td class="text-right">${{ anticipo|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Porcentaje previo a inicio de obra</td>
+                        <td>{{porcentaje_previo}}%</td>
+                        <td class="text-right">${{ valor_previo|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Pagos mensuales</td>
+                        <td> {{meses}} meses</td>
+                        <td class="text-right">${{ pagos_mensuales|formato_miles }}</td>
+                    </tr>
+                    <tr class="total">
+                        <td>Total</td>
+                        <td> </td>
+                        <td class="text-right">${{ valor_total|formato_miles }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <div class="comparativa">
+            <h3>Tabla Comparativa</h3>
+            <div class="tabla_comparativa">
+                <table>
+                    <thead>
+                        <tr>
+                            <th> </th>
+                            <th><img src="./static/images/logo.png"></img></th>
+                            <th>Otro Despacho</th>
+                            <th>Casa Construída</th>
+                        </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Precio Total</td>
+                        <td>${{ valor_total|formato_miles }}</td>
+                        <td>${{ valor_otro_despacho|formato_miles }}</td>
+                        <td>${{ valor_casa_construida|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Pago Inicial</td>
+                        <td>${{ anticipo|formato_miles }}</td>
+                        <td>-------</td>
+                        <td>${{ valor_casa_construida|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>% De Plusvalía</td>
+                        <td>17%</td>
+                        <td>10%</td>
+                        <td>6%</td>
+                    </tr>
+                    <tr>
+                        <td>Plusvalía</td>
+                        <td>${{ plusvalia|formato_miles }}</td>
+                        <td>${{ plusvalia_otro_despacho |formato_miles}}</td>
+                        <td>${{ plusvalia_casa_construida|formato_miles }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <div class="interiores">
+            <h3>Retorno de inversion</h3>
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th> </th>
+                            <th>Rebora</th>
+                            <th>Otro despacho</th>
+                            <th>Casa construída</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Precio Compra</td>
+                        <td>${{ valor_total|formato_miles }}</td>
+                        <td>${{ valor_otro_despacho|formato_miles }}</td>
+                        <td>${{ valor_casa_construida|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Precio venta</td>
+                        <td>${{ precio_venta_rebora |formato_miles}}</td>
+                        <td>${{ precio_venta_otro_despacho|formato_miles}}</td>
+                        <td>${{ precio_venta_casa_construida|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Retorno porcentual</td>
+                        <td>22%</td>
+                        <td>15%</td>
+                        <td>7%</td>
+                    </tr>
+                    <tr class="total">
+                        <td>Retorno total</td>
+                        <td>${{ roi_rebora|formato_miles }}</td>
+                        <td>${{ roi_otro_despacho|formato_miles }}</td>
+                        <td>${{ roi_casa_construida|formato_miles }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        </div>
+        <div class="spotify_completo">
+            <div class="spotify-container">
+                <div class="spotify-header">
+                    <h1 class="spotify-main-title">Ventajas de construir vs comprar construido</h1>
+                    <p class="spotify-subtitle">
+                        Te explicaremos en menos de 1 minuto las ventajas de construir una casa a gusto
+                    </p>
+                </div>
+                <div class="youtube-container">
+                    <a href="https://www.youtube.com/watch?v=bXKiRYUdZgU" target="_blank">
+                        <img src="./static/images/youtube1.png" alt="E01 ¿Cómo transforma tu hogar tu vida?">
+                    </a>
+                </div>
+            </div>
+        </div> 
+        <div class="spotify_completo">
+            <div class="spotify-container">
+                <div class="spotify-header">
+                    <div class="spotify-title">[Spotify]</div>
+                    <h1 class="spotify-main-title">Consejos y un Poco Mas...</h1>
+                    <p class="spotify-subtitle">
+                        La mejor compra te evita pagar sobreprecios, aprende a hacer una compra inteligente y segura
+                        escuchando nuestro podcast
+                    </p>
+                </div>
+                <div class="imagen-container">
+                    <a href="https://open.spotify.com/episode/2rx8WBuJaGJxA0Ehpo7yHc?si=ccba557395ff45ee&nd=1&dlsi=24cb69563ce848d9" target="_blank">
+                        <img src="./static/images/spotify1.png" alt="E01 ¿Cómo transforma tu hogar tu vida?">
+                    </a>
+                    <a href="https://open.spotify.com/episode/37MEbVcVFxG9a6dJ791OMK?si=b9438a18eb164daf&nd=1&dlsi=2b8c945cda6649f7" target="_blank">
+                        <img src="./static/images/spotify3.png" alt="E02 Rentabilidad Real: La plusvalía de tu inversión">
+                    </a>
+                    <a href="https://open.spotify.com/episode/3pDdPNnMXKylqVJxWBok7W?si=35ef90dbf4e04802&nd=1&dlsi=cc0c10dc7c004924" target="_blank">
+                        <img src="./static/images/spotify2.png" alt="E03 Plusvalía Anual: Casas Construidas">
+                    </a>
+                </div>
+            </div>
+        </div> 
+        <div class="spotify_completo">
+            <div class="spotify-container">
+                <div class="spotify-header">
+                    <h1 class="spotify-main-title">Hablan de nosotros</h1>
+                </div>
+                <div class="youtube-container">
+                    <a target="_blank">
+                        <img src="./server/images/hablan_de_nosotros.png" alt="E01 ¿Cómo transforma tu hogar tu vida?">
+                    </a>
+                </div>
+            </div>
+        </div> 
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="disclaimer">
+                    <p>Esta pre cotización tiene una vigencia de 15 días después de su fecha de emisión.
+                    <br>Los precios mostrados son montos aproximados y están sujetos a cambio sin previo aviso hasta la aceptación y firma del contrato, el valor puede modificarse de acuerdo al análisis financiero. Esta cotización es de uso informativo y no implica obligación alguna por parte de REBORA. El costo es aproximado, pueden existir variaciones al presentar la cotización definitiva.</p>
+                </div>
+                <div class="contacto">
+                    <h3>¿Tienes dudas? ¡Contáctanos!</h3>
+                    <p>{{enombre}}</p>
+                    <p>{{etelefono}}</p>
+                    <p><a href="mailto:{{email}}">{{email}}</a></p>
+                </div>
+            </div>
+        </div>
+</body>
+</html>
