@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"leadsextractor/handlers"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 
 func TestPropCRUD(t *testing.T) {
 	propsListRes := handlers.NewDataResponse(propStore.Props())
-    fmt.Printf("%#v\n", propStore.Props())
 
     valid := map[string]any {
         "title": "Cozy House in the Suburbs",
@@ -34,6 +34,10 @@ func TestPropCRUD(t *testing.T) {
         "street": "Urquiza",
         "number": "1159",
         "zip_code": "2000",
+        "images": []map[string]any{
+            {"url": "https://domain.com/image1",},
+            {"url": "https://domain.com/image2",},
+        },
     };
     expected := map[string]any {
         "success": true,
@@ -63,8 +67,24 @@ func TestPropCRUD(t *testing.T) {
             "street": "Urquiza",
             "number": "1159",
             "zip_code": "2000",
+            "images": []map[string]any{
+                {
+                    "id": 1,
+                    "url": "https://domain.com/image1",
+                },
+                {
+                    "id": 2,
+                    "url": "https://domain.com/image2",
+                },
+            },
         },
     };
+
+    // without the image with id 1 and with the image with id 3. What i do in the tests
+    expectedImages := []map[string]any{  
+        { "id": 2, "url": "https://domain.com/image2", }, 
+        { "id": 3, "url": "https://test.com/image3", }, 
+    }
 
 	tests := []APITestCase{
 		{"get all", "GET", "/property", "", nil, http.StatusOK, Stringify(propsListRes)},
@@ -77,10 +97,12 @@ func TestPropCRUD(t *testing.T) {
 		// Get
 		{"get one", "GET", "/property/1", "", nil, http.StatusOK, Stringify(handlers.NewDataResponse(propStore.Props()[0]))},
 		{"get one no exists", "GET", "/property/999", "", nil, http.StatusNotFound, "*does not exists*"},
-		// Update
-		// {"no pass body", "PUT", "/property/1", "", nil, http.StatusBadRequest, ""},
-		// {"invalid json", "PUT", "/property/5493415854220", `{"name": 99}`, nil, http.StatusBadRequest, ""},
-		// {"update no exists", "PUT", "/property/5493415854222", `{"name": "beatriz"}`, nil, http.StatusNotFound, ""},
+        // Delete image
+		{"delete image no exists", "DELETE", "/property/4/image/999", "", nil, http.StatusNotFound, "*does not exists*"},
+		{"delete image", "DELETE", "/property/4/image/1", "", nil, http.StatusOK, "*deleted successfully*"},
+        {"add invalid image", "POST", "/property/4/image", `[{"url": "thisisnotavalidurl"}]`, nil, http.StatusBadRequest, "*must have a valid url*"},
+        {"add image", "POST", "/property/4/image", `[{"url": "https://test.com/image3"}]`, nil, http.StatusCreated, "*added successfully*"},
+        {"get updated img", "GET", "/property/4/image", "", nil, http.StatusOK, Stringify(handlers.NewDataResponse(expectedImages))},
 	}
 
     // Validate required fields
@@ -93,7 +115,13 @@ func TestPropCRUD(t *testing.T) {
     for _, field := range requiredFields {
         requiredTC.Name = fmt.Sprintf("empty %s", field)
         requiredTC.Body = fmt.Sprintf(`{"%s": ""}`, field)
-        requiredTC.WantResponse = fmt.Sprintf(`*'%s' failed*`, cases.Title(language.Spanish).String(field))
+
+        // Convert the field name to CamelCase. zip_code => ZipCode
+        field = strings.ReplaceAll(field, "_", " ")
+        field = cases.Title(language.Spanish).String(field)
+        field = strings.ReplaceAll(field, " ", "")
+
+        requiredTC.WantResponse = fmt.Sprintf(`*'%s' failed*`, field)
         tests = append(tests, requiredTC)
 
         requiredTC.Name = fmt.Sprintf("no %s", field)

@@ -58,7 +58,7 @@ type PortalProp struct {
     Neighborhood models.NullString  `json:"neighborhood" db:"neighborhood"`
     Street	     string             `json:"street" db:"street" validate:"required"`
     Number	     string             `json:"number" db:"number" validate:"required"`
-    ZipCode	 string                 `json:"zip_code" db:"zip_code" validate:"required"`
+    ZipCode	     string             `json:"zip_code" db:"zip_code" validate:"required"`
 
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
@@ -184,16 +184,29 @@ func (s *propertyPortalStore) InsertImages(propId int64, images []PropertyImage)
     return insertImages(s.db, propId, images)
 }
 
+// The properties ID are updated
 func insertImages(ext sqlx.Ext, propId int64, images []PropertyImage) error {
     for i, _ := range images {
         images[i].PropertyID = propId
     }
 
     query := "INSERT INTO PropertyImages (property_id, url) VALUES (:property_id, :url)" 
-    _, err := sqlx.NamedExec(ext, query, images)
+    res, err := sqlx.NamedExec(ext, query, images)
 	if err != nil {
         return SQLBadForeignKey(err, fmt.Sprintf("property with id %d does not exists", propId))
 	}
+
+    // i dont know why, but actually the LastInsertId() gives us the id of the FIRST image.
+    firstId, err := res.LastInsertId()
+    if err != nil {
+        fmt.Errorf("error getting last inserting id %w", err)
+    }
+
+    for i, _ := range images {
+        images[i].ID = firstId
+        firstId++
+    }
+
     return nil
 }
 

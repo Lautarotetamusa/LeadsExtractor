@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"time"
@@ -8,10 +9,12 @@ import (
 
 type MockPropertyStorer struct {
 	props []*store.PortalProp
+    images []store.PropertyImage
 }
 
+var lastImgId = 0
+
 func (s *MockPropertyStorer) Mock() {
-    println("MOCKING PROPS..")
     mockData := []*store.PortalProp{
         {
             ID:            1,
@@ -97,9 +100,57 @@ func (s *MockPropertyStorer) GetOne(id int64) (*store.PortalProp, error) {
 	return nil, store.NewErr("does not exists", store.StoreNotFoundErr)
 }
 
+
+func (s *MockPropertyStorer) InsertImages(propId int64, images []store.PropertyImage) error {
+    for _, image := range images {
+        image.PropertyID = propId
+        image.ID = int64(lastImgId + 1) 
+        lastImgId++
+        s.images = append(s.images, image)
+    }
+
+    _, err := s.GetOne(propId)
+    return err
+}
+
+func (s *MockPropertyStorer) GetImages(p *store.PortalProp) error {
+    p.Images = make([]store.PropertyImage, 0)
+    for _, image := range s.images {
+        if image.PropertyID == p.ID {
+            p.Images = append(p.Images, image)
+        }
+    }
+
+    fmt.Printf("PROP IMAGES: %#v\n", p.Images)
+    _, err := s.GetOne(p.ID)
+    return err
+}
+
+func (s *MockPropertyStorer) DeleteImage(propId, imageId int64) error {
+    exists := false
+    images := make([]store.PropertyImage, 0)
+    for _, image := range s.images {
+        if image.ID == imageId {
+            exists = true
+            continue
+        }
+        images = append(images, image)
+    }
+    if !exists {
+        return store.NewErr("image does not exists", store.StoreNotFoundErr)
+    }
+
+    s.images = images
+
+    _, err := s.GetOne(propId)
+    return err
+}
+
 func (s *MockPropertyStorer) Insert(prop *store.PortalProp) error {
+    prop.ID = int64(len(s.props) + 1)
 	s.props = append(s.props, prop)
-    prop.ID = int64(len(s.props))
+    s.InsertImages(prop.ID, prop.Images)
+    s.GetImages(prop)
 
     prop.UpdatedAt = time.Time{}
     prop.UpdatedAt = time.Time{}

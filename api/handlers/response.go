@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"leadsextractor/store"
-	"log/slog"
+	// "log/slog"
 	"net/http"
 )
 
@@ -60,7 +60,7 @@ type DataResponse struct {
 type SuccessResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Data    interface{} `json:"data,omitempty"`
 }
 
 type ListResponse struct {
@@ -93,7 +93,7 @@ func NewDataResponse(data interface{}) *DataResponse {
 func HandleErrors(fn HandlerErrorFn) HandlerFn {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
-			slog.Error(fmt.Sprintf("%#v\n", err))
+			// slog.Error(fmt.Sprintf("%#v\n", err))
 
 			apiErr, isApiErr := err.(APIError)
 			if !isApiErr {

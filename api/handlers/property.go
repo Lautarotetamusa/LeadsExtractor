@@ -13,6 +13,11 @@ type PropertyHandler struct {
     storer store.PropertyPortalStore
 }
 
+var InvalidPropID = APIError{
+    Status: http.StatusBadRequest,
+    Msg:    "the property id must be an integer",
+}
+
 func NewPropertyHandler(s store.PropertyPortalStore) *PropertyHandler {
 	return &PropertyHandler{
 		storer: s,
@@ -25,14 +30,14 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
     r.Methods(http.MethodOptions)
 
 	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
-	r.HandleFunc("/{id}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
+	r.HandleFunc("/{propId}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
 	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
-	r.HandleFunc("/{id}", HandleErrors(h.Update)).Methods(http.MethodPut)
+	r.HandleFunc("/{propId}", HandleErrors(h.Update)).Methods(http.MethodPut)
 
     // add an image to a property
-	r.HandleFunc("/{id}/image", HandleErrors(h.AddImages)).Methods(http.MethodPost)
-	r.HandleFunc("/{propId}/image/{imageId}", HandleErrors(h.DeleteImage)).Methods(http.MethodDelete, http.MethodOptions)
-	// r.HandleFunc("/{id}/image", HandleErrors(h.GetImages)).Methods(http.MethodGet, http.MethodOptions)
+	r.HandleFunc("/{propId}/image", HandleErrors(h.AddImages)).Methods(http.MethodPost)
+	r.HandleFunc("/{propId}/image/{imageId}", HandleErrors(h.DeleteImage)).Methods(http.MethodDelete)
+	r.HandleFunc("/{propId}/image", HandleErrors(h.GetImages)).Methods(http.MethodGet)
 }
 
 func (h *PropertyHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
@@ -46,10 +51,10 @@ func (h *PropertyHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h *PropertyHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
-    strId := mux.Vars(r)["id"]
+    strId := mux.Vars(r)["propId"]
     id, err := strconv.ParseInt(strId, 10, 16)
     if err != nil {
-        return ErrBadRequest("the id must be a integer")
+        return InvalidPropID
     }
 
 	prop, err := h.storer.GetOne(id)
@@ -76,10 +81,8 @@ func (h *PropertyHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return ErrBadRequest(err.Error())
 	}
 
-    for i, _ := range prop.Images {
-        if err := validate.Var(prop.Images[i].Url, "required,url"); err != nil {
-            return ErrBadRequest("'image must have a a valid url")
-        }
+    if err = validateImages(prop.Images); err != nil {
+        return err
     }
 
 	if err := h.storer.Insert(&prop); err != nil {
@@ -90,11 +93,32 @@ func (h *PropertyHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *PropertyHandler) AddImages(w http.ResponseWriter, r *http.Request) error {
-    strId := mux.Vars(r)["id"]
+
+func (h *PropertyHandler) GetImages(w http.ResponseWriter, r *http.Request) error {
+    strId := mux.Vars(r)["propId"]
     propId, err := strconv.ParseInt(strId, 10, 16)
     if err != nil {
-        return ErrBadRequest("the id must be a integer")
+        return InvalidPropID
+    }
+
+    prop, err := h.storer.GetOne(propId)
+    if err != nil {
+        return err
+    }
+
+    if err := h.storer.GetImages(prop); err != nil {
+        return err
+    }
+
+	dataResponse(w, prop.Images)
+    return nil
+}
+
+func (h *PropertyHandler) AddImages(w http.ResponseWriter, r *http.Request) error {
+    strId := mux.Vars(r)["propId"]
+    propId, err := strconv.ParseInt(strId, 10, 16)
+    if err != nil {
+        return InvalidPropID
     }
 
 	var images []store.PropertyImage
@@ -102,11 +126,9 @@ func (h *PropertyHandler) AddImages(w http.ResponseWriter, r *http.Request) erro
 		return jsonErr(err)
 	}
 
-    for _, image := range images {
-        if err := validate.Var(image.Url, "required,url"); err != nil {
-            return ErrBadRequest("'image must have a a valid url")
-        }
-    } 
+    if err = validateImages(images); err != nil {
+        return err
+    }
 
     if err := h.storer.InsertImages(propId, images); err != nil {
         return err
@@ -120,7 +142,7 @@ func (h *PropertyHandler) DeleteImage(w http.ResponseWriter, r *http.Request) er
     strId := mux.Vars(r)["propId"]
     propId, err := strconv.ParseInt(strId, 10, 16)
     if err != nil {
-        return ErrBadRequest("the id must be a integer")
+        return InvalidPropID
     }
 
     strId = mux.Vars(r)["imageId"]
@@ -129,14 +151,19 @@ func (h *PropertyHandler) DeleteImage(w http.ResponseWriter, r *http.Request) er
         return ErrBadRequest("the image id must be a integer")
     }
 
-    return h.storer.DeleteImage(propId, imageId)
+    if err = h.storer.DeleteImage(propId, imageId); err != nil {
+        return err
+    }
+
+    messageResponse(w, "image deleted successfully")
+    return nil
 }
 
 func (h *PropertyHandler) Update(w http.ResponseWriter, r *http.Request) error {
-    strId := mux.Vars(r)["id"]
+    strId := mux.Vars(r)["propId"]
     id, err := strconv.ParseInt(strId, 10, 16)
     if err != nil {
-        return ErrBadRequest("the id must be a integer")
+        return InvalidPropID
     }
 
 	var prop store.PortalProp
@@ -155,4 +182,13 @@ func (h *PropertyHandler) Update(w http.ResponseWriter, r *http.Request) error {
 
 	createdResponse(w, "property updated successfully", prop)
 	return nil
+}
+
+func validateImages(images []store.PropertyImage) error {
+    for _, image := range images {
+        if err := validate.Var(image.Url, "required,url"); err != nil {
+            return ErrBadRequest("'image must have a valid url")
+        }
+    } 
+    return nil
 }
