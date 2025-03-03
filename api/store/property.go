@@ -117,7 +117,7 @@ func (s *propertyPortalStore) GetAll() ([]*PortalProp, error) {
     // i do it this way because if not are any props must return [] and not null
     properties := make([]*PortalProp, 0)
 
-	query := `SELECT * FROM PortalProp`
+	query := "SELECT * FROM PortalProp"
 	err := s.db.Select(&properties, query)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener todas las propiedades: %w", err)
@@ -128,7 +128,7 @@ func (s *propertyPortalStore) GetAll() ([]*PortalProp, error) {
 
 func (s *propertyPortalStore) GetOne(id int64) (*PortalProp, error) {
 	var property PortalProp
-	query := `SELECT * FROM PortalProp WHERE id = ?`
+	query := "SELECT * FROM PortalProp WHERE id = ?"
 	err := s.db.Get(&property, query, id)
 	if err != nil {
 		return nil, SQLNotFound(err, "property not found")
@@ -137,7 +137,7 @@ func (s *propertyPortalStore) GetOne(id int64) (*PortalProp, error) {
 }
 
 func (s *propertyPortalStore) GetImages(prop *PortalProp) error {
-	imagesQuery := `SELECT id, url FROM PropertyImages WHERE property_id = ?`
+	imagesQuery := "SELECT id, url FROM PropertyImages WHERE property_id = ?"
     err := s.db.Select(&prop.Images, imagesQuery, prop.ID)
 	if err != nil {
         return SQLNotFound(err, fmt.Sprintf("error obtaining images for the property %d: %w", prop.ID, err))

@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS Communication(
     mt2_terrain VARCHAR(32) DEFAULT NULL,
     mt2_builded VARCHAR(32) DEFAULT NULL,
     baths VARCHAR(32) DEFAULT NULL,
-    rooms VARCHAR(32) DEFAULT NUll,
+    rooms VARCHAR(32) DEFAULT NULL,
 
     CHECK (lead_phone > 0),
 

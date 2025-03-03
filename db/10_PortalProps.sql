@@ -56,3 +56,34 @@ CREATE TABLE IF NOT EXISTS PropertyImages (
     PRIMARY KEY (id),
     FOREIGN KEY (property_id) REFERENCES PortalProp(id) ON DELETE CASCADE
 );
+
+DROP TABLE IF EXISTS Portal;
+CREATE TABLE IF NOT EXISTS Portal (
+    name    VARCHAR(64) NOT NULL,
+    url     VARCHAR(256) NOT NULL,
+
+    CHECK (name <> ""),
+    CHECK (url <> ""),
+
+    PRIMARY KEY(name)
+);
+
+DROP TABLE IF EXISTS PublishedProperty;
+CREATE TABLE IF NOT EXISTS PublishedProperty (
+    id INT NOT NULL AUTO_INCREMENT,
+    property_id INT NOT NULL,
+
+    url     VARCHAR(256) DEFAULT NULL,
+    status  ENUM("in_progress", "completed", "failed") DEFAULT "in_progress",
+    portal  VARCHAR(64) NOT NULL,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CHECK (url <> ""),
+
+    PRIMARY KEY (id),
+    KEY (portal, property_id),
+    FOREIGN KEY (portal) REFERENCES Portal(name),
+    FOREIGN KEY (property_id) REFERENCES PortalProp(id)
+);
