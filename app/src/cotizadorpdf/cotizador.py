@@ -21,6 +21,10 @@ def renderizar_html(template_name, contexto):
 
 def calcular_importe_calidad(pal):
     if(pal == "Premium"):
+        return 18000
+    if(pal == "Lujo"):
+        return 20000
+    if(pal == "Alto Lujo"):
         return 22500
     return 0
 
@@ -62,7 +66,10 @@ def translateContext(cin):
     valor_rebora = 2000 * area_interior
     valor_preconstruccion = int(valor_rebora*0.3)
     valor_construccion = int(valor_rebora*0.7)
-    valor_total = valor_exterior+valor_interior+valor_permisos+valor_rebora
+    is_valor_permisos = cin["elaborado_por"]["is_valor_permisos"]
+    porcentaje_administracion = cin["elaborado_por"]["porcentaje_administracion"]
+    valor_administracion = int((valor_exterior + valor_interior + valor_permisos*is_valor_permisos)*porcentaje_administracion/100)
+    valor_total = valor_exterior+valor_interior+valor_permisos+valor_rebora+valor_administracion
     anticipo = cin['pagos']['inicial']
     porcentaje_previo = cin['pagos']['porcentaje_inicio_obra']
     valor_previo = int((valor_total-anticipo)*porcentaje_previo/100)
@@ -111,6 +118,8 @@ def translateContext(cin):
         "valor_calculo": valor_calculo,
         "valor_permisos": valor_permisos,
         "valor_rebora": valor_rebora,
+        "valor_administracion": valor_administracion,
+        "porcentaje_administracion": porcentaje_administracion,
         "valor_preconstruccion": valor_preconstruccion,
         "valor_construccion": valor_construccion,
         "valor_total": valor_total,
@@ -144,4 +153,4 @@ def to_pdf(json):
         HTML(string=html_content, base_url=".").write_pdf(pdf_filename)
         return timestamp_str
     except Exception as e:
-        print(e)
+        return "error"

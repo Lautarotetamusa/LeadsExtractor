@@ -31,7 +31,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Areas Interiores</th>
+                            <th>Areas construibles techadas</th>
                             <th>Unidad</th>
                             <th>Cantidad</th>
                             <th>PU</th>
@@ -118,7 +118,7 @@
                         </tr>
                         <tr class="total">
                             <td colspan="4">Total</td>
-                            <td>{{ valor_exterior |formato_miles}}</td>
+                            <td>${{ valor_exterior |formato_miles}}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -179,6 +179,46 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+        <div class="interiores">
+            <h3>Monto total de inversión</h3>
+            <div class="tabla_interiores">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Monto total de inversion</th>
+                            <th>Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Áreas interiores</td>
+                            <td class="text-right">${{ valor_interior|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Áreas exteriores</td>
+                            <td class="text-right">${{ valor_exterior|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Permisos y Preliminares</td>
+                            <td class="text-right">${{ valor_permisos|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Gestion Rebora ($2000 por cada m2 de las areas construibles techadas({{area_interior}}m2))</td>
+                            <td class="text-right">${{valor_rebora|formato_miles}}</td>
+                        </tr>
+                        <tr>
+                            <td> Valor administracion ({{ porcentaje_administracion }}%)</td>
+                            <td class="text-right">${{valor_administracion|formato_miles}}</td>
+                        </tr>
+                        <tr class="total">
+                            <td>Total</td>
+                            <td class="text-right">${{ valor_total|formato_miles }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         </div>
         <div class="interiores">
             <div class="tabla_interiores">
@@ -291,42 +331,6 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-        <div class="interiores">
-            <h3>Monto total de inversión</h3>
-            <div class="tabla_interiores">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Monto total de inversion</th>
-                            <th>Importe</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Áreas interiores</td>
-                            <td class="text-right">${{ valor_interior|formato_miles }}</td>
-                        </tr>
-                        <tr>
-                            <td>Áreas exteriores</td>
-                            <td class="text-right">${{ valor_exterior|formato_miles }}</td>
-                        </tr>
-                        <tr>
-                            <td>Permisos y Preliminares</td>
-                            <td class="text-right">${{ valor_permisos|formato_miles }}</td>
-                        </tr>
-                        <tr>
-                            <td>Gestion Rebora</td>
-                            <td class="text-right">${{valor_rebora|formato_miles}}</td>
-                        </tr>
-                        <tr class="total">
-                            <td>Total</td>
-                            <td class="text-right">${{ valor_total|formato_miles }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
         </div>
         <div class="interiores">
             <h3>Esquema de pagos</h3>
@@ -492,7 +496,7 @@
                 </div>
                 <div class="youtube-container">
                     <a target="_blank">
-                        <img src="./server/images/hablan_de_nosotros.png" alt="E01 ¿Cómo transforma tu hogar tu vida?">
+                        <img src="./static/images/hablan_de_nosotros.png" alt="E01 ¿Cómo transforma tu hogar tu vida?">
                     </a>
                 </div>
             </div>
