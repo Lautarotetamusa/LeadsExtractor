@@ -13,7 +13,6 @@ package store
 import (
 	"fmt"
 	"leadsextractor/models"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -21,25 +20,27 @@ import (
 type PublishedStatus string
 
 const (
+    StatusNotPublished PublishedStatus = "not_published"
 	StatusInProgress PublishedStatus = "in_progress"
 	StatusCompleted  PublishedStatus = "completed"
 	StatusFailed     PublishedStatus = "failed"
 )
 
+// Null fields because we do a left join
 type PublishedProperty struct {
-    ID         int64            `json:"id" db:"id"`
-    PropertyID int              `json:"property_id" validate:"required"`
-	URL        models.NullString `json:"url"`
-    Status     PublishedStatus  `json:"status" validate:"required"`
-    Portal     string           `json:"portal" validate:"required"`
-    UpdatedAt  time.Time        `json:"updated_at"`
-	CreatedAt  time.Time        `json:"created_at"`
+    PropertyID models.NullInt16  `json:"property_id" db:"property_id" validate:"required"`
+    URL        models.NullString `json:"url"         db:"url"`
+    Status     PublishedStatus   `json:"status"      db:"status" validate:"required"`
+    Portal     models.NullString `json:"portal"      db:"portal" validate:"required"`
+    UpdatedAt  models.NullTime   `json:"updated_at"  db:"updated_at"`
+    CreatedAt  models.NullTime   `json:"created_at"  db:"created_at"`
 }
 
 type PublishedPropertyStorer interface {
 	Create(pp *PublishedProperty) error
-	GetOne(portal string, propertyID int) (*PublishedProperty, error)
-	UpdateStatus(portal string, propertyID int, status PublishedStatus) error
+	GetOne(portal string, propertyID int64) (*PublishedProperty, error)
+	GetAllByProp(propertyID int64) ([]*PublishedProperty, error)
+	UpdateStatus(portal string, propertyID int64, status PublishedStatus) error
 }
 
 const (
@@ -58,19 +59,45 @@ func NewpublishedPropertyStore(db *sqlx.DB) PublishedPropertyStorer {
 }
 
 func (s *publishedPropertyStore) Create(pp *PublishedProperty) error {
-	res, err := s.db.NamedExec(insertPublishedPropQ, pp)
-    pp.ID, err = res.LastInsertId()
-    if err != nil {
-        return fmt.Errorf("error getting the last inserted id %w", err)
-    }
+	_, err := s.db.NamedExec(insertPublishedPropQ, pp)
 
-    return SQLBadForeignKey(err, fmt.Sprintf("portal '%s' or propery with id %d does not exists", pp.Portal, pp.PropertyID))
+    if err != nil {
+        err = SQLBadForeignKey(err, 
+            fmt.Sprintf("portal '%s' or propery with id %d does not exists", 
+                pp.Portal.String, 
+                pp.PropertyID.Int16,
+            ))
+
+        err = SQLDuplicated(err, fmt.Sprintf("property its already publicated in %s", pp.Portal.String))
+    }
+    return err
 }
 
-func (s *publishedPropertyStore) GetOne(portal string, propertyID int) (*PublishedProperty, error) {
+
+func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedProperty, error) {
+	query := `
+        SELECT 
+            name as portal, 
+            ifnull(status, "not_published") as status,
+            property_id, PP.url, updated_at, created_at
+        FROM Portal P
+        LEFT JOIN PublishedProperty PP
+            ON P.name = PP.portal
+            AND property_id = ?`
+
+	var pp []*PublishedProperty
+    err := s.db.Select(&pp, query, propertyID)
+    if err != nil {
+        return nil, fmt.Errorf("error obtaining publications by prop %w", err)
+    }
+	
+	return pp, nil
+}
+
+func (s *publishedPropertyStore) GetOne(portal string, propertyID int64) (*PublishedProperty, error) {
 	query := `
 		SELECT 
-			property_id, id, url, status, portal, updated_at, created_at 
+			property_id, url, status, portal, updated_at, created_at 
 		FROM PublishedProperty 
 		WHERE portal = ? AND property_id = ?`
 
@@ -80,7 +107,7 @@ func (s *publishedPropertyStore) GetOne(portal string, propertyID int) (*Publish
 	return &pp, SQLNotFound(err, fmt.Sprintf("property %d, does not is published in %s", propertyID, portal))
 }
 
-func (s *publishedPropertyStore) UpdateStatus(portal string, propertyID int, status PublishedStatus) error {
+func (s *publishedPropertyStore) UpdateStatus(portal string, propertyID int64, status PublishedStatus) error {
 	query := `
 		UPDATE PublishedProperty 
 		SET status = ? 

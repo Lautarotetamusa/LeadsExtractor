@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 	"leadsextractor/store"
-	// "log/slog"
+
+	"log/slog"
 	"net/http"
 )
 
@@ -93,7 +94,7 @@ func NewDataResponse(data interface{}) *DataResponse {
 func HandleErrors(fn HandlerErrorFn) HandlerFn {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := fn(w, r); err != nil {
-			// slog.Error(fmt.Sprintf("%#v\n", err))
+			slog.Error(fmt.Sprintf("%#v\n", err))
 
 			apiErr, isApiErr := err.(APIError)
 			if !isApiErr {

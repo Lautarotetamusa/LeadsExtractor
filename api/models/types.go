@@ -124,3 +124,43 @@ func (ns NullString) MarshalCSV() (string, error) {
 	}
 	return "", nil
 }
+
+
+type NullTime sql.NullTime
+
+func (ni *NullTime) MarshalJSON() ([]byte, error) {
+	if !ni.Valid {
+		return []byte("null"), nil
+	}
+	return json.Marshal(ni.Time)
+}
+
+func (ni *NullTime) UnmarshalJSON(b []byte) error {
+	err := json.Unmarshal(b, &ni.Time)
+	ni.Valid = (err == nil)
+	return err
+}
+
+// Scan implements the Scanner interface for NullInt64
+func (ni *NullTime) Scan(value interface{}) error {
+	var i sql.NullTime
+	if err := i.Scan(value); err != nil {
+		return err
+	}
+
+	// if nil then make Valid false
+	if reflect.TypeOf(value) == nil || value == "" {
+		*ni = NullTime{i.Time, false}
+	} else {
+		*ni = NullTime{i.Time, true}
+	}
+	return nil
+}
+
+// Value implements the [driver.Valuer] interface.
+func (n NullTime) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Time, nil
+}
