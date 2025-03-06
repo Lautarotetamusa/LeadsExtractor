@@ -172,6 +172,10 @@ func (h *PropertyHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	}
     prop.ID = id
 
+    if _, err := h.storer.GetOne(id); err != nil {
+        return err
+    }
+
 	if err := validate.Struct(prop); err != nil {
 		return ErrBadRequest(err.Error())
 	}
@@ -180,7 +184,7 @@ func (h *PropertyHandler) Update(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	createdResponse(w, "property updated successfully", prop)
+	createdResponse(w, "property updated successfully", &prop)
 	return nil
 }
 

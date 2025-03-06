@@ -86,9 +86,13 @@ func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedPro
             AND property_id = ?`
 
 	var pp []*PublishedProperty
+
     err := s.db.Select(&pp, query, propertyID)
     if err != nil {
         return nil, fmt.Errorf("error obtaining publications by prop %w", err)
+    }
+    if len(pp) == 0 {
+        panic("Are not any Portal in the db, insert at least one portal")
     }
 	
 	return pp, nil

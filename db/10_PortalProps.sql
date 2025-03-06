@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS PublishedProperty (
 );
 
 insert into PublishedProperty (property_id, url, status, portal) VALUES
-(30, "https://inmuebles24/property/1", "in_progress", "inmuebles24");
+(1, "https://inmuebles24/property/1", "in_progress", "inmuebles24");
         
 /* Get the property publications */
 SELECT 

@@ -199,7 +199,7 @@ func insertImages(ext sqlx.Ext, propId int64, images []PropertyImage) error {
     // i dont know why, but actually the LastInsertId() gives us the id of the FIRST image.
     firstId, err := res.LastInsertId()
     if err != nil {
-        fmt.Errorf("error getting last inserting id %w", err)
+        return fmt.Errorf("error getting last inserting id %w", err)
     }
 
     for i, _ := range images {
@@ -223,13 +223,9 @@ func (s *propertyPortalStore) DeleteImage(propId, imageId int64) error {
 }
 
 func (s *propertyPortalStore) Update(prop *PortalProp) error {
-	res, err := s.db.NamedExec(updatePropertyQ, prop)
-    affected, err := res.RowsAffected()
-    if err != nil || affected == 0 {
-        return NewErr("property doest not exists", StoreNotFoundErr)
-    }
+	_, err := s.db.NamedExec(updatePropertyQ, prop)
 	if err != nil {
-		return SQLNotFound(err, fmt.Sprintf("error updating the property with id %d: %w", prop.ID, err))
+		return fmt.Errorf("error updating the property with id %d: %w", prop.ID, err)
 	}
 
     return nil
