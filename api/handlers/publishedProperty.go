@@ -57,7 +57,7 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
     if prop != nil {
         // If the property its already publicated on this portal
         // and the property status its not "completed" return a error
-        if prop.Status != store.StatusCompleted {
+        if prop.Status == store.StatusInProgress {
             return ErrBadRequest("the property has a publication in progress, wait until the end")
         }
 

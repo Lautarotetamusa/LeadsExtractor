@@ -107,8 +107,11 @@ func (s *publishedPropertyStore) GetOne(portal string, propertyID int64) (*Publi
 
 	var pp PublishedProperty
     err := s.db.Get(&pp, query, portal, propertyID)
+    if err != nil {
+        return nil, SQLNotFound(err, fmt.Sprintf("property (%d) is not published in %s", propertyID, portal)) 
+    }
 	
-	return &pp, SQLNotFound(err, fmt.Sprintf("property %d, does not is published in %s", propertyID, portal))
+	return &pp, nil
 }
 
 func (s *publishedPropertyStore) UpdateStatus(portal string, propertyID int64, status PublishedStatus) error {
