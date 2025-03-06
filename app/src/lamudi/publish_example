@@ -1,0 +1,25 @@
+Request:
+-----------------------------16580183843975662938624489934
+Content-Disposition: form-data; name="ad"
+
+{"address":"Col Benito Juarez, Residencial Cordilleras, Zapopan, Jal., México","coordinates":{"latitude":20.6720395,"longitude":-103.4166672},"geoLevels":[{"level":"aws_neighborhood","name":"Cordilleras"},{"level":"aws_municipality","name":"Zapopan"},{"level":"aws_sub_region","name":"Zapopan"},{"level":"aws_region","name":"Jalisco"}],"locationVisibility":"approximate","floorPlans":[],"propertyImages":[],"mainImageIndex":-1,"titleMultiLanguage":[{"text":"Casa de prueba","locale":"es-MX"}],"descriptionMultiLanguage":[{"text":"Una maravillosa casa de prueba.","locale":"es-MX"}],"id":"01956ab4-c82c-7dd9-ae07-89134e7f7403","creationDate":"2025-03-06T09:09:21.927Z","published":true,"bathrooms":2,"bedrooms":5,"toilets":0,"bankProperty":false,"condition":"renovated","furnished":"unfurnished","constructionYear":2005,"communityFeesAmount":4000,"communityFeesCurrency":"MXN","floorArea":150,"floorAreaUnit":"sqm","usableArea":100,"usableAreaUnit":"sqm","plotArea":[],"amenities":["water"],"rules":[],"nearbyLocations":[],"contactEmails":["ventas.rebora@gmail.com"],"contactWhatsApp":"+523328092850","contactPhone":"+523341690109","virtualTours":[],"propertyType":"house","operations":[{"type":"sell","price":{"amount":1000000,"currency":"MXN"}}],"propertyImagesSortedWithAi":false}
+-----------------------------16580183843975662938624489934--
+
+Response
+{"data":{"adWasPublished":true,"publisherBoostingLimitReached":false,"adWasBoosted":true,"publisherSubscribedToFreePlan":false,"numberOfPublishedAdsExceedBoostingLimit":false}}
+
+WITH Images
+-----------------------------618342139328742962642723131
+Content-Disposition: form-data; name="ad"
+
+{"address":"Col Benito Juarez, Residencial Cordilleras, Zapopan, Jalisco, MÃ©xico","coordinates":{"latitude":20.6720395,"longitude":-103.4166672},"geoLevels":[{"level":"aws_neighborhood","name":"Cordilleras"},{"level":"aws_municipality","name":"Zapopan"},{"level":"aws_sub_region","name":"Zapopan"},{"level":"aws_region","name":"Jalisco"}],"locationVisibility":"accurate","floorPlans":[{"ref":0}],"propertyImages":[{"ref":0,"isProjectImage":false}],"mainImageIndex":0,"titleMultiLanguage":[{"text":"Casa de prueba","locale":"es-MX"}],"descriptionMultiLanguage":[{"text":"Hermosa casa de prueba.","locale":"es-MX"}],"id":"01956abc-bae7-7dd9-ae07-9039776b5aa6","creationDate":"2025-03-06T09:16:37.258Z","published":true,"bathrooms":2,"bedrooms":5,"bankProperty":false,"condition":"semi-renovated","furnished":"unfurnished","communityFeesAmount":4000,"communityFeesCurrency":"MXN","floorArea":150,"floorAreaUnit":"sqm","usableArea":100,"usableAreaUnit":"sqm","plotArea":[],"amenities":["car park","water"],"rules":[],"nearbyLocations":[],"contactEmails":["ventas.rebora@gmail.com"],"contactWhatsApp":"+523328092850","contactPhone":"+523341690109","virtualTours":[],"propertyType":"house","operations":[{"type":"sell","price":{"amount":1000000,"currency":"MXN"}}],"propertyImagesSortedWithAi":false}
+-----------------------------618342139328742962642723131
+Content-Disposition: form-data; name="propertyImagesToBeUploaded[0]"; filename="a_033.png"
+<image_data>
+Content-Type: image/png
+-----------------------------618342139328742962642723131
+Content-Disposition: form-data; name="floorPlansToBeUploaded[0]"; filename="a_014.png"
+<image_data>
+Content-Type: image/png
+-----------------------------618342139328742962642723131--
+

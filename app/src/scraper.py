@@ -4,6 +4,7 @@ import os
 import time
 from typing import Iterator
 
+from src.property import Property
 from src.message import generate_post_message
 from src.sheets import Sheet
 from src.logger import Logger
@@ -37,6 +38,9 @@ class Scraper():
 
     def get_total_posts(self) -> int:
         return 0
+
+    def publish(self, property: Property):
+        return
 
     def _action(self, ad, spin_msg: str | None) -> list[str]:
         if spin_msg is not None:
