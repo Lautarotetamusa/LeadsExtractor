@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS PortalProp(
 
     /* Ubication fields */
     state VARCHAR(128) NOT NULL,
-    municipality VARCHAR(128) NOT NULL,
     colony VARCHAR(128) NOT NULL,
+    municipality VARCHAR(128) NOT NULL,
     neighborhood VARCHAR(128) DEFAULT NULL,
     street VARCHAR(256) NOT NULL,
     number VARCHAR(32) NOT NULL,

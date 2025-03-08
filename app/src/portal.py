@@ -1,9 +1,11 @@
 import json
 import os
+from re import error
 import time
 from typing import Iterator
 from multiprocessing.pool import ThreadPool
 
+from src.property import Property
 from src.lead import Lead
 from src.make_requests import Request
 from src.logger import Logger
@@ -77,6 +79,8 @@ class Portal():
     def make_contacted(self, lead: dict):
         pass
     def make_failed(self, lead: dict):
+        pass
+    def publish(self, property: Property) -> Exception | None:
         pass
     def login(self):
         pass
