@@ -131,6 +131,7 @@ def translateContext(cin):
         "valor_subtotal_m2": valor_subtotal_m2,
         "valor_administracion": valor_administracion,
         "porcentaje_administracion": porcentaje_administracion,
+        "is_valor_permisos": is_valor_permisos,
         "valor_preconstruccion": valor_preconstruccion,
         "valor_construccion": valor_construccion,
         "valor_total": valor_total,
