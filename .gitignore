@@ -32,3 +32,4 @@ debug/grafana/*
 pagekite.py
 
 #pdfs
+app/pdfs

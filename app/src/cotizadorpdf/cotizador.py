@@ -2,12 +2,13 @@ from jinja2 import Environment, FileSystemLoader
 import threading
 import os
 from datetime import date, datetime
+from src.cotizadorpdf.time_line import grafico_pagos, grafico_etapas
 from weasyprint import HTML
 from flask import url_for
 # 📌 Cargar la plantilla HTML y reemplazar variables dinámicas
 
 def formato_miles(valor):
-    return "{:,.0f}".format(valor).replace(",", ".")
+    return "{:,.0f}".format(valor)
 
 def renderizar_html(template_name, contexto):
     env = Environment(loader=FileSystemLoader(os.getcwd()))  # Busca en el directorio actual
@@ -68,7 +69,12 @@ def translateContext(cin):
     valor_construccion = int(valor_rebora*0.7)
     is_valor_permisos = cin["elaborado_por"]["is_valor_permisos"]
     porcentaje_administracion = cin["elaborado_por"]["porcentaje_administracion"]
-    valor_administracion = int((valor_exterior + valor_interior + valor_permisos*is_valor_permisos)*porcentaje_administracion/100)
+    valor_interior_m2 = int(valor_interior/area_interior)
+    valor_exterior_m2 = int(valor_exterior/area_interior)
+    valor_permisos_m2 = int(valor_permisos/area_interior)
+    valor_subtotal_m2 = int((valor_interior_m2+valor_exterior_m2+valor_permisos_m2*is_valor_permisos))
+    valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
+    valor_administracion = int(valor_administracion_m2 * area_interior)
     valor_total = valor_exterior+valor_interior+valor_permisos+valor_rebora+valor_administracion
     anticipo = cin['pagos']['inicial']
     porcentaje_previo = cin['pagos']['porcentaje_inicio_obra']
@@ -118,6 +124,11 @@ def translateContext(cin):
         "valor_calculo": valor_calculo,
         "valor_permisos": valor_permisos,
         "valor_rebora": valor_rebora,
+        "valor_interior_m2": valor_interior_m2,
+        "valor_exterior_m2": valor_exterior_m2,
+        "valor_permisos_m2": valor_permisos_m2,
+        "valor_administracion_m2": valor_administracion_m2,
+        "valor_subtotal_m2": valor_subtotal_m2,
         "valor_administracion": valor_administracion,
         "porcentaje_administracion": porcentaje_administracion,
         "valor_preconstruccion": valor_preconstruccion,
@@ -147,10 +158,15 @@ def translateContext(cin):
 def to_pdf(json):
     try:
         contexto = translateContext(json)
+        contexto['nombre_grafico_pagos'] = grafico_pagos(contexto)
+        contexto['nombre_grafico_etapas'] = grafico_etapas(contexto)
         html_content = renderizar_html("/src/cotizadorpdf/presupuesto2.html", contexto)
         timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
         pdf_filename = os.path.join("pdfs", "cotizacion" + timestamp_str +".pdf")
         HTML(string=html_content, base_url=".").write_pdf(pdf_filename)
+        os.remove(contexto["nombre_grafico_pagos"])
+        os.remove(contexto["nombre_grafico_etapas"])
         return timestamp_str
     except Exception as e:
+        print(e)
         return "error"
