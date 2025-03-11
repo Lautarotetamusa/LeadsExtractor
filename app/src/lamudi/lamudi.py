@@ -6,12 +6,15 @@ import uuid
 
 import requests
 
+from src.scraper import SENDER_PHONE
+from src.onedrive import download_image
 from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = os.getenv("DATE_FORMAT")
+CONTACT_EMAIL = os.getenv("SENDER_EMAIL")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 
 
@@ -147,15 +150,15 @@ class Lamudi(Portal):
         self.request.make(read_url, 'PUT', json=data)
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
-    def publish(self, property: Property):
+    def publish(self, property: Property) -> Exception | None:
         id = str(uuid.uuid4())
 
         ad_payload = {
             "address": "Col Benito Juarez, Residencial Cordilleras, Zapopan, Jalisco, MÃ©xico",
-            # "coordinates": {
-            #     "latitude": 20.6720395,
-            #     "longitude": -103.4166672
-            # },
+            "coordinates": {
+                "latitude": 20.6720395,
+                "longitude": -103.4166672
+            },
             "geoLevels": [
                 {
                     "level": "aws_neighborhood",
@@ -178,28 +181,22 @@ class Lamudi(Portal):
             "floorPlans": [],
             "propertyImages": [],
             "mainImageIndex": 0,
-            "titleMultiLanguage": [
-                {
-                    "text": property.title,
-                    "locale": "es-MX"
-                }
-            ],
-            "descriptionMultiLanguage": [
-                {
-                    "text": property.description,
-                    "locale": "es-MX"
-                }
-            ],
+            "titleMultiLanguage": [{
+                "text": property.title,
+                "locale": "es-MX"
+            }],
+            "descriptionMultiLanguage": [{
+                "text": property.description,
+                "locale": "es-MX"
+            }],
             "id": id,
-            # "creationDate": "2025-03-06T09:16:37.258Z",
-            # "published": True,
             "bathrooms": property.bathrooms,
             "bedrooms": property.rooms,
             "bankProperty": False,
             "condition": "semi-renovated",
             "furnished": "unfurnished",
-            "communityFeesAmount": 4000,
-            "communityFeesCurrency": "MXN",
+            # "communityFeesAmount": 0,
+            # "communityFeesCurrency": "MXN",
             "floorArea": property.m2_total,
             "floorAreaUnit": "sqm",
             "usableArea": property.m2_covered,
@@ -208,44 +205,56 @@ class Lamudi(Portal):
             "amenities": [],
             "rules": [],
             "nearbyLocations": [],
-            "contactEmails": [
-                "ventas.rebora@gmail.com"
-            ],
-            "contactWhatsApp": "+523328092850",
-            "contactPhone": "+523341690109",
+            "contactEmails": [CONTACT_EMAIL],
+            "contactWhatsApp": SENDER_PHONE,
+            "contactPhone": SENDER_PHONE,
             "virtualTours": [],
             "propertyType": property.type.__str__(),
-            "operations": [
-            {
+            "operations": [{
                 "type": property.operation_type.__str__(),
                 "price": {
                     "amount": property.price,
                     "currency": property.currency
                 }
-            }
-            ],
+            }],
             "propertyImagesSortedWithAi": False
         }
 
+
         i = 0
+        # Construct the propertyImages ad_payload field
         for image in property.images:
             ad_payload["propertyImages"].append({
                 "ref": i,
                 "isProjectImage": False
             })
             i += 1
-
-        # TODO: Floor images
-        # {
-        #     "ref": 0
-        # }
-
         json_ad_payload = json.dumps(ad_payload)
-        files=[
-            ('ad', (None , json_ad_payload))
+        files: list[tuple] = [
+            ("ad", (None , json_ad_payload))
         ]
+
+        # Insert the images files for the request
+        i = 0
+        for image in property.images:
+            self.logger.debug(f"downloading image {image['url']}")
+            img_data = download_image(image["url"])
+            self.logger.debug("image downloaded successfully")
+            if img_data == None: return Exception("cannot download the image") 
+            img_type = "png" if "png" in image["url"] else "jpeg"
+
+            files.append(
+                # field name, (name, data, img_type)
+                (f"propertyImagesToBeUploaded[{i}]", (f"image.{img_type}", img_data, f"image/{img_type}"))
+            )
+            i += 1
+
         print(json.dumps(ad_payload, indent=4))
-        res = requests.post(f"{API_URL}/properties/{id}", cookies=self.request.cookies, files=files)
-        if res == None: return
-        print(res.status_code)
+        self.logger.debug("publishing property")
+        res = self.request.make(f"{API_URL}/properties/{id}", "POST", files=files)
+        if res == None: return Exception("cannot publish the property")
+        if not res.ok: return Exception("cannot publish the property")
+        self.logger.success("property published successfully")
         print(res.text)
+
+        return None
