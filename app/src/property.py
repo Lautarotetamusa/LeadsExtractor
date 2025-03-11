@@ -12,6 +12,10 @@ class OperationType(Enum):
     RENT = "rent"
 
 @dataclass
+class Image:
+    url: str
+
+@dataclass
 class Property:
     id: int
     title: str
@@ -32,7 +36,7 @@ class Property:
     zip_code: str
     updated_at: datetime
     created_at: datetime
-    images: list[dict]
+    images: list[dict[str, str]]
     parking_lots: Optional[int] = None
     bathrooms: Optional[int] = None
     half_bathrooms: Optional[int] = None

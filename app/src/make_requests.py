@@ -60,7 +60,7 @@ class Request():
         assert method in METHODS, f"Método HTTP no permitido: {method}"
 
         ok = False
-        max_tries = 5
+        max_tries = 3
         tries = 0
 
         while (tries <= max_tries) and not ok:

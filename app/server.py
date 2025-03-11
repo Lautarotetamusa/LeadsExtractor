@@ -3,8 +3,13 @@ from flask_cors import CORS
 import threading
 import os
 
+# Portals
+from src.portal import Portal
+from src.propiedades_com.propiedades import Propiedades
+from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
-from src.property import Property
+
+from src.property import Image, Property
 from src.logger import Logger
 from src.lead import Lead
 import src.jotform as jotform
@@ -37,6 +42,13 @@ SCRAPERS = {
     "propiedades": PropiedadesScraper,
     "inmuebles24": Inmuebles24Scraper,
     "lamudi": LamudiScraper
+}
+
+PORTALS: dict[str, Portal] = {
+    "casasyterrenos": CasasYTerrenos(),
+    "propiedades": Propiedades(),
+    # "inmuebles24": Inmuebles24Scraper,
+    "lamudi": Lamudi()
 }
 
 thread = threading.Thread(target=tasks.init_task_scheduler)
@@ -85,13 +97,19 @@ def ejecutar_script_route():
 
     return "Proceso en segundo plano iniciado."
 
-@app.route('/publish', methods=['POST'])
-def publish_route():
+@app.route('/publish/<portal>', methods=['POST'])
+def publish_route(portal: str):
+    if portal not in PORTALS: 
+        return jsonify({"error": f"Portal f{portal} is not valid"}), 400
+
     data = request.get_json()
     property = Property(**data)
 
-    Lamudi().publish(property)
-    return "publicado"
+    err = PORTALS[portal].publish(property)
+    if err != None:
+        return jsonify({"error": err.__str__()}), 500
+
+    return jsonify({"success": True, "message": "publicado con exito"}), 201
 
 @app.route('/cotizacion', methods=['POST'])
 def cotizacion():
@@ -152,4 +170,4 @@ def check_task(task_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
