@@ -6,6 +6,7 @@ import uuid
 
 import requests
 
+from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -84,7 +85,7 @@ class Lamudi(Portal):
 
         formatted_props = []
         for p in props:
-            formatted_props.append({
+            format_prop = {
                 "titulo": p.get("title", ""),
                 "id": p.get("id", ""),
                 "link": f"https://www.lamudi.com.mx/detalle/{p['id']}",
@@ -95,9 +96,15 @@ class Lamudi(Portal):
                 "municipio": p["geoLevels"][0]["name"] if len(p["geoLevels"]) > 0 else "",
                 "bedrooms": str(p.get("bedrooms", "")),
                 "bathrooms": str(p.get("bathrooms", "")),
-                "total_area": str(p.get("florArea", "")),
-                "covered_area": str(p.get("plotArea", [{}])[0].get("value", ""))
-            })
+                "covered_area": str(p.get("floorArea", "")),
+                "total_area": ""
+            }
+
+            plot_area = p.get("plotArea", [])
+            if len(plot_area) > 0:
+                format_prop["total_area"] = str(plot_area[0].get("value", ""))
+
+            formatted_props.append(format_prop)
 
         return formatted_props
 
@@ -139,3 +146,106 @@ class Lamudi(Portal):
         }
         self.request.make(read_url, 'PUT', json=data)
         self.logger.success(f"Se contacto correctamente a lead {id}")
+
+    def publish(self, property: Property):
+        id = str(uuid.uuid4())
+
+        ad_payload = {
+            "address": "Col Benito Juarez, Residencial Cordilleras, Zapopan, Jalisco, MÃ©xico",
+            # "coordinates": {
+            #     "latitude": 20.6720395,
+            #     "longitude": -103.4166672
+            # },
+            "geoLevels": [
+                {
+                    "level": "aws_neighborhood",
+                    "name": "Cordilleras"
+                },
+                {
+                    "level": "aws_municipality",
+                    "name": "Zapopan"
+                },
+                {
+                    "level": "aws_sub_region",
+                    "name": "Zapopan"
+                },
+                {
+                    "level": "aws_region",
+                    "name": "Jalisco"
+                }
+            ],
+            "locationVisibility": "accurate",
+            "floorPlans": [],
+            "propertyImages": [],
+            "mainImageIndex": 0,
+            "titleMultiLanguage": [
+                {
+                    "text": property.title,
+                    "locale": "es-MX"
+                }
+            ],
+            "descriptionMultiLanguage": [
+                {
+                    "text": property.description,
+                    "locale": "es-MX"
+                }
+            ],
+            "id": id,
+            # "creationDate": "2025-03-06T09:16:37.258Z",
+            # "published": True,
+            "bathrooms": property.bathrooms,
+            "bedrooms": property.rooms,
+            "bankProperty": False,
+            "condition": "semi-renovated",
+            "furnished": "unfurnished",
+            "communityFeesAmount": 4000,
+            "communityFeesCurrency": "MXN",
+            "floorArea": property.m2_total,
+            "floorAreaUnit": "sqm",
+            "usableArea": property.m2_covered,
+            "usableAreaUnit": "sqm",
+            "plotArea": [],
+            "amenities": [],
+            "rules": [],
+            "nearbyLocations": [],
+            "contactEmails": [
+                "ventas.rebora@gmail.com"
+            ],
+            "contactWhatsApp": "+523328092850",
+            "contactPhone": "+523341690109",
+            "virtualTours": [],
+            "propertyType": property.type.__str__(),
+            "operations": [
+            {
+                "type": property.operation_type.__str__(),
+                "price": {
+                    "amount": property.price,
+                    "currency": property.currency
+                }
+            }
+            ],
+            "propertyImagesSortedWithAi": False
+        }
+
+        i = 0
+        for image in property.images:
+            ad_payload["propertyImages"].append({
+                "ref": i,
+                "isProjectImage": False
+            })
+            i += 1
+
+        # TODO: Floor images
+        # {
+        #     "ref": 0
+        # }
+
+        json_ad_payload = json.dumps(ad_payload)
+        files=[
+            ('ad', (None , json_ad_payload))
+        ]
+        print(json.dumps(ad_payload, indent=4))
+        res = requests.post(f"{API_URL}/properties/{id}", cookies=self.request.cookies, files=files)
+        if res == None: return
+        print(res.status_code)
+        print(res.text)

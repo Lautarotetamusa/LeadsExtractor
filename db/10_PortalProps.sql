@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS PortalProp(
 
     /* Ubication fields */
     state VARCHAR(128) NOT NULL,
-    municipality VARCHAR(128) NOT NULL,
     colony VARCHAR(128) NOT NULL,
+    municipality VARCHAR(128) NOT NULL,
     neighborhood VARCHAR(128) DEFAULT NULL,
     street VARCHAR(256) NOT NULL,
     number VARCHAR(32) NOT NULL,
@@ -68,22 +68,39 @@ CREATE TABLE IF NOT EXISTS Portal (
     PRIMARY KEY(name)
 );
 
+INSERT INTO Portal (name, url) VALUES
+("lamudi", "https://lamudi.com.mx"),
+("inmuebles24", "https://inmuebles24.com"),
+("casasyterrenos", "https://casasyterrenos.com"),
+("propiedades", "https://propiedades.com");
+
 DROP TABLE IF EXISTS PublishedProperty;
 CREATE TABLE IF NOT EXISTS PublishedProperty (
-    id INT NOT NULL AUTO_INCREMENT,
     property_id INT NOT NULL,
 
     url     VARCHAR(256) DEFAULT NULL,
     status  ENUM("in_progress", "completed", "failed") DEFAULT "in_progress",
     portal  VARCHAR(64) NOT NULL,
 
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CHECK (url <> ""),
 
-    PRIMARY KEY (id),
-    KEY (portal, property_id),
+    PRIMARY KEY (portal, property_id),
     FOREIGN KEY (portal) REFERENCES Portal(name),
     FOREIGN KEY (property_id) REFERENCES PortalProp(id)
 );
+
+insert into PublishedProperty (property_id, url, status, portal) VALUES
+(1, "https://inmuebles24/property/1", "in_progress", "inmuebles24");
+        
+/* Get the property publications */
+SELECT 
+    name as portal, 
+    ifnull(status, "not_published") as status,
+    property_id, PP.url, updated_at, created_at
+FROM Portal P
+LEFT JOIN PublishedProperty PP
+    ON P.name = PP.portal
+    AND property_id = 30;

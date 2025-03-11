@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -143,6 +144,66 @@ class Propiedades(Portal):
 
     def make_contacted(self, lead: dict):
         self._change_status(lead, Status.CERRADA)
+
+    def publish(self, property: Property):
+        payload = {
+            "from_funnel": "true",
+            "source": "token",
+            "id": "0",
+            "property[address][city]": "Zapopan",
+            "property[address][city_id]": "534",
+            "property[address][colony]": "Chapalita Inn",
+            "property[address][another_colony]": "",
+            "property[address][check_location]": "true",
+            "property[address][temp_lat]": "",
+            "property[address][temp_lng]": "",
+            "property[address][lat]": "20.6917651",
+            "property[address][lng]": "-103.47068610000001",
+            "property[address][num_ext]": "246",
+            "property[address][num_int]": "",
+            "property[address][sepomex_id]": "56437",
+            "property[address][state]": "Jalisco",
+            "property[address][state_id]": "14",
+            "property[address][street]": "Marsella",
+            "property[address][zipcode]": "45010",
+            "property[address][colony_id]": "56437",
+            "property[address][address_details][address]": "",
+            "property[address][address_details][label]": "Villa Bosque (Villa Panamericana), Zapopan, Jal.",
+            "property[address][address_details][latitude]": "20.6917651",
+            "property[address][address_details][longitude]": "-103.47068610000001",
+            "property[address][address_details][zip_code]": "",
+            "property[address][address_details][street_number]": "",
+            "property[address][address_details][provider]": "GOOGLE",
+            "property[address][address_details][median_zone_id]": "1499",
+            "property[address][address_details][big_zone_id]": "29126",
+            "property[address][address_details][city_id]": "29126",
+            "property[address][address_details][success]": "true",
+            "property[address][google_place_id]": "ChIJHba6zjypKIQR1LpeS_KZijg",
+            "property[type]": "1",
+            "property[type_children]": "2",
+            "property[purpose]": "1",
+            "property[features][bedrooms]": "5",
+            "property[features][bathrooms]": "2",
+            "property[features][bathrooms_half]": "0",
+            "property[features][parking_num]": "0",
+            "property[features][floor]": "1",
+            "property[features][size_ground]": "150",
+            "property[features][ground_unit]": "1",
+            "property[features][size_house]": "100",
+            "property[features][size_house_unit]": "1",
+            "property[features][garden_size]": "",
+            "property[features][garden_unit]": "1",
+            "property[features][gardens]": "true",
+            "property[features][property_old]": "1",
+            "property[features][know_property_old]": "1",
+            "property[status]": "17"
+        }
+
+        url = f"{API_URL}/property/property"
+        res = self.request.make(url, "POST", json=payload)
+        if res == None: return Exception("error creating the property")
+        print(res.text)
+        print(res.status_code)
 
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"

@@ -3,6 +3,8 @@ from flask_cors import CORS
 import threading
 import os
 
+from src.lamudi.lamudi import Lamudi
+from src.property import Property
 from src.logger import Logger
 from src.lead import Lead
 import src.jotform as jotform
@@ -83,6 +85,13 @@ def ejecutar_script_route():
 
     return "Proceso en segundo plano iniciado."
 
+@app.route('/publish', methods=['POST'])
+def publish_route():
+    data = request.get_json()
+    property = Property(**data)
+
+    Lamudi().publish(property)
+    return "publicado"
 
 @app.route('/cotizacion', methods=['POST'])
 def cotizacion():

@@ -232,6 +232,17 @@ CRON="0 10-18/4 * * *"
     - propiedades
     - lamudi
 
+# Microsoft integration
+La usamos para almacenar imagenes
+## Documentacion
+[Descargar archivos de OneDrive](https://stackoverflow.com/questions/58171733/download-files-from-personal-onedrive-using-python)
+[Repo para descargar archivos](https://github.com/stevemurch/onedrive-download/tree/master)
+[Microsoft Oauth2 flow](https://learn.microsoft.com/en-gb/entra/identity-platform/v2-oauth2-auth-code-flow)
+
+## Pasos para obtener credenciales 
+1. Registrar una aplicacion
+    - https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade
+
 # Posibles mejoras
   * Diseñar y desarrollar una base de datos, esto permitiría conectar los datos de los diferentes portales sin repetir información, lo que permitiría un mejor manejo de la información.
   * Nuevos portales.

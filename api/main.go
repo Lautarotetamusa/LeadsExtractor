@@ -92,6 +92,7 @@ func main() {
 	storer := store.NewStore(db)
 
     propStore := store.NewPropertyPortalStore(db)
+    publisPropStore := store.NewpublishedPropertyStore(db)
 	leadStore := store.NewLeadStore(db)
 	utmStore := store.NewUTMStore(db)
 	commStore := store.NewCommStore(db)
@@ -125,6 +126,7 @@ func main() {
 
 	// Handlers
     propHandler := handlers.NewPropertyHandler(propStore)
+    publishPropHandler := handlers.NewPublishedPropertyHandler(publisPropStore)
 	leadHandler := handlers.NewLeadHandler(leadStore)
 	utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := handlers.NewFlowHandler(flowManager, commStore)
@@ -141,6 +143,7 @@ func main() {
 	flowHandler.RegisterRoutes(router)
 	commHandler.RegisterRoutes(router)
 	asesorHandler.RegisterRoutes(router)
+    publishPropHandler.RegisterRoutes(router)
 
 	// Server
 	apiPort := os.Getenv("API_PORT")
