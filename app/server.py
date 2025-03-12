@@ -9,7 +9,7 @@ from src.propiedades_com.propiedades import Propiedades
 from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
 
-from src.property import Image, Property
+from src.property import Image, Location, Property, Ubication
 from src.logger import Logger
 from src.lead import Lead
 import src.jotform as jotform
@@ -104,6 +104,8 @@ def publish_route(portal: str):
 
     data = request.get_json()
     property = Property(**data)
+    property.ubication = Ubication(**data["ubication"])
+    property.ubication.location = Location(**data["ubication"]["location"])
 
     err = PORTALS[portal].publish(property)
     if err != None:

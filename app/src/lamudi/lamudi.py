@@ -150,33 +150,44 @@ class Lamudi(Portal):
         self.request.make(read_url, 'PUT', json=data)
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
+    def get_location(self, address) -> dict | None: 
+        prediction_url = f"https://api.proppit.com/address-suggestions?query={address}"
+        address_url = f"https://api.proppit.com/property-geolocations/address?address={address}"
+
+        res = self.request.make(prediction_url, "GET")
+        if res == None: return None
+        if not res.ok: return None
+
+        place_id = res.json().get("predictions", [{}])[0].get("place_id")
+        if place_id == None: return None
+
+        res = self.request.make(address_url + f"&place_id={place_id}", "GET")
+        if res == None: return None
+        if not res.ok: return None
+
+        # {
+        #     geoLevels
+        #     latitude
+        #     longitude
+        #     address
+        # }
+        return res.json().get("data")
+
     def publish(self, property: Property) -> Exception | None:
         id = str(uuid.uuid4())
 
+        self.logger.debug("getting the address geo location")
+        location_data = self.get_location(property.ubication.address)
+        if location_data == None: return Exception("cannot get the location data")
+        self.logger.success("geolocation data getted successfully")
+
         ad_payload = {
-            "address": "Col Benito Juarez, Residencial Cordilleras, Zapopan, Jalisco, MÃ©xico",
+            "address": location_data["address"],
             "coordinates": {
-                "latitude": 20.6720395,
-                "longitude": -103.4166672
+                "latitude": location_data["latitude"],
+                "longitude": location_data["longitude"]
             },
-            "geoLevels": [
-                {
-                    "level": "aws_neighborhood",
-                    "name": "Cordilleras"
-                },
-                {
-                    "level": "aws_municipality",
-                    "name": "Zapopan"
-                },
-                {
-                    "level": "aws_sub_region",
-                    "name": "Zapopan"
-                },
-                {
-                    "level": "aws_region",
-                    "name": "Jalisco"
-                }
-            ],
+            "geoLevels": location_data["geoLevels"],
             "locationVisibility": "accurate",
             "floorPlans": [],
             "propertyImages": [],
@@ -249,12 +260,12 @@ class Lamudi(Portal):
             )
             i += 1
 
-        print(json.dumps(ad_payload, indent=4))
+        # print(json.dumps(ad_payload, indent=4))
         self.logger.debug("publishing property")
         res = self.request.make(f"{API_URL}/properties/{id}", "POST", files=files)
         if res == None: return Exception("cannot publish the property")
         if not res.ok: return Exception("cannot publish the property")
         self.logger.success("property published successfully")
-        print(res.text)
+        # print(res.text)
 
         return None
