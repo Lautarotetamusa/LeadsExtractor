@@ -14,8 +14,8 @@ import (
 //     title VARCHAR(256) NOT NULL,
 //     price VARCHAR(32) NOT NULL,
 //     currency CHAR(5) NOT NULL,
-//     description VARCHAR(512),
-//     type VARCHAR(32) DEFAULT NULL,
+//     description VARCHAR(512) NOT NULL, 
+//     type VARCHAR(32) NOT NULL,
 //     antiquity INT NOT NULL,
 //     parkinglots INT DEFAULT NULL,
 //     bathrooms INT DEFAULT NULL,
@@ -27,11 +27,22 @@ import (
 //     video_url VARCHAR(256) DEFAULT NULL,
 //     virtual_route VARCHAR(256) DEFAULT NULL,
 //
-//     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-//
+//     /* Ubication fields */
+//     address VARCHAR(256) NOT NULL, /*Full GOOGLE valid address*/
+//     lat FLOAT NOT NULL,
+//     lng FLOAT NOT NULL,
 //     PRIMARY KEY(id)
-// );
+// )
+
+type Location struct {
+    Lat    float32 `json:"lat" db:"lat" validate:"required"`
+    Lng    float32 `json:"lng" db:"lng" validate:"required"`
+}
+
+type Ubication struct {
+    Address     string   `json:"address" db:"address" validate:"required"`
+    Location    Location `json:"location"`
+}
 
 type PortalProp struct {
 	ID            int64          `json:"id" db:"id"`
@@ -40,7 +51,7 @@ type PortalProp struct {
     Price         string            `json:"price" db:"price" validate:"required,numeric,gte=0"`
     Currency      string            `json:"currency" db:"currency" validate:"required"`
     Description   string            `json:"description" db:"description" validate:"required"`
-	Type          models.NullString `json:"type" db:"type"`
+    Type          string            `json:"type" db:"type" validate:"required,oneof=house apartment"`
     Antiquity     int               `json:"antiquity" db:"antiquity" validate:"required"`
 	ParkingLots   models.NullInt16  `json:"parking_lots" db:"parkinglots"`
 	Bathrooms     models.NullInt16  `json:"bathrooms" db:"bathrooms"`
@@ -52,18 +63,12 @@ type PortalProp struct {
 	VideoURL      models.NullString `json:"video_url" db:"video_url"`
 	VirtualRoute  models.NullString `json:"virtual_route" db:"virtual_route"`
 
-    State	     string             `json:"state" db:"state" validate:"required"`
-    Municipality string             `json:"municipality" db:"municipality" validate:"required"`
-    Colony	     string             `json:"colony" db:"colony" validate:"required"`
-    Neighborhood models.NullString  `json:"neighborhood" db:"neighborhood"`
-    Street	     string             `json:"street" db:"street" validate:"required"`
-    Number	     string             `json:"number" db:"number" validate:"required"`
-    ZipCode	     string             `json:"zip_code" db:"zip_code" validate:"required"`
+    Ubication   Ubication   `json:"ubication"`
 
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 
-    Images []PropertyImage `json:"images"`
+    Images []PropertyImage `json:"images,omitempty"`
 }
 
 type PropertyImage struct {
@@ -77,11 +82,11 @@ const (
         INSERT INTO PortalProp 
                 (title, price, currency, description, type, antiquity, parkinglots, bathrooms, half_bathrooms, rooms, 
                 operation_type, m2_total, m2_covered, video_url, virtual_route,
-                state, municipality, colony, neighborhood, street, number, zip_code
+                address, lat, lng
             ) 
         VALUES (:title, :price, :currency, :description, :type, :antiquity, :parkinglots, :bathrooms, :half_bathrooms, :rooms, 
                 :operation_type, :m2_total, :m2_covered, :video_url, :virtual_route,
-                :state, :municipality, :colony, :neighborhood, :street, :number, :zip_code
+                :ubication.address, :ubication.location.lat, :ubication.location.lng
             )`
 
 	updatePropertyQ = `
@@ -90,9 +95,16 @@ const (
 			antiquity = :antiquity, parkinglots = :parkinglots, bathrooms = :bathrooms, 
 			half_bathrooms = :half_bathrooms, rooms = :rooms, operation_type = :operation_type, 
 			m2_total = :m2_total, m2_covered = :m2_covered, video_url = :video_url, virtual_route = :virtual_route,
-            state = :state, municipality = :municipality, colony = :colony, neighborhood = :neighborhood, 
-            street = :street, number = :number, zip_code = :zip_code 
+            address = :ubication.address, lat = :ubication.location.lat, lng = :ubication.location.lng
 		WHERE id = :id`
+
+    selectPropertyQ = `
+        SELECT id, title, price, currency, description, type, antiquity, parkinglots, bathrooms, half_bathrooms,
+               rooms, operation_type, m2_total, m2_covered, video_url, virtual_route, created_at, updated_at,
+               address as "ubication.address",
+               lat as "ubication.location.lat",
+               lng as "ubication.location.lng"
+        FROM PortalProp`
 )
 
 type PropertyPortalStore interface {
@@ -117,8 +129,7 @@ func (s *propertyPortalStore) GetAll() ([]*PortalProp, error) {
     // i do it this way because if not are any props must return [] and not null
     properties := make([]*PortalProp, 0)
 
-	query := "SELECT * FROM PortalProp"
-	err := s.db.Select(&properties, query)
+	err := s.db.Select(&properties, selectPropertyQ)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener todas las propiedades: %w", err)
 	}
@@ -128,7 +139,7 @@ func (s *propertyPortalStore) GetAll() ([]*PortalProp, error) {
 
 func (s *propertyPortalStore) GetOne(id int64) (*PortalProp, error) {
 	var property PortalProp
-	query := "SELECT * FROM PortalProp WHERE id = ?"
+	query := selectPropertyQ + " WHERE id = ?"
 	err := s.db.Get(&property, query, id)
 	if err != nil {
 		return nil, SQLNotFound(err, "property not found")
@@ -174,9 +185,6 @@ func (s *propertyPortalStore) Insert(prop *PortalProp) error {
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("error commiting the transaction: %w", err)
 	}
-
-    // get the created_at, updated_at and id fields
-    prop, err = s.GetOne(prop.ID)
 	return err 
 }
 

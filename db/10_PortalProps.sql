@@ -1,3 +1,4 @@
+SET FOREIGN_KEY_CHECKS=0; -- to disable them
 DROP TABLE IF EXISTS PortalProp;
 CREATE TABLE IF NOT EXISTS PortalProp(
     id INT NOT NULL AUTO_INCREMENT,
@@ -6,39 +7,28 @@ CREATE TABLE IF NOT EXISTS PortalProp(
     price VARCHAR(32) NOT NULL,
     currency CHAR(5) NOT NULL,
     description VARCHAR(512) NOT NULL, 
-    type VARCHAR(32) NOT NULL,
+    type ENUM("house", "apartment") NOT NULL,
     antiquity INT NOT NULL,
     parkinglots INT DEFAULT NULL,
     bathrooms INT DEFAULT NULL,
     half_bathrooms INT DEFAULT NULL,
     rooms INT DEFAULT NULL,
-    operation_type ENUM("sale", "rent") NOT NULL,
+    operation_type ENUM("sell", "rent") NOT NULL,
     m2_total INT,
     m2_covered INT,
     video_url VARCHAR(256) DEFAULT NULL,
     virtual_route VARCHAR(256) DEFAULT NULL,
 
     /* Ubication fields */
-    state VARCHAR(128) NOT NULL,
-    colony VARCHAR(128) NOT NULL,
-    municipality VARCHAR(128) NOT NULL,
-    neighborhood VARCHAR(128) DEFAULT NULL,
-    street VARCHAR(256) NOT NULL,
-    number VARCHAR(32) NOT NULL,
-    zip_code VARCHAR(32) NOT NULL,
+    address VARCHAR(256) NOT NULL, /*Full google valid address*/
+    lat FLOAT NOT NULL,
+    lng FLOAT NOT NULL,
 
     CHECK (title <> ""),
     CHECK (price <> ""),
     CHECK (currency <> ""),
     CHECK (description <> ""),
-    CHECK (type <> ""),
-    CHECK (state <> ""),
-    CHECK (municipality <> ""),
-    CHECK (colony <> ""),
-    CHECK (neighborhood <> ""),
-    CHECK (street <> ""),
-    CHECK (number <> ""),
-    CHECK (zip_code <> ""),
+    CHECK (address <> ""),
 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -91,6 +81,7 @@ CREATE TABLE IF NOT EXISTS PublishedProperty (
     FOREIGN KEY (portal) REFERENCES Portal(name),
     FOREIGN KEY (property_id) REFERENCES PortalProp(id)
 );
+SET FOREIGN_KEY_CHECKS=1; -- to re-enable them
 
 insert into PublishedProperty (property_id, url, status, portal) VALUES
 (1, "https://inmuebles24/property/1", "in_progress", "inmuebles24");

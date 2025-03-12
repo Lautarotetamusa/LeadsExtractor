@@ -89,7 +89,14 @@ func (h *PropertyHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	createdResponse(w, "property created successfully", prop)
+    // get the created_at, updated_at and id fields
+    p, err := h.storer.GetOne(prop.ID)
+    if err != nil {
+        return err
+    }
+    p.Images = prop.Images
+
+	createdResponse(w, "property created successfully", p)
 	return nil
 }
 

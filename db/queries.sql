@@ -460,3 +460,52 @@ inner join Action A
 group by M.created_at, id_communication
 INTO OUTFILE '/data/respuestas-broadcast-video.csv'
 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+
+/* Campos de busquedas que no son null */
+select lead_phone, zones, mt2_terrain, mt2_builded, baths, rooms 
+from Communication
+where 
+(zones is not NULL and zones <> "") OR
+(mt2_builded is not NULL and mt2_builded <> "") OR
+(mt2_terrain is not NULL and mt2_terrain <> "") OR
+(baths is not NULL and baths <> "") OR
+(rooms is not NULL and rooms <> "");
+
+
+    id INT NOT NULL AUTO_INCREMENT,
+
+    title VARCHAR(256) NOT NULL,
+    price VARCHAR(32) NOT NULL,
+    currency CHAR(5) NOT NULL,
+    description VARCHAR(512) NOT NULL, 
+    type VARCHAR(32) NOT NULL,
+    antiquity INT NOT NULL,
+    parkinglots INT DEFAULT NULL,
+    bathrooms INT DEFAULT NULL,
+    half_bathrooms INT DEFAULT NULL,
+    rooms INT DEFAULT NULL,
+    operation_type ENUM("sale", "rent") NOT NULL,
+    m2_total INT,
+    m2_covered INT,
+    video_url VARCHAR(256) DEFAULT NULL,
+    virtual_route VARCHAR(256) DEFAULT NULL,
+
+    /* Ubication fields */
+    state VARCHAR(128) NOT NULL,
+    municipality VARCHAR(128) NOT NULL,
+    colony VARCHAR(128) NOT NULL,
+    neighborhood VARCHAR(128) DEFAULT NULL,
+    street VARCHAR(256) NOT NULL,
+    number VARCHAR(32) NOT NULL,
+    zip_code VARCHAR(32) NOT NULL,
+
+
+/* Query to migrate Communications to new properties */
+select P.*, C.zones
+from Communication C
+inner join Source S
+    on S.id = C.source_id
+    and S.type = "property"
+inner join Property P
+    on P.id = S.property_id
+group by P.portal_id;
