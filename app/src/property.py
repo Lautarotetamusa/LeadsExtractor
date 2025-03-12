@@ -16,6 +16,16 @@ class Image:
     url: str
 
 @dataclass
+class Location:
+    lat: float
+    lng: float
+
+@dataclass
+class Ubication:
+    address: str
+    location: Location
+
+@dataclass
 class Property:
     id: int
     title: str
@@ -28,12 +38,7 @@ class Property:
     operation_type: OperationType
     m2_total: int
     m2_covered: int
-    state: str
-    municipality: str
-    colony: str
-    street: str
-    number: str  # String to handle alphanumeric values (e.g., "1159", "123A")
-    zip_code: str
+    ubication: Ubication # Full GOOGLE address
     updated_at: datetime
     created_at: datetime
     images: list[dict[str, str]]

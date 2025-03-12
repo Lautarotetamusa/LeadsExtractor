@@ -11,6 +11,7 @@ METHODS = {
 
 class ApiRequest():
     def __init__(self, logger, api_url, api_params):
+
         self.logger = logger
         self.api_url = api_url
         self.api_params = api_params
