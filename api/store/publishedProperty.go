@@ -1,15 +1,5 @@
 package store
 
-// property_id INT NOT NULL,
-//
-// id      VARCHAR(128) NOT NULL,
-// url     VARCHAR(256) NOT NULL,
-// status  ENUM("in_progress", "completed", "failed") DEFAULT "in_progress",
-// portal  VARCHAR(64) NOT NULL,
-//
-// updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-// created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
 import (
 	"fmt"
 	"leadsextractor/models"
@@ -22,7 +12,7 @@ type PublishedStatus string
 const (
     StatusNotPublished PublishedStatus = "not_published"
 	StatusInProgress PublishedStatus = "in_progress"
-	StatusCompleted  PublishedStatus = "completed"
+	StatusPublished  PublishedStatus = "published"
 	StatusFailed     PublishedStatus = "failed"
 )
 

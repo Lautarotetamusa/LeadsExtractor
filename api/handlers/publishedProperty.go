@@ -97,12 +97,12 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
     prop, err := h.storer.GetOne(pp.Portal.String, int64(pp.PropertyID.Int16))
     if prop != nil {
         // If the property its already publicated on this portal
-        // and the property status its not "completed" return a error
+        // and the property status its not "published" return a error
         if prop.Status == store.StatusInProgress {
             return ErrBadRequest("the property has a publication in progress, wait until the end")
         }
 
-        // The property exists but publishing its completed, then republish
+        // The property exists but publishing its "publshed", then republish
         err := h.storer.UpdateStatus(pp.Portal.String, int64(pp.PropertyID.Int16), store.StatusInProgress)
         if err != nil {
             return err
@@ -196,7 +196,7 @@ func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request
 
 func validStatus(s store.PublishedStatus) bool {
 	switch s {
-	case store.StatusInProgress, store.StatusCompleted, store.StatusFailed:
+	case store.StatusInProgress, store.StatusPublished, store.StatusFailed:
 		return true
 	default:
 		return false

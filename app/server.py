@@ -101,7 +101,7 @@ def ejecutar_script_route():
 def publish(portal: str, property: Property):
     err = PORTALS[portal].publish(property)
     if err == None:
-        update_publication(property.id, portal, "completed")
+        update_publication(property.id, portal, "published")
     else:
         update_publication(property.id, portal, "failed")
 
