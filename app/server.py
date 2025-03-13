@@ -9,6 +9,7 @@ from src.propiedades_com.propiedades import Propiedades
 from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
 
+from src.api import update_publication
 from src.property import Image, Location, Property, Ubication
 from src.logger import Logger
 from src.lead import Lead
@@ -97,6 +98,13 @@ def ejecutar_script_route():
 
     return "Proceso en segundo plano iniciado."
 
+def publish(portal: str, property: Property):
+    err = PORTALS[portal].publish(property)
+    if err == None:
+        update_publication(property.id, portal, "completed")
+    else:
+        update_publication(property.id, portal, "failed")
+
 @app.route('/publish/<portal>', methods=['POST'])
 def publish_route(portal: str):
     if portal not in PORTALS: 
@@ -107,11 +115,10 @@ def publish_route(portal: str):
     property.ubication = Ubication(**data["ubication"])
     property.ubication.location = Location(**data["ubication"]["location"])
 
-    err = PORTALS[portal].publish(property)
-    if err != None:
-        return jsonify({"error": err.__str__()}), 500
+    thread = threading.Thread(target=publish, args=(portal, property))
+    thread.start()
 
-    return jsonify({"success": True, "message": "publicado con exito"}), 201
+    return jsonify({"success": True, "message": "publishing process has started"}), 201
 
 @app.route('/cotizacion', methods=['POST'])
 def cotizacion():

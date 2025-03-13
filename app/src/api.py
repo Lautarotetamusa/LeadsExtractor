@@ -49,7 +49,6 @@ def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> l
 
     if is_new is not None:
         url += f"&is_new={'true' if is_new else 'false'}"
-    print(url)
 
     res = requests.get(url)
     if not res.ok:
@@ -66,3 +65,15 @@ def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> l
         leads.append(lead)
 
     return leads
+
+def update_publication(property_id: int, portal: str, status: str):
+    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/property/{property_id}/publications/{portal}"
+    print(url)
+
+    res = requests.put(url, json={
+        "status": status,
+        # "publication_id": publication_id,
+        # "publication_url": publication_url
+    })
+    print(res.json())
+    print(res.status_code)

@@ -53,11 +53,11 @@ type PortalProp struct {
     Description   string            `json:"description" db:"description" validate:"required"`
     Type          string            `json:"type" db:"type" validate:"required,oneof=house apartment"`
     Antiquity     int               `json:"antiquity" db:"antiquity" validate:"required"`
-	ParkingLots   models.NullInt16  `json:"parking_lots" db:"parkinglots"`
-	Bathrooms     models.NullInt16  `json:"bathrooms" db:"bathrooms"`
-	HalfBathrooms models.NullInt16  `json:"half_bathrooms" db:"half_bathrooms"`
-	Rooms         models.NullInt16  `json:"rooms" db:"rooms"`
-    OperationType string            `json:"operation_type" db:"operation_type" validate:"required,oneof=sale rent"`
+	ParkingLots   int               `json:"parking_lots" db:"parkinglots"`
+	Bathrooms     int               `json:"bathrooms" db:"bathrooms"`
+	HalfBathrooms int               `json:"half_bathrooms" db:"half_bathrooms"`
+	Rooms         int               `json:"rooms" db:"rooms"`
+    OperationType string            `json:"operation_type" db:"operation_type" validate:"required,oneof=sell rent"`
 	M2Total       models.NullInt16  `json:"m2_total" db:"m2_total"`
 	M2Covered     models.NullInt16  `json:"m2_covered" db:"m2_covered"`
 	VideoURL      models.NullString `json:"video_url" db:"video_url"`

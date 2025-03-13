@@ -181,6 +181,8 @@ class Lamudi(Portal):
         if location_data == None: return Exception("cannot get the location data")
         self.logger.success("geolocation data getted successfully")
 
+        print(property)
+
         ad_payload = {
             "address": location_data["address"],
             "coordinates": {
@@ -251,7 +253,7 @@ class Lamudi(Portal):
             self.logger.debug(f"downloading image {image['url']}")
             img_data = download_image(image["url"])
             self.logger.debug("image downloaded successfully")
-            if img_data == None: return Exception("cannot download the image") 
+            if img_data == None: return Exception("cannot download the image")
             img_type = "png" if "png" in image["url"] else "jpeg"
 
             files.append(
@@ -266,6 +268,5 @@ class Lamudi(Portal):
         if res == None: return Exception("cannot publish the property")
         if not res.ok: return Exception("cannot publish the property")
         self.logger.success("property published successfully")
-        # print(res.text)
 
         return None

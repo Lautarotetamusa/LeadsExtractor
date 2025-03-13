@@ -62,6 +62,8 @@ func main() {
 
 	db := store.ConnectDB(ctx)
 
+    appHost := os.Getenv("APP_HOST")
+
 	infobipApi := infobip.NewInfobipApi(
 		os.Getenv("INFOBIP_APIURL"),
 		os.Getenv("INFOBIP_APIKEY"),
@@ -126,7 +128,7 @@ func main() {
 
 	// Handlers
     propHandler := handlers.NewPropertyHandler(propStore)
-    publishPropHandler := handlers.NewPublishedPropertyHandler(publisPropStore)
+    publishPropHandler := handlers.NewPublishedPropertyHandler(publisPropStore, propStore, appHost)
 	leadHandler := handlers.NewLeadHandler(leadStore)
 	utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := handlers.NewFlowHandler(flowManager, commStore)

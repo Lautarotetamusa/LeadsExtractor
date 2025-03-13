@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"leadsextractor/store"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -14,11 +18,17 @@ type PublishPayload struct {
 }
 
 type PublishedPropertyHandler struct {
-	storer store.PublishedPropertyStorer
+	storer          store.PublishedPropertyStorer
+    propertyStorer  store.PropertyPortalStore
+    appHost string
 }
 
-func NewPublishedPropertyHandler(store store.PublishedPropertyStorer) *PublishedPropertyHandler {
-	return &PublishedPropertyHandler{storer: store}
+func NewPublishedPropertyHandler(storer store.PublishedPropertyStorer, propertyStorer store.PropertyPortalStore, appHost string) *PublishedPropertyHandler {
+	return &PublishedPropertyHandler{
+        storer: storer,
+        propertyStorer: propertyStorer,
+        appHost: appHost,
+    }
 }
 
 func (h *PublishedPropertyHandler) RegisterRoutes(router *mux.Router) {
@@ -29,7 +39,38 @@ func (h *PublishedPropertyHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/publish", HandleErrors(h.Publish)).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("", HandleErrors(h.GetPublications)).Methods(http.MethodGet)
 	r.HandleFunc("/{portal}", HandleErrors(h.GetPublication)).Methods(http.MethodGet)
-	r.HandleFunc("/{portal}/status", HandleErrors(h.UpdateStatus)).Methods(http.MethodPut)
+	r.HandleFunc("/{portal}", HandleErrors(h.Update)).Methods(http.MethodPut)
+}
+
+func runPublicatorApp(appHost string, portal string, property store.PortalProp) error {
+    url := fmt.Sprintf("%s/publish/%s", appHost, portal)
+    slog.Info("publication post", "url", url)
+
+    // pass the pointer to the Marshaller to correctly unmarshall the NullString fields
+	jsonBody, err := json.Marshal(&property)
+    if err != nil {
+        return err
+    }
+	bodyReader := bytes.NewReader(jsonBody)
+
+    client := http.Client{Timeout: 30 * time.Second}
+
+	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+	if err != nil {
+		return nil
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	res, err := client.Do(req)
+    if err != nil {
+        return err
+    }
+    if res.StatusCode != http.StatusCreated {
+        return ErrBadRequest("error publishing the property")
+    }
+
+    return nil
 }
 
 // CreateHandler handles property creation
@@ -61,7 +102,7 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
             return ErrBadRequest("the property has a publication in progress, wait until the end")
         }
 
-        // The property exists but publishing completed, then republish
+        // The property exists but publishing its completed, then republish
         err := h.storer.UpdateStatus(pp.Portal.String, int64(pp.PropertyID.Int16), store.StatusInProgress)
         if err != nil {
             return err
@@ -73,11 +114,20 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
         }
     }
 
-    // Get the updated_at and created_at fields
-    prop, err = h.storer.GetOne(pp.Portal.String, int64(pp.PropertyID.Int16))
+    // Get the property and the images
+    property, err := h.propertyStorer.GetOne(int64(pp.PropertyID.Int16))
     if err != nil {
         return err
     }
+    if err := h.propertyStorer.GetImages(property); err != nil {
+        return err
+    }
+
+    // Run the scraper to publish the property
+    if err = runPublicatorApp(h.appHost, pp.Portal.String, *property); err != nil {
+        return err
+    }
+
     createdResponse(w, "property publishing process has started", prop)
     return nil
 }
@@ -116,7 +166,7 @@ func (h *PublishedPropertyHandler) GetPublication(w http.ResponseWriter, r *http
     return nil
 }
 
-func (h *PublishedPropertyHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) error {
+func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request) error {
 	portal := mux.Vars(r)["portal"]
 	propertyIDStr := mux.Vars(r)["propId"]
 	
