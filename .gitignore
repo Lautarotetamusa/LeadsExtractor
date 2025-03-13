@@ -1,7 +1,9 @@
+.env
+.prod.env
+
 .venv/
 __pycache__/
 session/
-.env
 token*.json
 credentials.json
 credentials_prod.json
