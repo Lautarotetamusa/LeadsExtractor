@@ -96,15 +96,14 @@ class CasasYTerrenos(Portal):
         return lead
 
     def publish(self, property: Property) -> Exception | None:
-        # prop_id = self.publish_first_step(property)
-        # if prop_id is None:
-        #     return Exception("cannot obtain the property id")
-        # err = self.add_ubication(prop_id, property)
-        # if err is not None:
-        #     return err
-        prop_id = 3755404
+        prop_id = self.publish_first_step(property)
+        if prop_id is None:
+            return Exception("cannot obtain the property id")
+        err = self.add_ubication(prop_id, property)
+        if err is not None:
+            return err
 
-        # self.add_ubication(prop_id, property)
+        self.add_ubication(prop_id, property)
         return self.upload_images(prop_id, property.images)
 
     # The property its pending, returns the property id,
