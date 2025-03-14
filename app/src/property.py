@@ -8,7 +8,7 @@ class PropertyType(Enum):
     APARTMENT = "apartment"
 
 class OperationType(Enum):
-    SALE = "sale"
+    SALE = "sell"
     RENT = "rent"
 
 @dataclass

@@ -221,14 +221,14 @@ class Propiedades(Portal):
             "autoparse": "true"
         }
         res = self.request.make("https://api.zenrows.com/v1/", "POST", params=params)
-        if res == None: return Exception("error creating the property")
+        if res is None: return Exception("error creating the property")
         print(res.text)
         print(res.status_code)
         if not res.ok: return Exception("error creating the property")
         self.logger.success("property published successfully")
 
         property_id = res.json().get("data", {}).get("id_property")
-        if property_id == None: return Exception("cannot get the property id")
+        if property_id is None: return Exception("cannot get the property id")
 
         err = self.upload_images(property_id, property.images)
         if err != None: return err
@@ -260,16 +260,16 @@ class Propiedades(Portal):
             "property_id": property_id,
             "country": "MX"
         }
-        self.logger.debug(f"signing images")
+        self.logger.debug("signing images")
         self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
         res = self.request.make(sign_url, "POST", json=sign_payload)
-        if res == None: return Exception("cannot sign the image")
+        if res is None: return Exception("cannot sign the image")
         if not res.ok: return Exception("cannot sign the image: "+res.json())
         sign_data = res.json()
 
         # necessary to update the placeholder of the images
         placeholder_payload = {
-            "images":[]
+            "images": []
         }
 
         ## 2. Upload the images
@@ -282,9 +282,8 @@ class Propiedades(Portal):
         for image in images:
             self.logger.debug(f"downloading {image['url']}")
             img_data = download_image(image["url"])
-            if img_data == None:
+            if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
-
 
             img_type = "png" if "png" in image["url"] else "jpeg"
 
@@ -298,13 +297,13 @@ class Propiedades(Portal):
             })
 
             files = [
-                ('Content-Type',(None, f"image/{img_type}")),
-                ('Cache-Control',(None, "max-age=2592000")),
-                ('key',(None, fields["key"])),
-                ('AWSAccessKeyId',(None, fields["AWSAccessKeyId"])),
-                ('policy',(None, fields["policy"])),
-                ('signature',(None, fields["signature"])),
-                ('file',(img_sign["name_image"], img_data, "multipart/form-data")),
+                ('Content-Type', (None, f"image/{img_type}")),
+                ('Cache-Control', (None, "max-age=2592000")),
+                ('key', (None, fields["key"])),
+                ('AWSAccessKeyId', (None, fields["AWSAccessKeyId"])),
+                ('policy', (None, fields["policy"])),
+                ('signature', (None, fields["signature"])),
+                ('file', (img_sign["name_image"], img_data, "multipart/form-data")),
             ]
             self.logger.debug(f"uploading {image['url']}")
             res = requests.post(upload_url, files=files)
@@ -318,8 +317,8 @@ class Propiedades(Portal):
         self.logger.debug("update placeholders")
         self.request.headers["x-api-key"] = "XpwAO6cXk889DbUOXB2tU7GWwRbyPIWE9ZAWEfL2"
         res = self.request.make(update_placeholder_url, "POST", json=placeholder_payload)
-        if res == None: return Exception("cannot update the image placeholder")
-        if not res.ok: return Exception("cannot update the image placeholder: "+res.text)
+        if res is None or not res.ok:
+            return Exception("cannot update the image placeholder")
         self.logger.success("placeholders updated successfully")
 
         placeholders = res.json().get("placeholders", [])
@@ -333,14 +332,13 @@ class Propiedades(Portal):
             self.logger.debug(f"confirmed {placeholder['image_id']}")
             self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
             res = self.request.make(confirm_url, "POST", json=placeholder)
-            if res == None: return Exception(f"cannot confirm the image {placeholder['image_id']}")
-            if not res.ok: return Exception(f"cannot confirm the image {placeholder['image_id']}. err: "+res.text)
+            if res is None or not res.ok:
+                return Exception(f"cannot confirm the image {placeholder['image_id']}")
 
             print(placeholder["image_id"])
             print(placeholder["image_original_url"])
 
             self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
-
 
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"

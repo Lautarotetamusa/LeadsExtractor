@@ -1,17 +1,19 @@
 import json
 import time
 import os
+import uuid
+import requests
 from datetime import datetime
 from typing import Iterator
 
-import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.property import Property
+from src.onedrive import download_image
+from src.property import Property, OperationType
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -95,15 +97,20 @@ class CasasYTerrenos(Portal):
 
     def publish(self, property: Property) -> Exception | None:
         # prop_id = self.publish_first_step(property)
-        prop_id = 3754373
-        if prop_id == None: return Exception("cannot obtain the property id")
+        # if prop_id is None:
+        #     return Exception("cannot obtain the property id")
+        # err = self.add_ubication(prop_id, property)
+        # if err is not None:
+        #     return err
+        prop_id = 3755404
 
-        self.add_ubication(prop_id, property) 
+        # self.add_ubication(prop_id, property)
+        return self.upload_images(prop_id, property.images)
 
     # The property its pending, returns the property id,
     def publish_first_step(self, property: Property) -> int | None:
         operation_type_map = {
-            "sale": 1,
+            "sell": 1,
             "rent": 2
         }
         property_type_map = {
@@ -118,17 +125,14 @@ class CasasYTerrenos(Portal):
             "sqr_mt_lot": property.m2_covered,
             "sqr_mt_construction": property.m2_total,
             "name": property.title,
-            "description": f"<div><!--block-->{property.description}!</div>",
-            "price_sale": property.price,
-            "property_type": property_type_map[property.type.__str__()],
-            "operation_type": [ operation_type_map[property.operation_type.__str__()] ],
+            "description": f"<div><!--block-->Ubicacion: {property.ubication.address}<br>{property.description}!</div>",
+            "property_type": str(property_type_map[property.type]),
+            "operation_type": [str(operation_type_map[property.operation_type])],
             # "membership": "434451",
-            "currency_sale": property.currency.lower(),
-            "currency_rent": property.currency.lower(),
-            "currency_transfer": property.currency.lower(),
-            # "parking": 0,
-            # "age": 0,
-            # "half_bathrooms": 0,
+            # "currency_transfer": property.currency.lower(),
+            "parking": property.parking_lots,
+            "age": property.antiquity,
+            "half_bathrooms": property.half_bathrooms,
             # "levels": 0,
             # "floors": 0,
             # "sqr_mt_office": 0,
@@ -139,31 +143,115 @@ class CasasYTerrenos(Portal):
             # "sqr_mt_vault": 0
         }
 
+        if property.operation_type == OperationType.RENT.value:
+            payload["price_rent"] = int(property.price)
+            payload["currency_rent"] = property.currency.lower()
+        elif property.operation_type == OperationType.SALE.value:
+            payload["price_sale"] = int(property.price)
+            payload["currency_sale"] = property.currency.lower()
+        else:
+            self.logger.error(f"unexpected operation type {property.operation_type}")
+            return None
+
         res = self.request.make(API_URL + "/property", "POST", json=payload)
-        if res == None: return None
+        if res is None:
+            return None
         data = res.json()
         return data.get("id")
 
     def add_ubication(self, prop_id: int, property: Property) -> Exception | None:
+        # Hardcoded for now. i cannot have a simple way to obtain the internal 
+        # state, municipality id
         payload = {
             "state": "14",
-            "latitude": 20.6900164,
-            "longitude": -103.4733259,
-            # "colony": 834012,
-            # "municipality": 2995,
+            "latitude": property.ubication.location.lat,
+            "longitude": property.ubication.location.lng,
+            "colony": 834012,
+            "municipality": 2995,
             "exterior_number": "246",
             "interior_number": "",
-            # "street": "Marsella"
+            "street": "Marsella"
         }
 
         res = self.request.make(f"{API_URL}/property/{prop_id}", "PATCH", json=payload)
-        if res == None: return Exception("error adding ubication data")
-        print(res.text)
-        print(res.status_code)
+        if res is None or not res.ok:
+            return Exception("error adding ubication data")
         # data = res.json()
         # return data.get("id")
         return None
 
+    # 1. Sign the all the in one POST request images
+    # 2. Upload the images with one POST request
+    #       for each image sending the sign data
+    # 3. Update the property, add the all images to the property
+    def upload_images(self, property_id: int, images: list[dict[str, str]]):
+        sign_url = "https://cytpanel.casasyterrenos.com/api/v1/aws_signature_url"
+        upload_url = "https://cyt-media.s3.amazonaws.com/"
+
+        sign_payload = {
+            "property": property_id,
+            "urls": []
+        }
+        for image in images:
+            img_type = "png" if "png" in image["url"] else "jpeg"
+            sign_payload["urls"].append({
+                "format": img_type
+            })
+
+        res = self.request.make(sign_url, "POST", json=sign_payload)
+        if res is None or not res.ok:
+            return Exception("cannot sign the images")
+        sign_data = res.json()
+
+        i = 0
+        uploaded_images = []
+        for image in images:
+            self.logger.debug(f"downloading {image['url']}")
+            img_data = download_image(image["url"])
+            if img_data is None:
+                return Exception(f"cannot download the image {image['url']}")
+
+            img_type = "png" if "png" in image["url"] else "jpeg"
+            fields: dict[str, str] = sign_data[i]["fields"]
+            files = []
+            for key, value in fields.items():
+                files.append(
+                    # (field_name, (filename, value))
+                    (key, (None, value))
+                )
+            files.append(
+                ('file', (f"image.{img_type}", img_data, f"image/{img_type}"))
+            )
+
+            self.logger.debug(f"uploading image {image['url']}")
+            # If we pass the Authorization token aws returns an error
+            res = requests.post(upload_url, files=files)
+            if not res.ok:
+                self.logger.error(res.text)
+                return Exception(f"cannot upload the image {image['url']}")
+            self.logger.success("upload successfully")
+
+            location = res.headers.get("Location")
+            if location is None:
+                return Exception("cannot get the image location")
+
+            uploaded_images.append({
+                # random id, idk if its necessary
+                "id": f"images/{img_type}/{i}/{str(uuid.uuid4())}",
+                # replace encoded char '/'
+                "url": location.replace("%2F", "/")
+            })
+
+            i += 1
+
+        res = self.request.make(f"{API_URL}/property/{property_id}", "PATCH", json={
+            "images": uploaded_images
+        })
+        if res is None or not res.ok:
+            return Exception("cannot update the property images")
+
+        self.logger.success("property uploaded successfully")
+        return None
 
     def login(self, session="session"):
         login_url = "https://panel-pro.casasyterrenos.com/login"

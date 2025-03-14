@@ -155,15 +155,15 @@ class Lamudi(Portal):
         address_url = f"https://api.proppit.com/property-geolocations/address?address={address}"
 
         res = self.request.make(prediction_url, "GET")
-        if res == None: return None
-        if not res.ok: return None
+        if res is None or not res.ok:
+            return None
 
         place_id = res.json().get("predictions", [{}])[0].get("place_id")
-        if place_id == None: return None
+        if place_id is None: return None
 
         res = self.request.make(address_url + f"&place_id={place_id}", "GET")
-        if res == None: return None
-        if not res.ok: return None
+        if res is None or not res.ok:
+            return None
 
         # {
         #     geoLevels
@@ -178,7 +178,7 @@ class Lamudi(Portal):
 
         self.logger.debug("getting the address geo location")
         location_data = self.get_location(property.ubication.address)
-        if location_data == None: return Exception("cannot get the location data")
+        if location_data is None: return Exception("cannot get the location data")
         self.logger.success("geolocation data getted successfully")
 
         print(property)
@@ -233,7 +233,6 @@ class Lamudi(Portal):
             "propertyImagesSortedWithAi": False
         }
 
-
         i = 0
         # Construct the propertyImages ad_payload field
         for image in property.images:
@@ -244,7 +243,7 @@ class Lamudi(Portal):
             i += 1
         json_ad_payload = json.dumps(ad_payload)
         files: list[tuple] = [
-            ("ad", (None , json_ad_payload))
+            ("ad", (None, json_ad_payload))
         ]
 
         # Insert the images files for the request
@@ -253,7 +252,8 @@ class Lamudi(Portal):
             self.logger.debug(f"downloading image {image['url']}")
             img_data = download_image(image["url"])
             self.logger.debug("image downloaded successfully")
-            if img_data == None: return Exception("cannot download the image")
+            if img_data is None:
+                return Exception("cannot download the image")
             img_type = "png" if "png" in image["url"] else "jpeg"
 
             files.append(
@@ -265,8 +265,8 @@ class Lamudi(Portal):
         # print(json.dumps(ad_payload, indent=4))
         self.logger.debug("publishing property")
         res = self.request.make(f"{API_URL}/properties/{id}", "POST", files=files)
-        if res == None: return Exception("cannot publish the property")
-        if not res.ok: return Exception("cannot publish the property")
+        if res is None or not res.ok:
+            return Exception("cannot publish the property")
         self.logger.success("property published successfully")
 
         return None
