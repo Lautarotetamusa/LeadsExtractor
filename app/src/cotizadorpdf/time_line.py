@@ -10,15 +10,15 @@ def generar_nombre(longitud=8):
 def grafico_etapas(c):
     meses = list(range(0, c['meses'] + 4))  # Meses desde 0 hasta el máximo
     
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig, ax = plt.subplots(figsize=(12, 2))
     
     # Configurar el eje X con etiquetas
     ax.set_xticks(meses)
     ax.set_xticklabels([str(m) for m in meses], fontsize=10, color='#333333')
-    ax.set_xlim(-0.5, c['meses'] + 4.5)
+    ax.set_xlim(-1.2, c['meses'] + 4.5)
     
     # Eliminar el eje Y
-    ax.get_yaxis().set_visible(False)
+    ax.set_ylim(0, 1) 
     
     # Eliminar bordes
     ax.spines['top'].set_visible(False)
@@ -28,7 +28,7 @@ def grafico_etapas(c):
     
     # Etapas de construcción
     etapas = {
-        3: '0%\nArranque de obra',
+        4: '0%\nArranque de obra',
         int(3 + c['meses'] * 0.35): '35%\nEstructura',
         int(3 + c['meses'] * 0.55): '55%\nObra gris',
         int(3 + c['meses'] * 0.90): '95%\nAcabados',
@@ -36,8 +36,15 @@ def grafico_etapas(c):
     }
     
     for mes, label in etapas.items():
-        ax.text(mes, 0.01, label, ha='center', va='bottom', fontsize=9, fontweight='bold', color='#333333')
-        ax.plot([mes, mes], [0, 0.01], color='#333333', linestyle='--', linewidth=1.5)
+        ax.text(mes, 1, label, ha='center', va='bottom', fontsize=9, fontweight='bold', color='#333333')
+        ax.plot([mes, mes], [0.5, 1], color='#333333', linestyle='--', linewidth=1.5)
+    
+    ax.yaxis.set_ticks([])  # Quita los ticks del eje Y
+    ax.yaxis.set_ticklabels([])  # Quita las etiquetas del eje Y
+
+    ax.xaxis.set_tick_params(pad=1)
+    ax.xaxis.set_ticks_position('bottom')  # Coloca los ticks en la parte inferior
+    ax.tick_params(axis='x', which='both', direction='inout', length=6, width=2)
     
     plt.tight_layout()
     
@@ -49,7 +56,7 @@ def grafico_etapas(c):
 
 def grafico_pagos(c):
     # Datos de ejemplo: Meses (1 al 21) y los montos a pagar
-    meses = list(range(0, c['meses']+4))  # Meses del 0 al 21
+    meses = list(range(0, c['meses']+6))  # Meses del 0 al 21
     montos = []
     montos.append(c['anticipo'])
     montos.append(0)
@@ -57,9 +64,12 @@ def grafico_pagos(c):
     montos.append(c['valor_previo'])
     for _ in range(1, c['meses']+1):
         montos.append(c['pagos_mensuales'])
-
+    montos.append(0)
+    montos.append(0)
     # Crear la figura y el eje
-    fig, ax = plt.subplots(figsize=(12, 4))
+    fig, ax = plt.subplots(figsize=(12, 3))
+
+    ax.set_ylim(0, max(montos)*2) 
 
     # Graficar las líneas verticales
     for i in range(len(meses)):
@@ -67,7 +77,7 @@ def grafico_pagos(c):
 
     # Agregar los textos con los montos sobre los puntos
     for i, monto in enumerate(montos):
-        ax.text(meses[i], monto + 700, f"${monto}", ha='center', va='bottom', fontsize=7, fontweight='bold', color='#333333')
+        ax.text(meses[i], monto, f"${monto}", ha='center', va='bottom', fontsize=5, fontweight='bold', color='#333333')
 
     # Configurar el eje X con etiquetas más legibles
     ax.set_xticks(meses)  # Poner los meses en el eje X
@@ -85,13 +95,16 @@ def grafico_pagos(c):
     ax.spines['left'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
 
-    # Añadir el texto para las fases de la construcción
-    ax.text(1.5, max(montos) * 0.85, 'Preconstrucción', ha='center', va='bottom', fontsize=10, fontweight='bold', color='#333333')
-    ax.text(3+c['meses']/2, max(montos) * 0.85, 'Construcción', ha='center', va='bottom', fontsize=10, fontweight='bold', color='#333333')
-
-    # Dibujar una línea divisoria entre las dos fases
-    ax.plot([3.5, 3.5], [0, max(montos) * 0.85], color='#333333', linestyle='--', linewidth=2)
-
+    etapas = {
+            4: '0%\nArranque de obra',
+            int(3 + (c['meses'] + 2) * 0.35): '35%\nEstructura',
+            int(3 + (c['meses'] + 2) * 0.55): '55%\nObra gris',
+            int(3 + (c['meses'] + 2) * 0.90): '95%\nAcabados',
+            3 + c['meses'] + 2: '100%\nFin de obra'
+    }
+    for mes, label in etapas.items():
+        ax.text(mes, max(montos)*1.5, label, ha='center', va='bottom', fontsize=9, fontweight='bold', color='#333333')
+        ax.plot([mes, mes], [c['pagos_mensuales']*1.5, max(montos)*1.5], color='#333333', linestyle='--', linewidth=1.5)
     # Mejorar el estilo de la gráfica (sin borde y título)
     plt.tight_layout()
 
