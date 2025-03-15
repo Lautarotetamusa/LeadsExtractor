@@ -74,7 +74,7 @@ def translateContext(cin):
     valor_subtotal_m2 = int((valor_interior_m2+valor_exterior_m2+valor_permisos_m2*is_valor_permisos))
     valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
     valor_administracion = int(valor_administracion_m2 * area_interior)
-    valor_total = valor_exterior+valor_interior+valor_permisos+valor_rebora
+    valor_total = valor_exterior+valor_interior+valor_permisos
     valor_total_min = valor_total * 0.95
     valor_total_max = valor_total * 1.05
     valor_total_min_m2 = importe_calidad * 0.95
