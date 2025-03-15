@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS PublishedProperty (
     property_id INT NOT NULL,
 
     url     VARCHAR(256) DEFAULT NULL,
-    status  ENUM("in_progress", "published", "failed") DEFAULT "in_progress",
+    status  ENUM("in_progress", "in_queue", "published", "failed") DEFAULT "in_progress",
     portal  VARCHAR(64) NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

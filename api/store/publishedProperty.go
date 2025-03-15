@@ -11,6 +11,7 @@ type PublishedStatus string
 
 const (
     StatusNotPublished PublishedStatus = "not_published"
+	StatusInQueue    PublishedStatus = "in_queue"
 	StatusInProgress PublishedStatus = "in_progress"
 	StatusPublished  PublishedStatus = "published"
 	StatusFailed     PublishedStatus = "failed"
