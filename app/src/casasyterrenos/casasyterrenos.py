@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.onedrive import download_image
+from src.onedrive.main import download_file
 from src.property import Property, OperationType
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -206,7 +206,7 @@ class CasasYTerrenos(Portal):
         uploaded_images = []
         for image in images:
             self.logger.debug(f"downloading {image['url']}")
-            img_data = download_image(image["url"])
+            img_data = download_file(image["url"])
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
 

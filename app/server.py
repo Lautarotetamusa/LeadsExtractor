@@ -103,6 +103,7 @@ def publish(portal: str, property: Property):
     if err == None:
         update_publication(property.id, portal, "published")
     else:
+        logger.error("publication failed: " + err.__str__())
         update_publication(property.id, portal, "failed")
 
 @app.route('/publish/<portal>', methods=['POST'])

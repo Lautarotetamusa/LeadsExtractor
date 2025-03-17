@@ -7,7 +7,7 @@ import uuid
 import requests
 
 from src.scraper import SENDER_PHONE
-from src.onedrive import download_image
+from src.onedrive.main import download_file
 from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -250,7 +250,7 @@ class Lamudi(Portal):
         i = 0
         for image in property.images:
             self.logger.debug(f"downloading image {image['url']}")
-            img_data = download_image(image["url"])
+            img_data = download_file(image["url"])
             self.logger.debug("image downloaded successfully")
             if img_data is None:
                 return Exception("cannot download the image")
