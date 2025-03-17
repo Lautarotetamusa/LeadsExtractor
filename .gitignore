@@ -1,16 +1,14 @@
 .env
 .prod.env
 
-.venv/
-__pycache__/
-session/
 token*.json
 credentials.json
 credentials_prod.json
 
-#Headers y cookies
-params.json
-params.py
+session/
+
+#pagekite
+pagekite.py
 
 #Primera corrida de gmail
 last_sended.txt
@@ -29,9 +27,3 @@ api/*.json
 
 #Debug
 debug/grafana/*
-
-#pagekite
-pagekite.py
-
-#pdfs
-app/pdfs
