@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"leadsextractor/middleware"
+	"leadsextractor/pkg/onedrive"
 	"leadsextractor/store"
 	"net/http"
 	"strconv"
@@ -10,7 +12,13 @@ import (
 )
 
 type PropertyHandler struct {
-    storer store.PropertyPortalStore
+    storer      store.PropertyPortalStore
+    onedriver   onedrive.OneDriver
+}
+
+type PropCsvPayload struct {
+    store.PortalProp
+    zone    string      `csv:"zone"`
 }
 
 var InvalidPropID = APIError{
@@ -29,6 +37,13 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
 
     r.Methods(http.MethodOptions)
 
+    var props []PropCsvPayload
+    csvHandler := middleware.NewCSVHandler("csv_file", "properties", props)
+
+    r.Handle("/csv", csvHandler.CSVMiddleware(
+        http.HandlerFunc(HandleErrors(h.CreateFromCSV)),
+    )).Methods(http.MethodPost)
+
 	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
 	r.HandleFunc("/{propId}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
 	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
@@ -38,6 +53,17 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
 	r.HandleFunc("/{propId}/image", HandleErrors(h.AddImages)).Methods(http.MethodPost)
 	r.HandleFunc("/{propId}/image/{imageId}", HandleErrors(h.DeleteImage)).Methods(http.MethodDelete)
 	r.HandleFunc("/{propId}/image", HandleErrors(h.GetImages)).Methods(http.MethodGet)
+}
+
+func (h *PropertyHandler) CreateFromCSV(w http.ResponseWriter, r *http.Request) error {
+    props, ok := r.Context().Value("properties").([]PropCsvPayload)
+    if !ok {
+        return ErrBadRequest("properties does not exists in the context")
+    }
+
+    dataResponse(w, props)
+    // messageResponse(w, "properties creation process has started")
+    return nil
 }
 
 func (h *PropertyHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
@@ -99,7 +125,6 @@ func (h *PropertyHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 	createdResponse(w, "property created successfully", p)
 	return nil
 }
-
 
 func (h *PropertyHandler) GetImages(w http.ResponseWriter, r *http.Request) error {
     strId := mux.Vars(r)["propId"]

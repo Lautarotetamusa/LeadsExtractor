@@ -40,27 +40,29 @@ type Location struct {
 }
 
 type Ubication struct {
-    Address     string   `json:"address" db:"address" validate:"required"`
+    Address     string   `json:"address" csv:"address" db:"address" validate:"required"`
     Location    Location `json:"location"`
 }
 
 type PortalProp struct {
 	ID            int64          `json:"id" db:"id"`
 
+    // This fields are generated in case of creation with csv
     Title         string            `json:"title" db:"title" validate:"required"`
-    Price         string            `json:"price" db:"price" validate:"required,numeric,gte=0"`
-    Currency      string            `json:"currency" db:"currency" validate:"required"`
     Description   string            `json:"description" db:"description" validate:"required"`
-    Type          string            `json:"type" db:"type" validate:"required,oneof=house apartment"`
-    Antiquity     int               `json:"antiquity" db:"antiquity" validate:"required"`
-	ParkingLots   int               `json:"parking_lots" db:"parkinglots"`
-	Bathrooms     int               `json:"bathrooms" db:"bathrooms"`
-	HalfBathrooms int               `json:"half_bathrooms" db:"half_bathrooms"`
-	Rooms         int               `json:"rooms" db:"rooms"`
-    OperationType string            `json:"operation_type" db:"operation_type" validate:"required,oneof=sell rent"`
-	M2Total       models.NullInt16  `json:"m2_total" db:"m2_total"`
-	M2Covered     models.NullInt16  `json:"m2_covered" db:"m2_covered"`
-	VideoURL      models.NullString `json:"video_url" db:"video_url"`
+
+    Price         string            `json:"price" db:"price" csv:"price" validate:"required,numeric,gte=0"`
+    Currency      string            `json:"currency" db:"currency" csv:"currency" validate:"required"`
+    Type          string            `json:"type" db:"type" csv:"type" validate:"required,oneof=house apartment"`
+    Antiquity     int               `json:"antiquity" csv:"antiquity" db:"antiquity" validate:"required"`
+    ParkingLots   int               `json:"parking_lots" csv:"parking_lots" db:"parkinglots"`
+    Bathrooms     int               `json:"bathrooms" csv:"bathrooms" db:"bathrooms"`
+    HalfBathrooms int               `json:"half_bathrooms" csv:"half_bathrooms" db:"half_bathrooms"`
+    Rooms         int               `json:"rooms" csv:"rooms" db:"rooms"`
+    OperationType string            `json:"operation_type" csv:"operation_type" db:"operation_type" validate:"required,oneof=sell rent"`
+    M2Total       models.NullInt16  `json:"m2_total" csv:"m2_total" db:"m2_total"`
+    M2Covered     models.NullInt16  `json:"m2_covered" csv:"m2_covered" db:"m2_covered"`
+    VideoURL      models.NullString `json:"video_url" db:"video_url"`
 	VirtualRoute  models.NullString `json:"virtual_route" db:"virtual_route"`
 
     Ubication   Ubication   `json:"ubication"`

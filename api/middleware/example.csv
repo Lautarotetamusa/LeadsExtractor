@@ -1,0 +1,6 @@
+price,currency,type,antiquity,parking_lots,bathrooms,half_bathrooms,rooms,operation_type,m2_total,m2_covered,address,zone
+250000,USD,House,10,2,3,1,4,Sale,300,250,"123 Main St",Downtown
+150000,EUR,Apartment,5,1,2,0,3,Rent,120,100,"456 Elm St",Uptown
+500000,USD,Villa,20,3,4,2,5,Sale,500,400,"789 Oak St",Suburbs
+300000,GBP,Townhouse,15,2,3,1,4,Sale,350,300,"101 Pine St",City Center
+120000,USD,Condo,8,1,2,0,2,Rent,90,80,"202 Maple St",Midtown

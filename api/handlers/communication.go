@@ -1,20 +1,16 @@
 package handlers
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"io"
+	"leadsextractor/middleware"
 	"leadsextractor/models"
 	"leadsextractor/store"
 	"net/http"
 	"reflect"
-	"slices"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/gocarina/gocsv"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 )
@@ -25,8 +21,6 @@ type CommunicationHandler struct {
 
 const maxUploadCsvComms = 200
 
-var requiredCSVHeaders = []string{"fuente", "fecha", "propiedad.titulo", "propiedad.url", "propiedad.id", "propiedad.precio", "propiedad.ubicacion", "propiedad.habitaciones", "propiedad.banios", "propiedad.area", "nombre", "telefono", "email", "mensaje"}
-
 func NewCommHandler(s CommunicationService) *CommunicationHandler {
 	return &CommunicationHandler{
 		service: s,
@@ -34,9 +28,19 @@ func NewCommHandler(s CommunicationService) *CommunicationHandler {
 }
 
 func (h CommunicationHandler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/communication", HandleErrors(h.Insert)).Methods(http.MethodPost, http.MethodOptions)
-	router.HandleFunc("/communications", HandleErrors(h.GetAll)).Methods(http.MethodGet, http.MethodOptions)
-	router.HandleFunc("/communication-csv", HandleErrors(h.HandleCSVUpload)).Methods(http.MethodPost, http.MethodOptions)
+	r := router.PathPrefix("/communication").Subrouter()
+    r.Methods(http.MethodOptions)
+
+	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
+	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
+
+    var comms []models.Communication
+    csvHandler := middleware.NewCSVHandler("csv_file", "comms", comms).
+        WithLimit(maxUploadCsvComms)
+
+	r.Handle("/csv", csvHandler.CSVMiddleware(
+        http.HandlerFunc(HandleErrors(h.HandleCSVUpload)),
+    )).Methods(http.MethodPost)
 }
 
 func (h CommunicationHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
@@ -93,14 +97,14 @@ func (h CommunicationHandler) Insert(w http.ResponseWriter, r *http.Request) err
 
 func (h CommunicationHandler) HandleCSVUpload(w http.ResponseWriter, r *http.Request) error {
 	var (
-		comms                    []models.Communication
 		errorCount, successCount int
 		errors                   []MultipleError
 		wg                       sync.WaitGroup
 	)
-	if err := getCommunicationsFromCSV(r, &comms); err != nil {
-		return err
-	}
+    comms, ok := r.Context().Value("comms").([]models.Communication)
+    if !ok {
+        return ErrBadRequest("properties does not exists in the context")
+    }
 
 	// double check to dont create a channel with a massive length
 	if len(comms) > maxUploadCsvComms {
@@ -156,53 +160,8 @@ func (h CommunicationHandler) HandleCSVUpload(w http.ResponseWriter, r *http.Req
 	return nil
 }
 
-func getCommunicationsFromCSV(r *http.Request, comms *[]models.Communication) error {
-	file, _, err := r.FormFile("csv_file")
-	if err != nil {
-		return fmt.Errorf("error reading the csv_file %v", err.Error())
-	}
-	defer file.Close()
-
-	// Read the headers with encoding/csv
-	csvReader := csv.NewReader(file)
-	headers, err := csvReader.Read()
-	if err != nil {
-		return fmt.Errorf("error reading the CSV headers: %v", err)
-	}
-
-	if err := csvValidateHeaders(headers); err != nil {
-		return err
-	}
-
-	// Come back to the start of the file for the Unmarshall to work
-	file.Seek(0, io.SeekStart)
-
-	if err := gocsv.UnmarshalMultipartFile(&file, comms); err != nil {
-		return err
-	}
-
-	if len(*comms) > maxUploadCsvComms {
-		return fmt.Errorf("no se pueden cargar mas de %d comunicaciones de una sola vez", maxUploadCsvComms)
-	}
-	return nil
-}
-
-func csvValidateHeaders(headers []string) error {
-	missingFields := make([]string, 0)
-	for _, header := range requiredCSVHeaders {
-		if !slices.Contains(headers, header) {
-			missingFields = append(missingFields, header)
-		}
-	}
-	if len(missingFields) > 0 {
-		return fmt.Errorf("fields %s are missing", strings.Join(missingFields, ", "))
-	}
-	return nil
-}
-
 // 2 de enero del 2006, se usa siempre esta fecha por algun motivo extraño xd
 const timeLayout string = "2006-01-02"
-
 var timeConverter = func(value string) reflect.Value {
 	if v, err := time.Parse(timeLayout, value); err == nil {
 		return reflect.ValueOf(v)
