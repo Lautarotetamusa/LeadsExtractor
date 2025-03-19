@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS PublishedProperty (
 
     PRIMARY KEY (portal, property_id),
     FOREIGN KEY (portal) REFERENCES Portal(name),
-    FOREIGN KEY (property_id) REFERENCES PortalProp(id)
+    FOREIGN KEY (property_id) REFERENCES PortalProp(id) ON DELETE CASCADE
 );
 SET FOREIGN_KEY_CHECKS=1; -- to re-enable them
 

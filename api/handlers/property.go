@@ -48,6 +48,7 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
 	r.HandleFunc("/{propId}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
 	r.HandleFunc("", HandleErrors(h.Insert)).Methods(http.MethodPost)
 	r.HandleFunc("/{propId}", HandleErrors(h.Update)).Methods(http.MethodPut)
+	r.HandleFunc("/{propId}", HandleErrors(h.Delete)).Methods(http.MethodDelete)
 
     // add an image to a property
 	r.HandleFunc("/{propId}/image", HandleErrors(h.AddImages)).Methods(http.MethodPost)
@@ -168,6 +169,21 @@ func (h *PropertyHandler) AddImages(w http.ResponseWriter, r *http.Request) erro
 
     createdResponse(w, "images added successfully", images)
     return nil
+}
+
+func (h *PropertyHandler) Delete(w http.ResponseWriter, r *http.Request) error {
+    strId := mux.Vars(r)["propId"]
+    id, err := strconv.ParseInt(strId, 10, 16)
+    if err != nil {
+        return InvalidPropID
+    }
+
+    if err := h.storer.Delete(int64(id)); err != nil {
+        return err
+    }
+
+	messageResponse(w, "property deleted successfully")
+	return nil
 }
 
 func (h *PropertyHandler) DeleteImage(w http.ResponseWriter, r *http.Request) error {

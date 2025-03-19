@@ -107,6 +107,8 @@ const (
                lat as "ubication.location.lat",
                lng as "ubication.location.lng"
         FROM PortalProp`
+
+    deletePropertyQ = "DELETE FROM PortalProp WHERE id=?"
 )
 
 type PropertyPortalStore interface {
@@ -115,6 +117,7 @@ type PropertyPortalStore interface {
     GetImages(*PortalProp) error
 	Insert(*PortalProp) error
 	InsertImages(int64, []PropertyImage) error
+    Delete(int64) error
 	Update(*PortalProp) error
     DeleteImage(propId, imageId int64) error
 }
@@ -220,12 +223,26 @@ func insertImages(ext sqlx.Ext, propId int64, images []PropertyImage) error {
     return nil
 }
 
+func (s *propertyPortalStore) Delete(propId int64) error {
+	res, err := s.db.Exec(deletePropertyQ, propId)
+	if err != nil {
+		return fmt.Errorf("error deleting the property with id %d: %w", propId, err)
+	}
+
+    affected, err := res.RowsAffected()
+    if affected == 0 {
+        return NewErr("property does not exists", StoreNotFoundErr)
+    }
+
+    return nil
+}
+
 func (s *propertyPortalStore) DeleteImage(propId, imageId int64) error {
     query := "DELETE FROM PropertyImages WHERE property_id = ? AND id = ?"
     res, err := s.db.Exec(query, propId, imageId)
 
     affected, err := res.RowsAffected()
-    if err != nil || affected == 0 {
+    if affected == 0 {
         return NewErr("image does not exists", StoreNotFoundErr)
     }
 

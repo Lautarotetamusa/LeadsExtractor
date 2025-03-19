@@ -103,7 +103,7 @@ func (h CommunicationHandler) HandleCSVUpload(w http.ResponseWriter, r *http.Req
 	)
     comms, ok := r.Context().Value("comms").([]models.Communication)
     if !ok {
-        return ErrBadRequest("properties does not exists in the context")
+        return ErrBadRequest("comms does not exists in the context")
     }
 
 	// double check to dont create a channel with a massive length

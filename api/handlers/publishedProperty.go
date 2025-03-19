@@ -140,11 +140,20 @@ func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request
 		return jsonErr(err)
 	}
 
-	if !validStatus(statusUpdate.Status) {
+    if err = h.updateStatus(portal, int64(propId), statusUpdate.Status); err != nil {
+        return err
+    }
+
+    messageResponse(w, "status updated successfully")
+    return nil
+}
+
+func (h *PublishedPropertyHandler) updateStatus(portal string, propId int64, status store.PublishedStatus) error {
+	if !validStatus(status) {
 		return ErrBadRequest("Invalid status value")
 	}
 
-	if err := h.storer.UpdateStatus(portal, int64(propId), statusUpdate.Status); err != nil {
+	if err := h.storer.UpdateStatus(portal, int64(propId), status); err != nil {
 		return err
 	}
 
@@ -158,10 +167,9 @@ func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request
 		// Clear current item
 		h.current = nil
 		
+        // this maybe can create an infinity call of goroutines??
 		go h.processNextItem()
 	}
-
-    messageResponse(w, "status updated successfully")
     return nil
 }
 
@@ -190,7 +198,20 @@ func (h *PublishedPropertyHandler) processNextItem() {
     }
 
 	// Start processing in background
-	go h.publish(h.current)
+	go func(){
+        if h.publish(h.current) != nil {
+            // update status processing the next item
+            // this maybe can create an infinity call of goroutines?? because updateStatus create another goroutine..
+            err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), store.StatusFailed)
+            if err != nil {
+                h.logger.Error("error updating the status", 
+                    "portal", h.current.Portal,
+                    "id", h.current.PropertyID,
+                    "err", err,
+                )
+            }
+        }
+    }()
 }
 
 // At this point we know that the item exists, otherwise its not added to the queue
@@ -207,7 +228,6 @@ func (h *PublishedPropertyHandler) publish(item *PropertyPublishPayload) error {
     }
 
     // Run the scraper to publish the property
-    h.logger.Info("calling publicator app", "property", property)
     if err = runPublicatorApp(h.appHost, item.Portal, *property); err != nil {
         return err
     }
@@ -268,7 +288,6 @@ func (h *PublishedPropertyHandler) GetPublication(w http.ResponseWriter, r *http
 
 func runPublicatorApp(appHost string, portal string, property store.PortalProp) error {
     url := fmt.Sprintf("%s/publish/%s", appHost, portal)
-    slog.Info("publication post", "url", url)
 
     // pass the pointer to the Marshaller to correctly unmarshall the NullString fields
 	jsonBody, err := json.Marshal(&property)
