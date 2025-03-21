@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"leadsextractor/middleware"
 	"leadsextractor/pkg/onedrive"
+	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"net/http"
 	"strconv"
@@ -61,6 +62,36 @@ func (h *PropertyHandler) CreateFromCSV(w http.ResponseWriter, r *http.Request) 
     if !ok {
         return ErrBadRequest("properties does not exists in the context")
     }
+
+    dir := onedrive.NewRootItem()
+    propsByZone := make(map[string][]store.PortalProp)
+    for _, prop := range props {
+        propsByZone[prop.zone] = append(propsByZone[prop.zone], prop.PortalProp)
+    }
+
+    go func() {
+        for zone, props := range propsByZone {
+            for _, prop := range props {
+                if prop.M2Total < MediumHouseThreshold {
+                    dir = dir.ChangeDirectory("01. Chicas")
+                } else if prop.M2Total < BigHouseThreshold {
+                    dir = dir.ChangeDirectory("01. Medianas")
+                } else {
+                    dir = dir.ChangeDirectory("01. Grandes")
+                }
+
+                fachadasDir := dir.ChangeDirectory("01. Fachadas")
+                fachadas := fachadasDir.ListFiles()
+                fachadasRR := roundrobin.New(fachadas)
+                interioresDir := dir.ChangeDirectory("01. Fachadas")
+                interiores := interioresDir.ListFiles()
+                interioresRR := roundrobin.New(fachadas)
+
+                images := fachadasRR.Next().ListFiles()
+                images = interioresRR.Next().ListFiles()
+            }
+        }
+    }()
 
     dataResponse(w, props)
     // messageResponse(w, "properties creation process has started")
