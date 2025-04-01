@@ -32,7 +32,7 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
     var props []store.PortalProp
     csvHandler := middleware.NewCSVHandler("csv_file", "properties", props)
     // TODO: change the name to /property xD
-    router.Handle("properties/csv", csvHandler.CSVMiddleware(
+    router.Handle("/properties/csv", csvHandler.CSVMiddleware(
         http.HandlerFunc(HandleErrors(h.CreateFromCSV)),
     )).Methods(http.MethodPost)
 
