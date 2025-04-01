@@ -35,22 +35,20 @@ import (
 // )
 
 type Location struct {
-    Lat    float32 `json:"lat" db:"lat" validate:"required"`
-    Lng    float32 `json:"lng" db:"lng" validate:"required"`
+    Lat    float32 `json:"lat" csv:"latitude" db:"lat" validate:"required"`
+    Lng    float32 `json:"lng" csv:"longitude" db:"lng" validate:"required"`
 }
 
 type Ubication struct {
     Address     string   `json:"address" csv:"address" db:"address" validate:"required"`
-    Location    Location `json:"location"`
+    Location    Location `json:"location" csv:"location"`
 }
 
 type PortalProp struct {
 	ID            int64          `json:"id" db:"id"`
 
-    // This fields are generated in case of creation with csv
-    Title         string            `json:"title" db:"title" validate:"required"`
-    Description   string            `json:"description" db:"description" validate:"required"`
-
+    Title         string            `json:"title" db:"title" csv:"title" validate:"required"`
+    Description   string            `json:"description" db:"description" csv:"description" validate:"required"`
     Price         string            `json:"price" db:"price" csv:"price" validate:"required,numeric,gte=0"`
     Currency      string            `json:"currency" db:"currency" csv:"currency" validate:"required"`
     Type          string            `json:"type" db:"type" csv:"type" validate:"required,oneof=house apartment"`
@@ -62,10 +60,10 @@ type PortalProp struct {
     OperationType string            `json:"operation_type" csv:"operation_type" db:"operation_type" validate:"required,oneof=sell rent"`
     M2Total       models.NullInt16  `json:"m2_total" csv:"m2_total" db:"m2_total"`
     M2Covered     models.NullInt16  `json:"m2_covered" csv:"m2_covered" db:"m2_covered"`
-    VideoURL      models.NullString `json:"video_url" db:"video_url"`
-	VirtualRoute  models.NullString `json:"virtual_route" db:"virtual_route"`
+    VideoURL      models.NullString `json:"video_url" csv:"video_url" db:"video_url"`
+    VirtualRoute  models.NullString `json:"virtual_route" csv:"virtual_route" db:"virtual_route"`
 
-    Ubication   Ubication   `json:"ubication"`
+    Ubication   Ubication   `json:"ubication" csv:"ubication"`
 
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`

@@ -94,46 +94,49 @@ func getStructHeaders(d interface{}) []string {
     var headers []string
     val := reflect.ValueOf(d)
 
-    // Dereference pointers and get the underlying value
     if val.Kind() == reflect.Ptr {
         val = val.Elem()
     }
 
     t := val.Type()
 
-    // Handle slices by getting the element type
     if t.Kind() == reflect.Slice {
         t = t.Elem()
-        // Dereference pointer elements
         if t.Kind() == reflect.Ptr {
             t = t.Elem()
         }
     }
 
-    // Ensure we're working with a struct
     if t.Kind() != reflect.Struct {
         return headers
     }
 
     for i := 0; i < t.NumField(); i++ {
         field := t.Field(i)
-        fieldType := field.Type
+        csvTag := field.Tag.Get("csv")
 
-        // Dereference pointer types
+        // Obtener el tipo subyacente (manejar punteros)
+        fieldType := field.Type
         if fieldType.Kind() == reflect.Ptr {
             fieldType = fieldType.Elem()
         }
 
-        // Recursively process nested structs
+        // Procesar campos anidados
         if fieldType.Kind() == reflect.Struct {
-            // Create a new instance of the nested struct type
-            nestedVal := reflect.New(fieldType).Elem().Interface()
-            headers = append(headers, getStructHeaders(nestedVal)...)
-        }
+            nestedPrefix := csvTag // Ej: "ubication"
+            if nestedPrefix != "" {
+                nestedPrefix += "." // Ej: "ubication."
+            }
 
-        // Get CSV tag and add to headers if present
-        if csvTag := field.Tag.Get("csv"); csvTag != "" {
-            headers = append(headers, csvTag)
+            nestedVal := reflect.New(fieldType).Elem().Interface()
+            nestedHeaders := getStructHeaders(nestedVal)
+
+            // Agregar prefijo a los headers anidados
+            for _, h := range nestedHeaders {
+                headers = append(headers, nestedPrefix+h) // Ej: "ubication.address"
+            }
+        } else if csvTag != "" {
+            headers = append(headers, csvTag) // Campos no-estructos
         }
     }
 

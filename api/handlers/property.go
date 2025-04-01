@@ -3,9 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"leadsextractor/middleware"
-	"leadsextractor/pkg/onedrive"
-	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -14,12 +13,7 @@ import (
 
 type PropertyHandler struct {
     storer      store.PropertyPortalStore
-    onedriver   onedrive.OneDriver
-}
-
-type PropCsvPayload struct {
-    store.PortalProp
-    zone    string      `csv:"zone"`
+    logger      *slog.Logger
 }
 
 var InvalidPropID = APIError{
@@ -27,9 +21,10 @@ var InvalidPropID = APIError{
     Msg:    "the property id must be an integer",
 }
 
-func NewPropertyHandler(s store.PropertyPortalStore) *PropertyHandler {
+func NewPropertyHandler(s store.PropertyPortalStore, logger *slog.Logger) *PropertyHandler {
 	return &PropertyHandler{
 		storer: s,
+        logger: logger.With("module", "propertyHandler"),
 	}
 }
 
@@ -38,7 +33,7 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
 
     r.Methods(http.MethodOptions)
 
-    var props []PropCsvPayload
+    var props []store.PortalProp
     csvHandler := middleware.NewCSVHandler("csv_file", "properties", props)
 
     r.Handle("/csv", csvHandler.CSVMiddleware(
@@ -58,43 +53,22 @@ func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *PropertyHandler) CreateFromCSV(w http.ResponseWriter, r *http.Request) error {
-    props, ok := r.Context().Value("properties").([]PropCsvPayload)
+    props, ok := r.Context().Value("properties").([]store.PortalProp)
     if !ok {
         return ErrBadRequest("properties does not exists in the context")
     }
 
-    dir := onedrive.NewRootItem()
-    propsByZone := make(map[string][]store.PortalProp)
+    // TODO: make only one request..
     for _, prop := range props {
-        propsByZone[prop.zone] = append(propsByZone[prop.zone], prop.PortalProp)
+        err := h.storer.Insert(&prop)
+        if err != nil {
+            h.logger.Error("error inserting property", "err", err)
+            continue
+        }
+        h.logger.Info("property created succesfully")
     }
 
-    go func() {
-        for zone, props := range propsByZone {
-            for _, prop := range props {
-                if prop.M2Total < MediumHouseThreshold {
-                    dir = dir.ChangeDirectory("01. Chicas")
-                } else if prop.M2Total < BigHouseThreshold {
-                    dir = dir.ChangeDirectory("01. Medianas")
-                } else {
-                    dir = dir.ChangeDirectory("01. Grandes")
-                }
-
-                fachadasDir := dir.ChangeDirectory("01. Fachadas")
-                fachadas := fachadasDir.ListFiles()
-                fachadasRR := roundrobin.New(fachadas)
-                interioresDir := dir.ChangeDirectory("01. Fachadas")
-                interiores := interioresDir.ListFiles()
-                interioresRR := roundrobin.New(fachadas)
-
-                images := fachadasRR.Next().ListFiles()
-                images = interioresRR.Next().ListFiles()
-            }
-        }
-    }()
-
-    dataResponse(w, props)
-    // messageResponse(w, "properties creation process has started")
+    messageResponse(w, "properties creation process has started")
     return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"reflect"
+	"strconv"
 )
 
 type NullString sql.NullString
@@ -75,6 +76,23 @@ func (ni *NullInt16) Scan(value interface{}) error {
 	return nil
 }
 
+// UnmarshalCSV converts a CSV string value to NullInt16.
+func (ni *NullInt16) UnmarshalCSV(value string) error {
+    if value == "" {
+        ni.Valid = false
+        return nil
+    }
+
+    // Parse the string into an int16
+    parsed, err := strconv.ParseInt(value, 10, 16)
+    if err != nil {
+        return err
+    }
+    ni.Int16 = int16(parsed)
+    ni.Valid = true
+    return nil
+}
+
 // Value implements the [driver.Valuer] interface.
 func (n NullInt16) Value() (driver.Value, error) {
 	if !n.Valid {
@@ -124,7 +142,6 @@ func (ns NullString) MarshalCSV() (string, error) {
 	}
 	return "", nil
 }
-
 
 type NullTime sql.NullTime
 

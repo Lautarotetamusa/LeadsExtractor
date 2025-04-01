@@ -127,7 +127,7 @@ func main() {
 	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 
 	// Handlers
-    propHandler := handlers.NewPropertyHandler(propStore)
+    propHandler := handlers.NewPropertyHandler(propStore, logger)
     publishPropHandler := handlers.NewPublishedPropertyHandler(publisPropStore, propStore, appHost)
 	leadHandler := handlers.NewLeadHandler(leadStore)
 	utmHandler := handlers.NewUTMHandler(utmStore)
