@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"leadsextractor/middleware"
 	"leadsextractor/store"
 	"log/slog"
