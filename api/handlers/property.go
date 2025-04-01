@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"leadsextractor/middleware"
 	"leadsextractor/store"
 	"log/slog"
@@ -57,6 +58,9 @@ func (h *PropertyHandler) CreateFromCSV(w http.ResponseWriter, r *http.Request) 
     if !ok {
         return ErrBadRequest("properties does not exists in the context")
     }
+    // for debugging
+    // j, _ := json.MarshalIndent(&props[0], "\t", "\t")
+    // fmt.Println(string(j))
 
     // TODO: make only one request..
     for _, prop := range props {

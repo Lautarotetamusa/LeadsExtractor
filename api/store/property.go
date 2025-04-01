@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"leadsextractor/models"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -14,7 +15,7 @@ import (
 //     title VARCHAR(256) NOT NULL,
 //     price VARCHAR(32) NOT NULL,
 //     currency CHAR(5) NOT NULL,
-//     description VARCHAR(512) NOT NULL, 
+//     description VARCHAR(512) NOT NULL,
 //     type VARCHAR(32) NOT NULL,
 //     antiquity INT NOT NULL,
 //     parkinglots INT DEFAULT NULL,
@@ -68,7 +69,7 @@ type PortalProp struct {
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 
-    Images []PropertyImage `json:"images,omitempty"`
+    Images Images `json:"images,omitempty" csv:"images"`
 }
 
 type PropertyImage struct {
@@ -76,6 +77,8 @@ type PropertyImage struct {
     PropertyID int64    `json:"-" db:"property_id"`
     Url        string   `json:"url" db:"url"` 
 }
+
+type Images []PropertyImage
 
 const (
     createPropertyQ = `
@@ -253,5 +256,22 @@ func (s *propertyPortalStore) Update(prop *PortalProp) error {
 		return fmt.Errorf("error updating the property with id %d: %w", prop.ID, err)
 	}
 
+    return nil
+}
+
+// UnmarshalCSV procesa las URLs separadas por ";"
+func (i *Images) UnmarshalCSV(value string) error {
+    if value == "" {
+        return nil // No hay imágenes, retornar vacío
+    }
+    
+    urls := strings.Split(value, ";")
+    for _, url := range urls {
+        trimmed := strings.TrimSpace(url)
+        if trimmed != "" {
+            *i = append(*i, PropertyImage{Url: trimmed})
+        }
+    }
+    
     return nil
 }
