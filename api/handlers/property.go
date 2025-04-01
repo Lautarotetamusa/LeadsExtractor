@@ -29,16 +29,16 @@ func NewPropertyHandler(s store.PropertyPortalStore, logger *slog.Logger) *Prope
 }
 
 func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
+    var props []store.PortalProp
+    csvHandler := middleware.NewCSVHandler("csv_file", "properties", props)
+    // TODO: change the name to /property xD
+    router.Handle("properties/csv", csvHandler.CSVMiddleware(
+        http.HandlerFunc(HandleErrors(h.CreateFromCSV)),
+    )).Methods(http.MethodPost)
+
 	r := router.PathPrefix("/property").Subrouter()
 
     r.Methods(http.MethodOptions)
-
-    var props []store.PortalProp
-    csvHandler := middleware.NewCSVHandler("csv_file", "properties", props)
-
-    r.Handle("/csv", csvHandler.CSVMiddleware(
-        http.HandlerFunc(HandleErrors(h.CreateFromCSV)),
-    )).Methods(http.MethodPost)
 
 	r.HandleFunc("", HandleErrors(h.GetAll)).Methods(http.MethodGet)
 	r.HandleFunc("/{propId}", HandleErrors(h.GetOne)).Methods(http.MethodGet)
