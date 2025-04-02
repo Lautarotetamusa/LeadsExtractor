@@ -205,13 +205,28 @@ def translateContext(cin):
         "recamaras": recamaras,
         "niveles": niveles
     }
+
+    print(area_rampa*valor_rampa)
+    print(area_alberca*valor_alberca)
+    print(area_jardin*valor_jardin)
+    print(area_muro_perimetral*valor_muro_perimetral)
+
+    print("---")
+    print(valor_exterior)
+    print(area_interior)
+    print(importe_calidad)
+    print(valor_interior)
+    print(valor_permisos)
+    print(valor_total)
+
     return contexto
 
 # 📌 Renderizar HTML con datos dinámicos
 def to_pdf(json):
     try:
         contexto = translateContext(json)
-        # contexto['nombre_grafico_pagos'] = grafico_pagos(contexto)
+        contexto['nombre_grafico_pagos'] = grafico_pagos(contexto)
+        contexto['nombre_grafico_pagos'] = "./grafico_pagos.png" ##XD
         # contexto['nombre_grafico_etapas'] = grafico_etapas(contexto)
         template = "/src/cotizadorpdf/cotizacion3.html"
         html_content = renderizar_html(template, contexto)
@@ -220,10 +235,10 @@ def to_pdf(json):
         with open(path, "w") as f:
             f.write(html_content)
             
+        # os.remove(contexto["nombre_grafico_pagos"])
         return timestamp_str
         pdf_filename = os.path.join("pdfs", "cotizacion" + timestamp_str +".pdf")
         HTML(string=html_content, base_url=".").write_pdf(pdf_filename)
-        # os.remove(contexto["nombre_grafico_pagos"])
         # os.remove(contexto["nombre_grafico_etapas"])
         return timestamp_str
     except Exception as e:

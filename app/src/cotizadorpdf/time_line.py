@@ -55,6 +55,7 @@ def grafico_etapas(c):
     return nombre
 
 def grafico_pagos(c):
+    print(c["meses"])
     # Datos de ejemplo: Meses (1 al 21) y los montos a pagar
     meses = list(range(0, c['meses']+6))  # Meses del 0 al 21
     montos = []
@@ -109,11 +110,10 @@ def grafico_pagos(c):
     plt.tight_layout()
 
     # Guardar el gráfico en un archivo de alta resolución
-    nombre = generar_nombre()
-    nombre = nombre +".png"
-    plt.savefig( nombre, dpi=300, bbox_inches="tight", transparent=True)
-
+    # nombre = generar_nombre()
+    path = "pdfs/grafico_pagos.png"
+    plt.savefig(path, dpi=300, bbox_inches="tight") # transparent=True
 
     # Cerrar la figura para liberar recursos
     plt.close()
-    return nombre
+    return path

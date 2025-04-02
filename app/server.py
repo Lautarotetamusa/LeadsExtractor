@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import threading
 import os
+import json
 
 # Portals
 from src.portal import Portal
@@ -73,6 +74,7 @@ def generate_pdf():
 @app.route('/generar_cotizacion', methods=['POST'])
 def generate_cotization_pdf():
     data = request.get_json()
+    print(json.dumps(data, indent=4))
     ret = to_pdf(data)
     if (ret == "error"):
         return Response(ret, status=400)
