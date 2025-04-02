@@ -7,7 +7,7 @@ import uuid
 import requests
 
 from src.scraper import SENDER_PHONE
-from src.onedrive.main import download_file
+from src.onedrive.main import download_file, token
 from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -158,7 +158,11 @@ class Lamudi(Portal):
         if res is None or not res.ok:
             return None
 
-        place_id = res.json().get("predictions", [{}])[0].get("place_id")
+        predictions = res.json().get("predictions", [])
+        if len(predictions) == 0: 
+            self.logger.error("cannot get address predictions: " + str(res.json()))
+            return None
+        place_id = predictions[0].get("place_id")
         if place_id is None: return None
 
         res = self.request.make(address_url + f"&place_id={place_id}", "GET")
@@ -177,18 +181,19 @@ class Lamudi(Portal):
         id = str(uuid.uuid4())
 
         self.logger.debug("getting the address geo location")
-        location_data = self.get_location(property.ubication.address)
+        ## con la direccion que me pasa Diego no anda...
+        hardcoded_addr = "Avenida Aviación S/N Jardines de Nuevo México, 45200 Zapopan, Jal., México"
+        location_data = self.get_location(hardcoded_addr)
         if location_data is None: return Exception("cannot get the location data")
         self.logger.success("geolocation data getted successfully")
 
-        print(property)
-
         ad_payload = {
-            "address": location_data["address"],
+            "address": property.ubication.address,
             "coordinates": {
-                "latitude": location_data["latitude"],
-                "longitude": location_data["longitude"]
+                "latitude": property.ubication.location.lat,
+                "longitude": property.ubication.location.lng
             },
+            ## This field its required
             "geoLevels": location_data["geoLevels"],
             "locationVisibility": "accurate",
             "floorPlans": [],
@@ -250,7 +255,7 @@ class Lamudi(Portal):
         i = 0
         for image in property.images:
             self.logger.debug(f"downloading image {image['url']}")
-            img_data = download_file(image["url"])
+            img_data = download_file(token, image["url"])
             self.logger.debug("image downloaded successfully")
             if img_data is None:
                 return Exception("cannot download the image")

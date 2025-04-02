@@ -12,7 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.onedrive.main import download_file
+from src.onedrive.main import download_file, token
 from src.property import Property, OperationType
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -159,12 +159,13 @@ class CasasYTerrenos(Portal):
         return data.get("id")
 
     def add_ubication(self, prop_id: int, property: Property) -> Exception | None:
-        # Hardcoded for now. i cannot have a simple way to obtain the internal 
-        # state, municipality id
         payload = {
-            "state": "14",
             "latitude": property.ubication.location.lat,
             "longitude": property.ubication.location.lng,
+
+            # Hardcoded for now. i cannot have a simple way to obtain the internal 
+            # state, municipality id
+            "state": "14",
             "colony": 834012,
             "municipality": 2995,
             "exterior_number": "246",
@@ -206,7 +207,7 @@ class CasasYTerrenos(Portal):
         uploaded_images = []
         for image in images:
             self.logger.debug(f"downloading {image['url']}")
-            img_data = download_file(image["url"])
+            img_data = download_file(token, image["url"])
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
 

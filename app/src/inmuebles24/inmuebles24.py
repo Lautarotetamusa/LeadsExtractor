@@ -2,8 +2,11 @@ from datetime import datetime
 from enum import Enum
 import os
 import json
+from typing import Any
 import requests
 
+from src.onedrive.main import download_file, token
+from src.property import Property
 from src.make_requests import ApiRequest
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -12,11 +15,12 @@ DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
+ZENROWS_API_KEY = os.getenv("ZENROWS_APIKEY")
 PARAMS = {
-        "apikey": os.getenv("ZENROWS_APIKEY"),
+        "apikey": ZENROWS_API_KEY,
         "url": "",
-        "js_render": "true",
-        #"antibot": "true",
+        # "js_render": "true",
+        "antibot": "true",
         "premium_proxy": "true",
         "proxy_country": "mx",
         # "session_id": 10,
@@ -279,6 +283,123 @@ class Inmuebles24(Portal):
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {contact_id} como {status}")
         PARAMS["autoparse"] = True
+
+    def publish(self, property: Property) -> Exception | None:
+        tipo_propiedad_map = {
+            "house": "1",
+        }
+        currency_map = {
+            "MXN": "10"
+        }
+
+        payload = {
+            "aviso.titulo": property.title,
+            "aviso.descripcion": property.description,
+            "isDesarrollo-control": "false",
+            "aviso.idTipoDePropiedad": tipo_propiedad_map[str(property.type)],
+            "aviso.antiguedad": property.antiquity,
+            "aviso.habitaciones": property.rooms,
+            "aviso.garages": property.parking_lots,
+            "aviso.banos": property.bathrooms,
+            "aviso.mediosBanos": property.half_bathrooms,
+            "monedaVenta": currency_map[property.currency],
+            "precioVenta": property.price,
+            "aviso.valorCondominio": "",
+            "aviso.metrosCubiertos": property.m2_covered,
+            "aviso.metrosTotales": property.m2_total,
+            "aviso.idProvincia": "69",
+            "aviso.idCiudad": "516",
+            "aviso.idZona": "305005799",
+            "aviso.idSubZonaCiudad": "",
+            "aviso.direccion": "Marsella+246",
+            "aviso.codigoPostal": "",
+            "direccion.mapa": "sinMapa",
+            "aviso.claveInterna": "",
+            "idGeoloc": "",
+            "lat": property.ubication.location.lat,
+            "lng": property.ubication.location.lng,
+            "southwest": "",
+            "zoom": "13",
+            "aviso.email": "",
+            "aviso.idAviso": "",
+            "checkContentEnhancerHidden": "",
+            "guardarComoBorrador": "",
+            "irAlPaso": ""
+        }
+    
+        # first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
+        # res = self.request.make(first_step_url, "POST", json=payload)
+        # if res is None or not res.ok:
+        #     return Exception("error in creation of the property")
+
+        prop_id = "146019337"
+
+        return self.upload_images(prop_id, property.images)
+
+    # upload each image multipart/form-data to upload_url
+    # add image to the property with add_image_url
+    def upload_images(self, prop_id: str, images: list[dict[str, str]]):
+        upload_url = f"https://www.inmuebles24.com/avisoImageUploader.bum?idAviso={prop_id}"
+        add_image_url = f"https://www.inmuebles24.com/publicarPasoMultimedia.bum?idaviso={prop_id}"
+
+        uploaded_images = []
+        for image in images:
+            self.logger.debug(f"downloading {image['url']}")
+            img_data = download_file(token, image["url"])
+            if img_data is None:
+                return Exception(f"cannot download the image {image['url']}")
+            self.logger.success("image downloaded successfully")
+
+            img_type = "png" if "png" in image["url"] else "jpeg"
+            file_name = f"image.{img_type}"
+            files = [
+                ('name', (file_name)),
+                ('file', (file_name, img_data, f"image/{img_type}")),
+            ]
+
+            self.logger.debug("uploading the image")
+
+            PARAMS = {
+                "apikey": ZENROWS_API_KEY,
+                "url": upload_url,
+                "js_render": "true",
+                "antibot": "true",
+                "premium_proxy": "true",
+                "proxy_country": "mx",
+                # "session_id": 10,
+                "custom_headers": "true",
+                "original_status": "true",
+                "autoparse": "true"
+            }
+            res = requests.post(upload_url, headers=self.request.headers)
+            if res is None or not res.ok:
+                print(res.text)
+                self.logger.error("error uploading the image")
+                return
+                continue
+
+            file_id = res.text.replace("FILEID:", "")
+            uploaded_images.append(file_id)
+            self.logger.success(f"image uploaded successfully, file_id: {file_id}")
+
+        payload: dict[str, Any] = {
+            "multimediaaviso.idMultimediaAviso[]": []
+        }
+        i = 0
+        for img_id in uploaded_images:
+            id = f"nueva_{i}"
+            payload[f"multimediaaviso.orden[{id}]"] = str(i)
+            payload[f"multimediaaviso.rotacion[{id}"] = "0"
+            payload[f"multimediaaviso.urlTempImage[{id}]"] = img_id
+            payload[f"multimediaaviso.titulo[{id}]"] = ""
+            payload["multimediaaviso.idMultimediaAviso[]"].append(id)
+
+            i += 1 
+
+        res = self.request.make(add_image_url, "POST", json=payload)
+        if res is None or not res.ok:
+            return Exception("error uploading the image")
+
 
     def make_contacted(self, lead: dict):
         self._change_status(lead, Status.contacted)

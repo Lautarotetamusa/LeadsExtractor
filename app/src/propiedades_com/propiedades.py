@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from src.onedrive.main import download_file
+from src.onedrive.main import download_file, token
 from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -281,7 +281,7 @@ class Propiedades(Portal):
         i = 0 # global index
         for image in images:
             self.logger.debug(f"downloading {image['url']}")
-            img_data = download_file(image["url"])
+            img_data = download_file(token, image["url"])
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
 

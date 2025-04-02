@@ -5,12 +5,13 @@ import os
 
 # Portals
 from src.portal import Portal
+from src.inmuebles24.inmuebles24 import Inmuebles24
 from src.propiedades_com.propiedades import Propiedades
 from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
 
 from src.api import update_publication
-from src.property import Image, Location, Property, Ubication
+from src.property import Location, Property, Ubication
 from src.logger import Logger
 from src.lead import Lead
 import src.jotform as jotform
@@ -48,7 +49,7 @@ SCRAPERS = {
 PORTALS: dict[str, Portal] = {
     "casasyterrenos": CasasYTerrenos(),
     "propiedades": Propiedades(),
-    # "inmuebles24": Inmuebles24Scraper,
+    "inmuebles24": Inmuebles24(),
     "lamudi": Lamudi()
 }
 
@@ -180,4 +181,4 @@ def check_task(task_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=True)
