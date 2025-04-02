@@ -1,3 +1,4 @@
+import json
 import os
 import msal
 import webbrowser
@@ -10,66 +11,60 @@ APP_ID = os.environ.get("MS_OPENGRAPH_APP_ID")
 CLIENT_SECRET = os.environ.get("MS_OPENGRAPH_CLIENT_SECRET")
 SCOPES = ["Files.ReadWrite.All"]
 AUTHORITY_URL = "https://login.microsoftonline.com/common"
-TOKEN_FILES = {"access": "./src/onedrive/access_token.txt", "refresh": "./src/onedrive/refresh_token.txt"}
+TOKEN_FILE = "./src/onedrive/token.json"
 
+print(CLIENT_SECRET)
+print(APP_ID)
 
-def load_token_from_file(token_type: str) -> str:
-    """ Carga access token o refresh token desde archivo """
+def load_token() -> dict[str, str] | None:
     try:
-        with open(TOKEN_FILES[token_type], "r") as f:
-            return f.readline().strip()
+        with open(TOKEN_FILE, "r") as f:
+            return json.load(f)
     except FileNotFoundError:
         return None
 
-def save_token_to_file(token_type: str, token: str):
-    """ Guarda un token en archivo """
-    with open(TOKEN_FILES[token_type], "w") as f:
-        f.write(token)
+def save_token(token: dict):
+    with open(TOKEN_FILE, "w") as f:
+        json.dump(token, f)
 
-def save_access_token(token: str):
-    """ Guarda el access token """
-    save_token_to_file("access", token)
+def extract_code_from_url(url: str) -> str | None:
+    parsed_url = urllib.parse.urlparse(url)
+    query_params = urllib.parse.parse_qs(parsed_url.query)
+    
+    code = query_params.get("code", [None])[0]
+    if code is None:
+        print("code dont found on the redirect_url")
+        return None
+    return code
 
-def save_refresh_token(token: str):
-    """ Guarda el refresh token. """
-    save_token_to_file("refresh", token)
-
-
-def procure_new_tokens() -> tuple:
-    print("APP_ID:", APP_ID)
-    print("CLIENT_SECRET:", CLIENT_SECRET)
-    client_instance = msal.ConfidentialClientApplication(APP_ID, client_credential=CLIENT_SECRET, authority=AUTHORITY_URL)
+def procure_new_tokens() -> dict:
+    client_instance = msal.ConfidentialClientApplication(
+        APP_ID, 
+        client_credential=CLIENT_SECRET, 
+        authority=AUTHORITY_URL
+    )
     auth_url = client_instance.get_authorization_request_url(SCOPES)
     webbrowser.open(auth_url)
     
-    print("\nPor favor, ingresa la URL completa que aparece después de la autorización (de la redirección del navegador):")
-    redirected_url = input("URL: ").strip()
+    redirected_url = input("Enter the url from your browser: ").strip()
+    code = extract_code_from_url(redirected_url)
+    if code is None: exit(1)
 
-    parsed_url = urllib.parse.urlparse(redirected_url)
-    query_params = urllib.parse.parse_qs(parsed_url.query)
+    token = client_instance.acquire_token_by_authorization_code(code, SCOPES)
     
-    authorization_code = query_params.get("code", [None])[0]
-    
-    if not authorization_code:
-        print("No se encontró el código en la URL.")
-        exit(1)
-    token_response = client_instance.acquire_token_by_authorization_code(authorization_code, SCOPES)
-    
-    if "access_token" in token_response:
-        access_token = token_response["access_token"]
-        refresh_token = token_response.get("refresh_token", "")
-        save_access_token(access_token)
-        save_refresh_token(refresh_token)
-        print("Autenticación exitosa.")
-        return access_token
+    if "access_token" in token:
+        save_token(token)
+        print("Success authentication")
+        return token
     else:
-        print("Error en autenticación:", token_response.get("error_description"))
+        print("Authentication error", token.get("error_description"))
         exit(1)
 
-def refresh_access_token() -> str:
-    refresh_token = load_token_from_file("refresh")
-    if not refresh_token:
-        print("No hay refresh token, solicitando autenticación manual.")
+def refresh_access_token(token) -> dict | None:
+    """ get the new access token with the refresh token """
+
+    if not "refresh_token" in token:
+        print("no refresh token, authenticate manually again")
         return procure_new_tokens()
 
     url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
@@ -78,29 +73,18 @@ def refresh_access_token() -> str:
         "client_secret": CLIENT_SECRET,
         "scope": "https://graph.microsoft.com/Files.ReadWrite.All",
         "grant_type": "refresh_token",
-        "refresh_token": refresh_token,
+        "refresh_token": token["refresh_token"],
     }
     
-    response = requests.post(url, data=data)
-    token_data = response.json()
+    res = requests.post(url, data=data)
+    if not res.ok: 
+        print("Error while refreshing the token", res.json())
+        return None
+    token = res.json()
     
-    if "access_token" in token_data:
-        new_access_token = token_data["access_token"]
-        save_access_token(new_access_token)
-        return new_access_token
-    else:
-        print("No refresh token, generar nuevo")
-        return procure_new_tokens()
-
-
-def get_access_token() -> str:
-    """ Devuelve un access token válido"""
-    token = load_token_from_file("access")
-    if token:
+    if "access_token" in token:
+        save_token(token)
         return token
-    return refresh_access_token()
-
-
-if __name__ == "__main__":
-    access_token = get_access_token()
-    print("Token obtenido:", access_token[:30] + "...")
+    else:
+        print("Authentication error", token.get("error_description"))
+        return None

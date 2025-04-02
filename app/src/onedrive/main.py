@@ -1,33 +1,38 @@
 import requests
-import base64
-from src.onedrive.onedrive_authorization_utils import get_access_token
 
-def download_file(shared_link) -> bytes | None:
-    access_token = get_access_token()
-    
+from onedrive_authorization_utils import load_token, procure_new_tokens, refresh_access_token 
+
+def download_file_from_id(token: dict, drive_id: str, item_id: str) -> bytes | None:
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"Bearer {token['access_token']}",
         "Content-Type": "application/json"
     }
 
-    endpoint = "https://graph.microsoft.com/v1.0/shares/"
+    download_url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{item_id}/content"
+    if token["expires_in"] <= 0:
+        print("refreshing OneDrive code..")
+        new_token = refresh_access_token(token)
+        if new_token is None:
+            print("cannot refresh the token")
+            return None
 
-    shared_link_encoded = base64.b64encode(shared_link.encode()).decode()
-    sharing_token = "u!" + shared_link_encoded.replace("=", "").replace("/", "_").replace("+", "-")
+    res = requests.get(download_url, headers=headers, stream=True)
 
-    url = f"{endpoint}{sharing_token}/driveItem"
-    response = requests.get(url, headers=headers)
+    if res.ok:
+        return res.content
 
-    if not response.ok:
-        return None
+    return None
 
-    item_info = response.json()
-    if not "@microsoft.graph.downloadUrl" in item_info:
-        return None
+if __name__ == "__main__":
+    token = load_token()
+    if token is None: # If the token file does not exists
+        token = procure_new_tokens()
 
-    download_url = item_info["@microsoft.graph.downloadUrl"]
-
-    response = requests.get(download_url, stream=True)
-
-    if response.ok:
-        return response.content
+    # At this point the token its valid not matter whats
+    drive_id = "b!zdgDJiBvHkW3w7RM8tHO3op6N0Vfd0pPq7JLkfwb0V1lb38lwGanTb49NytJD2PW"
+    item_id = "01VOCEREB3UO5WLXDB6ZHYVWW5BHH2SPSI"
+    content = download_file_from_id(token, drive_id, item_id)
+    if content is None:
+        exit(1)
+    with open("image.png", "wb") as f:
+        f.write(content)
