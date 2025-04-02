@@ -78,7 +78,6 @@ def generate_cotization_pdf():
         return Response(ret, status=400)
     return Response(ret, status=200)
 
-
 @app.route('/execute', methods=['POST'])
 def ejecutar_script_route():
     data = request.get_json()
