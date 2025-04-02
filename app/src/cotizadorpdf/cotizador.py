@@ -36,7 +36,10 @@ def translateContext(cin):
     email = cin['elaborado_por']['mail']
     etelefono = cin['elaborado_por']['telefono']
     nombre = cin['datos']['nombre']
-    fecha = date.today()
+    fecha = date.today().strftime("%d/%m/%Y")
+    print("amenidades", "amenidades" in cin)
+    banios = cin['areas_interiores']['banos']
+    recamaras = cin['areas_interiores']['cuartos'] 
     calidad = cin['pagos']['tipo']
     importe_inicial = calcular_importe_calidad(calidad)
     coeficiente_ganancia = (1- (porcentaje_administracion/100))
@@ -51,6 +54,18 @@ def translateContext(cin):
     area_jardin = cin['areas_exteriores']['jardin']
     area_alberca = cin['areas_exteriores']['alberca'] 
     area_muro_perimetral = cin['areas_exteriores']['muro_perimetral']
+
+    # Niveles
+    niveles = 0
+    if area_sotano != "" and int(area_sotano) > 0:
+        niveles += 1
+    if area_planta_baja != "" and int(area_planta_baja) > 0:
+        niveles += 1
+    if area_planta_alta != "" and int(area_planta_alta) > 0:
+        niveles += 1
+    if area_roof != "" and int(area_roof) > 0:
+        niveles += 1
+
     valor_rampa = int(cin['valor_exteriores']['rampa']/coeficiente_ganancia) 
     valor_jardin = int(cin['valor_exteriores']['jardin']/coeficiente_ganancia)
     valor_alberca = int(cin['valor_exteriores']['alberca']/coeficiente_ganancia)
@@ -185,7 +200,10 @@ def translateContext(cin):
         "roi_rebora": roi_rebora,
         "precio_venta_otro_despacho": precio_venta_otro_despacho,
         "precio_venta_casa_construida": precio_venta_casa_construida,
-        "precio_venta_rebora": precio_venta_rebora 
+        "precio_venta_rebora": precio_venta_rebora,
+        "banios": banios,
+        "recamaras": recamaras,
+        "niveles": niveles
     }
     return contexto
 
@@ -213,14 +231,6 @@ def to_pdf(json):
         return "error"
 
 if __name__ == "__main__":
-    with open("src/cotizadorpdf/output.html", "r") as f:
-        html_content = f.read()
-    timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
-    pdf_filename = os.path.join("pdfs", "cotizacion" + timestamp_str +".pdf")
-    HTML(string=html_content, base_url=".").write_pdf(pdf_filename)
-    print(pdf_filename)
-    exit(0)
-
     test = {
         "elaborado_por": {
             "nombre": "Diego Torres",
@@ -241,8 +251,8 @@ if __name__ == "__main__":
             "tipo": "Premium"
         },
         "areas_interiores": {
-            "cuartos": 5,
-            "banos": 6,
+            "banos": 3,
+            "cuartos": 4,
             "sotano": 50,
             "planta_baja": 200,
             "planta_alta": 200,
@@ -266,7 +276,7 @@ if __name__ == "__main__":
             "topografia": 9500,
             "mecanica": 4,
             "calculo": 59
-        }
+        },
     }
     res = to_pdf(test)
     print(res)
