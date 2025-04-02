@@ -116,15 +116,18 @@ def translateContext(cin):
     plusvalia_otro_despacho = int(valor_otro_despacho * 0.12)
     plusvalia_casa_construida = int(valor_casa_construida * 0.06)
     plusvalia_total_rebora = plusvalia_terreno_rebora + plusvalia
+    print("plusvalia_total_rebora", plusvalia_total_rebora)
     plusvalia_total_otro_despacho = plusvalia_terreno_otro_despacho + plusvalia_otro_despacho
     plusvalia_total_casa_construida = plusvalia_terreno_casa_construida + plusvalia_casa_construida
-    precio_venta_rebora=int(valor_total+plusvalia_total_rebora)
+    precio_venta_rebora=int(valor_terreno+valor_total+plusvalia_total_rebora)
     precio_venta_otro_despacho = int(valor_otro_despacho+plusvalia_total_otro_despacho)
     precio_venta_casa_construida=int(valor_casa_construida+plusvalia_casa_construida)
-    roi_rebora=int(precio_venta_rebora-valor_total)
+    roi_rebora=int(precio_venta_rebora-valor_total-valor_terreno)
     roi_otro_despacho=int(precio_venta_otro_despacho-valor_otro_despacho)
     roi_casa_construida=int(precio_venta_casa_construida-valor_casa_construida)
+    roi_terreno = int(valor_terreno)+int(plusvalia_terreno_rebora)
     contexto = {
+        "roi_terreno": roi_terreno,
         "enombre": enombre,
         "etelefono":etelefono,
         "email": email,
