@@ -292,49 +292,89 @@ class Inmuebles24(Portal):
             "MXN": "10"
         }
 
+        # payload = {
+        #     "aviso.titulo": property.title,
+        #     "aviso.descripcion": property.description,
+        #     "isDesarrollo-control": "false",
+        #     "aviso.idTipoDePropiedad": tipo_propiedad_map[str(property.type)],
+        #     "aviso.antiguedad": property.antiquity,
+        #     "aviso.habitaciones": property.rooms,
+        #     "aviso.garages": property.parking_lots,
+        #     "aviso.banos": property.bathrooms,
+        #     "aviso.mediosBanos": property.half_bathrooms,
+        #     "monedaVenta": currency_map[property.currency],
+        #     "precioVenta": property.price,
+        #     "aviso.valorCondominio": "",
+        #     "aviso.metrosCubiertos": property.m2_covered,
+        #     "aviso.metrosTotales": property.m2_total,
+        #     "aviso.idProvincia": "69",
+        #     "aviso.idCiudad": "516",
+        #     "aviso.idZona": "305005799",
+        #     "aviso.idSubZonaCiudad": "",
+        #     "aviso.direccion": "Marsella+246",
+        #     "aviso.codigoPostal": "",
+        #     "direccion.mapa": "sinMapa",
+        #     "aviso.claveInterna": "",
+        #     "idGeoloc": "",
+        #     "lat": property.ubication.location.lat,
+        #     "lng": property.ubication.location.lng,
+        #     "southwest": "",
+        #     "zoom": "13",
+        #     "aviso.email": "",
+        #     "aviso.idAviso": "",
+        #     "checkContentEnhancerHidden": "",
+        #     "guardarComoBorrador": "",
+        #     "irAlPaso": ""
+        # }
+
         payload = {
-            "aviso.titulo": property.title,
-            "aviso.descripcion": property.description,
-            "isDesarrollo-control": "false",
-            "aviso.idTipoDePropiedad": tipo_propiedad_map[str(property.type)],
-            "aviso.antiguedad": property.antiquity,
-            "aviso.habitaciones": property.rooms,
-            "aviso.garages": property.parking_lots,
-            "aviso.banos": property.bathrooms,
-            "aviso.mediosBanos": property.half_bathrooms,
-            "monedaVenta": currency_map[property.currency],
-            "precioVenta": property.price,
-            "aviso.valorCondominio": "",
-            "aviso.metrosCubiertos": property.m2_covered,
-            "aviso.metrosTotales": property.m2_total,
-            "aviso.idProvincia": "69",
-            "aviso.idCiudad": "516",
-            "aviso.idZona": "305005799",
-            "aviso.idSubZonaCiudad": "",
-            "aviso.direccion": "Marsella+246",
-            "aviso.codigoPostal": "",
-            "direccion.mapa": "sinMapa",
-            "aviso.claveInterna": "",
-            "idGeoloc": "",
-            "lat": property.ubication.location.lat,
-            "lng": property.ubication.location.lng,
-            "southwest": "",
-            "zoom": "13",
-            "aviso.email": "",
-            "aviso.idAviso": "",
-            "checkContentEnhancerHidden": "",
-            "guardarComoBorrador": "",
-            "irAlPaso": ""
+            "aviso.titulo":"Casa de prueba",
+            "aviso.descripcion":"una hermosa casa de prueba. una hermosa casa de prueba",
+            "isDesarrollo-control":"false",
+            "aviso.idTipoDePropiedad":"1",
+            "aviso.antiguedad":"2",
+            "aviso.habitaciones":"0",
+            "aviso.garages":"0",
+            "aviso.banos":"3",
+            "aviso.mediosBanos":"0",
+            "monedaVenta":"10",
+            "precioVenta":"10,000,000",
+            "aviso.valorCondominio":"",
+            "aviso.metrosCubiertos":"100",
+            "aviso.metrosTotales":"200",
+            "aviso.idProvincia":"69",
+            "aviso.idCiudad":"516",
+            "aviso.idZona":"305005799",
+            "aviso.idSubZonaCiudad":"",
+            "aviso.direccion":"Marsella 246",
+            "aviso.codigoPostal":"",
+            "direccion.mapa":"sinMapa",
+            "aviso.claveInterna":"",
+            "idGeoloc":"",
+            "lat":"",
+            "lng":"",
+            "southwest":"",
+            "zoom":"13",
+            "aviso.email":"",
+            "aviso.idAviso":"",
+            "checkContentEnhancerHidden":"",
+            "guardarComoBorrador":"",
+            "irAlPaso":""
         }
     
-        # first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
-        # res = self.request.make(first_step_url, "POST", json=payload)
-        # if res is None or not res.ok:
-        #     return Exception("error in creation of the property")
+        first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
+        res = self.api_req.make(first_step_url, "POST", json=payload, headers=self.request.headers)
+        if res is None or not res.ok:
+            return Exception("error in creation of the property")
+        self.logger.debug("property succesfully publicated")
 
-        prop_id = "146019337"
+        print(res.headers)
 
-        return self.upload_images(prop_id, property.images)
+        return None
+
+        # prop_id = "146019337"
+        #
+        # return self.upload_images(prop_id, property.images)
 
     # upload each image multipart/form-data to upload_url
     # add image to the property with add_image_url

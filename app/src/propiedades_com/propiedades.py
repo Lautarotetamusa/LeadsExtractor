@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.onedrive.main import download_file, token
-from src.property import Property
+from src.property import OperationType, Property, PropertyType
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -149,13 +149,24 @@ class Propiedades(Portal):
         self._change_status(lead, Status.CERRADA)
 
     def publish(self, property: Property) -> Exception | None:
+        operation_type_map = {
+            OperationType.SALE.value: "1",
+            OperationType.RENT.value: "2"
+        }
+
+        property_type_map = {
+            PropertyType.APARTMENT.value: "1",
+            PropertyType.HOUSE.value: "2",
+        }
+
         payload = {
             "from_funnel": "true",
             "source": "token",
-            # "id": "29426394",
-            "property[type]": "1",
-            "property[type_children]": "2",
-            "property[purpose]": "1",
+            "property[status]": "1",
+
+            "property[type]": property_type_map.get(str(property.type), "2"),
+            "property[type_children]": property_type_map.get(str(property.type), "2"),
+            "property[purpose]": operation_type_map.get(str(property.operation_type), "1"),
             "property[description]": property.description,
             # "property[features][gardens]": "false",
             "property[features][bedrooms]": str(property.rooms),
@@ -164,11 +175,21 @@ class Propiedades(Portal):
             "property[features][property_old]": str(property.antiquity),
             "property[features][size_house]": str(property.m2_covered),
             "property[features][size_ground]": str(property.m2_total),
-            # "property[features][garden_size]": "",
+            "property[features][garden_size]": 0,
             "property[services][none]": "1",
             "property[price][sale_price]": str(property.price),
             "property[price][currency]": property.currency.upper(),
             "property[address][sepomex_id]": "56001",
+            "property[address][lat]": property.ubication.location.lat,
+            "property[address][lng]": property.ubication.location.lng,
+            "property[address][streetListData][0][id]": "-1",
+            "property[address][streetListData][0][name]": "Otro",
+            "property[address][externalNumListData][0][id]": "-1",
+            "property[address][externalNumListData][0][name]": "Otro",
+            "property[address][check_location]": "true",
+
+            # Address properties
+            "property[address][colony_id]": "56001",
             "property[address][state_id]": "14",
             "property[address][state]": "Jalisco",
             "property[address][city_id]": "533",
@@ -178,40 +199,16 @@ class Propiedades(Portal):
             "property[address][street]": "Avenida+8+de+Julio+823A",
             "property[address][num_ext]": "823A",
             "property[address][num_int]": "",
-            "property[address][lat]": "20.6646581",
-            "property[address][lng]": "-103.35393169999999",
-            "property[address][streetListData][0][id]": "-1",
-            "property[address][streetListData][0][name]": "Otro",
-            "property[address][externalNumListData][0][id]": "-1",
-            "property[address][externalNumListData][0][name]": "Otro",
-            "property[address][check_location]": "true",
-            "property[address][colony_id]": "56001",
-            # "property[contact_data][type_phone]": "1",
-            # "property[contact_data][phone_contact]": "3341690109",
-            # "property[contact_data][address_contact]": "marketing@rebora.com.mx",
-            # "property[contact_data][whatsapp_number]": "3328092850",
-            # "saved_by_user": "1"
         }
 
-        # for image in property.images:
-        #     "property[images][0][image_position]": "0",
-        #     "property[images][0][position]": "0",
-        #     "property[images][0][image_id]": "904299840",
-        #     "property[images][0][image_url]": "https://propiedadescom.s3.amazonaws.com/files/600x400/9198e180-fea2-11ef-b310-d77d325d9eb1.jpeg",
-
-        self.logger.debug("publishing property")
-        # self.request.headers["x-api-key"] = "ylbSWNPGu1yvyCclycC23wMA12nuPRy76rMvAto0"
-        # self.request.headers.pop("x-api-key")
-        # self.request.headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
-        # print(self.request.headers)
-        # self.request.cookies = {
-        #     "userToken": self.request.headers["Authorization"]
-        # }
+        cookies = {
+            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
+        }
         
         params = {
             "apikey": os.getenv("ZENROWS_APIKEY"),
             "url": "https://propiedades.com/api/v3/property/property",
-            "js_render": "true",
+            # "js_render": "true",
             "antibot": "true",
             "premium_proxy": "true",
             "proxy_country": "mx",
@@ -220,18 +217,42 @@ class Propiedades(Portal):
             "original_status": "true",
             "autoparse": "true"
         }
-        res = self.request.make("https://api.zenrows.com/v1/", "POST", params=params)
-        if res is None: return Exception("error creating the property")
-        print(res.text)
-        print(res.status_code)
-        if not res.ok: return Exception("error creating the property")
-        self.logger.success("property published successfully")
+        res = requests.post("https://api.zenrows.com/v1/", 
+            params=params, 
+            data=payload,
+            cookies=cookies,
+            headers=self.request.headers
+        )
+
+        if res is None or not res.ok: return Exception("error creating the property: "+res.text)
 
         property_id = res.json().get("data", {}).get("id_property")
         if property_id is None: return Exception("cannot get the property id")
+        self.logger.success("property published successfully id:" + str(property_id))
 
+        # upload_images changes the x-api-key Header, we need to restore it to the original value
+        prev_api_key = self.request.headers["x-api-key"]
         err = self.upload_images(property_id, property.images)
         if err != None: return err
+        self.request.headers["x-api-key"] = prev_api_key
+    
+        # Update the property status to "active": "1"
+        params["url"] = "https://propiedades.com/api/v3/property/status"
+        update_status_payload = {
+            "properties_id": [property_id],
+            "status": "1",
+            "isNewPublish": True,
+            "source": "token",
+            "requestFromFunnel": True
+        }
+        res = requests.post("https://api.zenrows.com/v1/", 
+            params=params, 
+            json=update_status_payload, 
+            cookies=cookies, 
+            headers=self.request.headers
+        )
+
+        if res is None or not res.ok: return Exception("error creating the property: "+res.text)
         return None
 
     # The upload process of the images its complex, requires multiple steps.
@@ -253,14 +274,15 @@ class Propiedades(Portal):
 
         ## 1. Sign all the images to upload to the s3 bucket
         jpeg_count = len(list(filter(lambda i : "jpg" in i["url"] or "jpeg" in i["url"], images)))
-        png_count  = len(list(filter(lambda i : "png" in i["url"], images)))
         sign_payload = {
             "jpeg": jpeg_count,
-            "png": png_count,
+            # if no type present in the url, assume .png
+            "png": len(images) - jpeg_count,
             "property_id": property_id,
             "country": "MX"
         }
         self.logger.debug("signing images")
+
         self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
         res = self.request.make(sign_url, "POST", json=sign_payload)
         if res is None: return Exception("cannot sign the image")
@@ -285,8 +307,7 @@ class Propiedades(Portal):
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
 
-            img_type = "png" if "png" in image["url"] else "jpeg"
-
+            img_type = "jpeg" if "jpeg" in image["url"] or "jpg" in image["url"] else "png"
             img_sign = sign_data[img_type][index[img_type]]
             fields = img_sign["response_s3"]["fields"]
 
@@ -315,6 +336,7 @@ class Propiedades(Portal):
 
         ## 3. Update placeholder
         self.logger.debug("update placeholders")
+        # This url has another x-api-key
         self.request.headers["x-api-key"] = "XpwAO6cXk889DbUOXB2tU7GWwRbyPIWE9ZAWEfL2"
         res = self.request.make(update_placeholder_url, "POST", json=placeholder_payload)
         if res is None or not res.ok:
@@ -330,6 +352,7 @@ class Propiedades(Portal):
             placeholder["country"] = "MX"
 
             self.logger.debug(f"confirmed {placeholder['image_id']}")
+            # This url has another x-api-key
             self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
             res = self.request.make(confirm_url, "POST", json=placeholder)
             if res is None or not res.ok:
@@ -339,6 +362,7 @@ class Propiedades(Portal):
             print(placeholder["image_original_url"])
 
             self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
+
 
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"

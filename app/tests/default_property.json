@@ -1,0 +1,37 @@
+{
+    "id": 1,
+    "title": "CASA DE PRUEBA",
+    "price": "300000",
+    "currency": "MXN",
+    "description": "A charming 2-bedroom house with a large garden.",
+    "type": "house",
+    "antiquity": 10,
+    "parking_lots": 0,
+    "bathrooms": 1,
+    "half_bathrooms": 0,
+    "rooms": 2,
+    "operation_type": "sell",
+    "m2_total": 200,
+    "m2_covered": 150,
+    "video_url": null,
+    "virtual_route": null,
+    "ubication": {
+        "address": "C. 12, Comercial Abastos, 44530 Guadalajara, Jal., México",
+        "location": {
+            "lat": 20.6529592,
+            "lng": -103.3824388
+        }   
+    },
+    "updated_at": "2025-02-26T10:35:19Z",
+    "created_at": "2025-02-26T10:59:44Z",
+    "images": [
+        {
+            "id": 34,
+            "url": "https://reboraarquitectos2.sharepoint.com/:i:/r/sites/Marketing950/Shared%20Documents/100_Anteriores/02.%20Publicaciones%20de%20propiedades/01_Renders%20ordenados%20por%20tama%C3%B1o%20para%20publicar/02%20(1).%20Casas/01.%20Grandes/02.%20Interiores/Interior%202/WhatsApp%20Image%202023-07-28%20at%2017.52.48%20(3).jpeg?csf=1&web=1&e=THnqAe"
+        },
+        {
+            "id": 35,
+            "url": "https://reboraarquitectos2.sharepoint.com/:i:/r/sites/Marketing950/Shared%20Documents/100_Anteriores/02.%20Publicaciones%20de%20propiedades/01_Renders%20ordenados%20por%20tama%C3%B1o%20para%20publicar/02%20(1).%20Casas/01.%20Grandes/02.%20Interiores/Interior%202/WhatsApp%20Image%202023-07-28%20at%2017.52.48%20(3).jpeg?csf=1&web=1&e=THnqAe"
+        }
+    ]
+}
