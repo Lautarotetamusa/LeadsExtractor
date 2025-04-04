@@ -7,5 +7,5 @@ params.json
 params.py
 
 #pdfs
-/pdfs
+pdfs/*
 

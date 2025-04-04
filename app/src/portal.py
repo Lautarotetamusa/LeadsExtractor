@@ -1,6 +1,5 @@
 import json
 import os
-from re import error
 import time
 from typing import Iterator
 from multiprocessing.pool import ThreadPool

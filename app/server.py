@@ -14,11 +14,7 @@ from src.lamudi.lamudi import Lamudi
 from src.api import update_publication
 from src.property import Location, Property, Ubication
 from src.logger import Logger
-from src.lead import Lead
-import src.jotform as jotform
-from src.cotizador import execute_cotizacion
 import src.tasks as tasks
-from src.numbers import parse_number
 
 # Scrapers
 from src.inmuebles24.scraper import Inmuebles24Scraper
@@ -56,20 +52,6 @@ PORTALS: dict[str, Portal] = {
 
 thread = threading.Thread(target=tasks.init_task_scheduler)
 thread.start()
-
-@app.route('/jotform', methods=['POST'])
-def generate_pdf():
-    lead = Lead()
-    data = request.get_json()
-    lead_data = data["data"]
-    lead.set_args(lead_data)
-
-    pdf_url, err = jotform.new_submission(logger, lead)
-    if err is not None:
-        logger.error("No se pudo obtener la cotizacion en pdf")
-        return Response(err, status=400)
-
-    return Response(pdf_url, status=200)
 
 @app.route('/generar_cotizacion', methods=['POST'])
 def generate_cotization_pdf():
@@ -122,33 +104,6 @@ def publish_route(portal: str):
     thread.start()
 
     return jsonify({"success": True, "message": "publishing process has started"}), 201
-
-@app.route('/cotizacion', methods=['POST'])
-def cotizacion():
-    data = request.get_json()
-
-    asesor = data.get("asesor")
-    phone_str = asesor.get("phone", "")
-    
-    # Lo parseamos sin codigo porque se debe agregar en el campo para que ande con whatsapp
-    phone = parse_number(logger, phone_str, None)
-    if phone is None:
-        return jsonify({'error': f"El numero {phone_str} no es valido"}), 400
-
-    urls = data.get('urls')
-    cliente = data.get('cliente')
-
-    if not all([asesor, urls]):
-        return jsonify({'error': 'Se requieren campos portal, "asesor", "urls", "cliente"'}), 400
-
-    # Generar un ID único para la tarea
-    task_id = tasks.new_task() 
-
-    # Ejecutar el script en segundo plano usando threading
-    thread = threading.Thread(target=execute_cotizacion, args=(urls, asesor, cliente, task_id))
-    thread.start()
-
-    return jsonify(tasks.get_task(task_id))
 
 def execute_scraper(portal: str, params: str | dict, spin_msg: str):
     assert portal in SCRAPERS, f"El portal {portal} no existe"
