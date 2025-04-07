@@ -1,9 +1,29 @@
+import time
 from jinja2 import Environment, FileSystemLoader
 import os
 from datetime import date, datetime
-from src.cotizadorpdf.time_line import grafico_pagos, grafico_etapas
-from weasyprint import HTML
-from flask import url_for
+
+from src.cotizadorpdf.time_line import grafico_pagos 
+
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import base64
+
+def get_pdf_from_html(path):
+    webdriver_options = Options()
+    webdriver_options.add_argument("--headless")
+    # Necesario para correrlo como root dentro del container
+    webdriver_options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=webdriver_options)
+
+    driver.get(f"file://{path}")
+
+    driver.execute_script("return window.print()")
+    pdf = driver.execute_cdp_cmd("Page.printToPDF", {"printBackground": True})
+    pdf_data = base64.b64decode(pdf["data"])
+
+    driver.quit()
+    return pdf_data
 
 def formato_miles(valor):
     return "{:,.0f}".format(valor)
@@ -15,8 +35,8 @@ def renderizar_html(template_name, contexto):
         comment_end_string='=}'
     )
     env.filters["formato_miles"] = formato_miles
-    styles = url_for('static', filename='styles.css')
-    env.globals['url_for'] = styles
+    # styles = url_for('static', filename='styles.css')
+    # env.globals['url_for'] = styles
     template = env.get_template(template_name)
     return template.render(contexto)
 
@@ -225,7 +245,8 @@ def translateContext(cin):
     return contexto
 
 # 📌 Renderizar HTML con datos dinámicos
-def to_pdf(json):
+def to_pdf(json) -> str:
+    """returns timestamp to the file"""
     try:
         contexto = translateContext(json)
         contexto['nombre_grafico_pagos'] = grafico_pagos(contexto)
@@ -234,67 +255,20 @@ def to_pdf(json):
         template = "/src/cotizadorpdf/cotizacion3.html"
         html_content = renderizar_html(template, contexto)
         timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
-        path = os.path.join("pdfs", "cotizacion" + timestamp_str +".html")
-        with open(path, "w") as f:
+
+        base_path = os.getcwd()
+
+        html_path = os.path.join(base_path, "pdfs", "cotizacion" + timestamp_str +".html")
+        with open(html_path, "w") as f:
             f.write(html_content)
-            
-        # os.remove(contexto["nombre_grafico_pagos"])
-        return timestamp_str
-        pdf_filename = os.path.join("pdfs", "cotizacion" + timestamp_str +".pdf")
-        HTML(string=html_content, base_url=".").write_pdf(pdf_filename)
-        # os.remove(contexto["nombre_grafico_etapas"])
+        pdf_path = os.path.join(base_path, "pdfs", "cotizacion" + timestamp_str +".pdf")
+
+        print(html_path, pdf_path)
+        result = get_pdf_from_html(html_path)
+        with open(pdf_path, 'wb') as file:
+            file.write(result)
+
         return timestamp_str
     except Exception as e:
         print(e)
         return "error"
-
-if __name__ == "__main__":
-    test = {
-        "elaborado_por": {
-            "nombre": "Diego Torres",
-            "telefono": "341 946-6986",
-            "mail": "diego.torres@rebora.com.mx",
-            "porcentaje_administracion": 21,
-            "is_valor_permisos": True,
-            "valor_terreno": 10000000,
-            "area_terreno": 500
-        },
-        "datos": {
-            "nombre": "Juan Alonso"
-        },
-        "pagos": {
-            "inicial": 1500000,
-            "porcentaje_inicio_obra": 25,
-            "meses": 18,
-            "tipo": "Premium"
-        },
-        "areas_interiores": {
-            "banos": 3,
-            "cuartos": 4,
-            "sotano": 50,
-            "planta_baja": 200,
-            "planta_alta": 200,
-            "roof": 50
-        },
-        "areas_exteriores": {
-            "rampa": 50,
-            "jardin": 20,
-            "alberca": 100,
-            "muro_perimetral": 100
-        },
-        "valor_exteriores": {
-            "rampa": 7000,
-            "jardin": 28500,
-            "alberca": 3500,
-            "muro_perimetral": 1500
-        },
-        "valor_permisos": {
-            "licencia": 300,
-            "gestorias": 38,
-            "topografia": 9500,
-            "mecanica": 4,
-            "calculo": 59
-        },
-    }
-    res = to_pdf(test)
-    print(res)

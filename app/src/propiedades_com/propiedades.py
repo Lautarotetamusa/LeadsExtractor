@@ -73,7 +73,7 @@ class Propiedades(Portal):
             if mode == Mode.NEW:
                 leads = []
                 for lead in data["properties"]:
-                    if lead["status"] != Status.NUEVO:
+                    if lead["status"] == Status.CERRADA:
                         self.logger.debug("Se encontro un lead ya contactado, paramos")
                         end = True
                         break

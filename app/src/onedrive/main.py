@@ -1,44 +1,76 @@
 import requests
+from time import time
 
 from src.onedrive.onedrive_authorization_utils import load_token, procure_new_tokens, refresh_access_token, DRIVE_ID
 
-# TODO: dont do this global i know, but i have to finish today.
 token = load_token() 
 if token is None: # If the token file does not exists
     token = procure_new_tokens()
 
-def download_url_from_id(item_id: str) -> str:
-    return f"https://graph.microsoft.com/v1.0/drives/{DRIVE_ID}/items/{item_id}/content"
+class OneDrive():
+    def __init__(self, cache_max_size=20):
+        self.token: dict = {}
 
-def download_file(token: dict, download_url: str) -> bytes | None:
-    headers = {
-        "Authorization": f"Bearer {token['access_token']}",
-        "Content-Type": "application/json"
-    }
+        self.token = load_token() 
+        if self.token is None: # If the token file does not exists
+            self.token = procure_new_tokens()
+        self.refresh_token()
 
-    if token["expires_in"] <= 0:
+        # Each link has the content of the image cached
+        # dict[url, image content]
+        self.cache: dict[str, bytes] = { }
+
+        self.cache_max_size = cache_max_size
+
+    def download_file(self, download_url: str) -> bytes | None:
+        print(f"downloading {download_url}")
+        self.refresh_token()
+
+        if download_url in self.cache:
+            print("image its cached")
+            return self.cache[download_url]
+
+        headers = {
+            "Authorization": f"Bearer {self.token['access_token']}",
+            "Content-Type": "application/json"
+        }
+        res = requests.get(download_url, headers=headers, stream=True)
+
+        if res.ok:
+            self.cache[download_url] = res.content
+            if len(self.cache) > self.cache_max_size:
+                # This its not probably the first key, but delete some key works fine
+                first_key = list(self.cache.keys())[0]
+                self.cache.pop(first_key)
+            return res.content
+
+    def refresh_token(self):
+        if time() >= self.token["expires_at"]:
+            print("refreshing OneDrive code..")
+            new_token = refresh_access_token(self.token)
+            if new_token is None:
+                print("cannot refresh the token")
+                return None
+            self.token = new_token
+
+def download_file(token, download_url: str) -> bytes | None:
+    print(f"downloading {download_url}")
+    if time() >= token["expires_at"]:
         print("refreshing OneDrive code..")
         new_token = refresh_access_token(token)
         if new_token is None:
             print("cannot refresh the token")
             return None
+        token = new_token
 
+    headers = {
+        "Authorization": f"Bearer {token['access_token']}",
+        "Content-Type": "application/json"
+    }
     res = requests.get(download_url, headers=headers, stream=True)
 
     if res.ok:
         return res.content
 
-    return None
-
-if __name__ == "__main__":
-    token = load_token()
-    if token is None: # If the token file does not exists
-        token = procure_new_tokens()
-
-    # At this point the token its valid not matter whats
-    item_id = "01VOCEREB3UO5WLXDB6ZHYVWW5BHH2SPSI"
-    content = download_file(token, download_url_from_id(item_id))
-    if content is None:
-        exit(1)
-    with open("image.png", "wb") as f:
-        f.write(content)
+def download_url_from_id(item_id: str) -> str:
+    return f"https://graph.microsoft.com/v1.0/drives/{DRIVE_ID}/items/{item_id}/content"

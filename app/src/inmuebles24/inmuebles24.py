@@ -363,12 +363,21 @@ class Inmuebles24(Portal):
         }
     
         first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
-        res = self.api_req.make(first_step_url, "POST", json=payload, headers=self.request.headers)
+        res = self.api_req.make(first_step_url, "POST", data=payload)
         if res is None or not res.ok:
             return Exception("error in creation of the property")
         self.logger.debug("property succesfully publicated")
 
+
+        print("HEADERS:")
         print(res.headers)
+        print("RESPONSE:")
+        print(res.text)
+        print("STATUS:")
+        print(res.status_code)
+
+        with open("res", "w") as f:
+            f.write(res.text)
 
         return None
 

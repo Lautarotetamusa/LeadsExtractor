@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import msal
 import webbrowser
 import urllib.parse
@@ -9,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 APP_ID = os.environ.get("MS_OPENGRAPH_APP_ID")
 CLIENT_SECRET = os.environ.get("MS_OPENGRAPH_CLIENT_SECRET")
-DRIVE_ID = os.environ.get("b!zdgDJiBvHkW3w7RM8tHO3op6N0Vfd0pPq7JLkfwb0V1lb38lwGanTb49NytJD2PW")
+DRIVE_ID = os.environ.get("DRIVE_ID")
 SCOPES = ["Files.ReadWrite.All"]
 AUTHORITY_URL = "https://login.microsoftonline.com/common"
 TOKEN_FILE = "./src/onedrive/token.json"
@@ -22,6 +23,8 @@ def load_token() -> dict[str, str] | None:
         return None
 
 def save_token(token: dict):
+    # Save the expires_at time
+    token["expires_at"] = time.time() + token["expires_in"] 
     with open(TOKEN_FILE, "w") as f:
         json.dump(token, f)
 
