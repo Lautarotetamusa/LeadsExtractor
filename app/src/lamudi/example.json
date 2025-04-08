@@ -1,0 +1,176 @@
+{
+  "address": "Av. Juan Palomar y Arias 1249, Vallarta Universidad, 45110 Zapopan, Jal.",
+  "coordinates": {
+    "latitude": 20.694754,
+    "longitude": -103.426216
+  },
+  "geoLevels": [
+    {
+      "level": "aws_neighborhood",
+      "name": "Alcazar Poniente"
+    },
+    {
+      "level": "aws_municipality",
+      "name": "Zapopan"
+    },
+    {
+      "level": "aws_sub_region",
+      "name": "Zapopan"
+    },
+    {
+      "level": "aws_region",
+      "name": "Jalisco"
+    }
+  ],
+  "locationVisibility": "accurate",
+  "floorPlans": [],
+  "propertyImages": [
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b12e-7167-8aaf-82e991d79f78.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b228-721c-8a2d-bf591b3efd43.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b26e-7076-b3cf-3c0990cb26d0.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b2cd-714c-9aee-707ea79a0815.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b316-73a6-a72a-6975d3377b9a.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b35b-72b2-96bb-5b6b6ca3717a.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b393-7087-b45e-60f09be9c29b.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b3da-7229-8f32-d28f95baf2a9.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b44a-7070-b526-29e6165ac2f1.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b4a9-7144-89c3-4efb999c9890.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b51a-7071-950d-647298cd2d67.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b573-7035-aec4-29d921e63d08.jpg",
+      "isProjectImage": false
+    },
+    {
+      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b5b9-71d8-af3d-51d7b7a8946b.jpg",
+      "isProjectImage": false
+    }
+  ],
+  "mainImageIndex": 0,
+  "titleMultiLanguage": [
+    {
+      "text": "Casa en Venta en ALCAZAR PONIENTE Acabados Modernos y Alta Calidad",
+      "locale": "es-MX"
+    }
+  ],
+  "descriptionMultiLanguage": [
+    {
+      "text": "Don't miss the opportunity to own this stunning home in ALCAZAR PONIENTE.",
+      "locale": "es-MX"
+    }
+  ],
+  "id": "d8520a43-8539-4493-94f6-4d7170e5ad44",
+  "creationDate": "2025-04-08T22:29:21Z",
+  "published": true,
+  "bathrooms": 6,
+  "bedrooms": 7,
+  "toilets": 1,
+  "bankProperty": false,
+  "parkingSpaces": 7,
+  "condition": "new",
+  "furnished": "unfurnished",
+  "constructionYear": 2025,
+  "communityFeesCurrency": "MXN",
+  "floorArea": 544,
+  "floorAreaUnit": "sqm",
+  "usableArea": 650,
+  "usableAreaUnit": "sqm",
+  "plotArea": [],
+  "amenities": [
+    "security",
+    "car park",
+    "garden",
+    "water tank",
+    "swimming pool",
+    "terrace",
+    "integral kitchen",
+    "service room",
+    "gym",
+    "balcony",
+    "disabled access",
+    "equipped kitchen",
+    "children's area",
+    "multiuse room",
+    "internet",
+    "storage room",
+    "air conditioning",
+    "cctv",
+    "electricity",
+    "roof garden",
+    "jacuzzi",
+    "water",
+    "cleaning room",
+    "video cable",
+    "heating",
+    "natural gas",
+    "grill",
+    "fireplace",
+    "cellar",
+    "green area",
+    "office",
+    "panoramic view",
+    "built-in wardrobe",
+    "guardhouse",
+    "sauna",
+    "concierge"
+  ],
+  "nearbyLocations": [
+    "train station",
+    "school",
+    "shopping mall",
+    "park",
+    "main street"
+  ],
+  "contactEmails": [
+    "ventas@rebora.com.mx"
+  ],
+  "contactWhatsApp": "+523328092850",
+  "contactPhone": "+523328092850",
+  "video": "https://youtu.be/H9RlIXuS1is",
+  "virtualTours": [
+    "https://livetour.istaging.com/5070af81-60f4-49c1-be87-9e7b8144c84b"
+  ],
+  "propertyType": "house",
+  "operations": [
+    {
+      "type": "sell",
+      "price": {
+        "amount": 17070475,
+        "currency": "MXN"
+      }
+    }
+  ],
+  "propertyImagesSortedWithAi": false
+}

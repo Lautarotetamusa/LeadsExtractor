@@ -66,14 +66,13 @@ def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> l
 
     return leads
 
-def update_publication(property_id: int, portal: str, status: str):
+def update_publication(property_id: int, portal: str, status: str, publication_id: str | None = None):
     url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/property/{property_id}/publications/{portal}"
-    print(url)
-
-    res = requests.put(url, json={
+    payload = {
         "status": status,
-        # "publication_id": publication_id,
-        # "publication_url": publication_url
-    })
+    }
+    if publication_id is not None:
+        payload["publication_id"] = publication_id
+
+    res = requests.put(url, json=payload)
     print(res.json())
-    print(res.status_code)

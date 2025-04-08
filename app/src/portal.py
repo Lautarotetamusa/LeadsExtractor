@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import Iterator
+from typing import Iterator, Tuple
 from multiprocessing.pool import ThreadPool
 
 from src.property import Property
@@ -79,8 +79,11 @@ class Portal():
         pass
     def make_failed(self, lead: dict):
         pass
-    def publish(self, property: Property) -> Exception | None:
-        pass
+    def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
+        """publish a property in a portal.
+        @returns error or property internal portal id
+        """
+        return None, "not-implemented"
     def login(self):
         pass
 

@@ -68,14 +68,19 @@ DROP TABLE IF EXISTS PublishedProperty;
 CREATE TABLE IF NOT EXISTS PublishedProperty (
     property_id INT NOT NULL,
 
+    -- The internal id of the property in the portal
+    publication_id VARCHAR(64) DEFAULT NULL,
+
     url     VARCHAR(256) DEFAULT NULL,
-    status  ENUM("in_progress", "in_queue", "published", "failed") DEFAULT "in_progress",
+    status  ENUM("in_progress", "in_queue", "published", "failed") DEFAULT "in_progress" NOT NULL,
     portal  VARCHAR(64) NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CHECK (url <> ""),
+    CHECK (status <> ""),
+    CHECK (portal <> ""),
 
     PRIMARY KEY (portal, property_id),
     FOREIGN KEY (portal) REFERENCES Portal(name),

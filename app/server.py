@@ -83,12 +83,12 @@ def ejecutar_script_route():
     return "Proceso en segundo plano iniciado."
 
 def publish(portal: str, property: Property):
-    err = PORTALS[portal].publish(property)
+    err, publication_id = PORTALS[portal].publish(property)
     if err is None:
-        update_publication(property.id, portal, "published")
+        update_publication(property.id, portal, "published", publication_id)
     else:
-        logger.error("publication failed: " + err.__str__())
         update_publication(property.id, portal, "failed")
+        logger.error("publication failed: " + err.__str__())
 
 @app.route('/publish/<portal>', methods=['POST'])
 def publish_route(portal: str):
@@ -103,7 +103,10 @@ def publish_route(portal: str):
     thread = threading.Thread(target=publish, args=(portal, property))
     thread.start()
 
-    return jsonify({"success": True, "message": "publishing process has started"}), 201
+    return jsonify({
+        "success": True, 
+        "message": "publishing process has started"
+    }), 201
 
 def execute_scraper(portal: str, params: str | dict, spin_msg: str):
     assert portal in SCRAPERS, f"El portal {portal} no existe"
@@ -137,4 +140,4 @@ def check_task(task_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

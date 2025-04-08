@@ -93,7 +93,9 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
             }
 
             // The property exists but status its "published", then republish
-            err := h.storer.UpdateStatus(pp.Portal, int64(pp.PropertyID), store.StatusInQueue)
+            err := h.storer.Update(pp.Portal, int64(pp.PropertyID), &store.UpdatePublishedProperty{
+                Status: store.StatusInQueue,
+            })
             if err != nil {
                 return err
             }
@@ -133,14 +135,12 @@ func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request
 		return ErrBadRequest("Invalid property ID")
 	}
 
-	var statusUpdate struct {
-		Status store.PublishedStatus `json:"status"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&statusUpdate); err != nil {
+	var update store.UpdatePublishedProperty
+    if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		return jsonErr(err)
 	}
 
-    if err = h.updateStatus(portal, int64(propId), statusUpdate.Status); err != nil {
+    if err = h.updateStatus(portal, int64(propId), &update); err != nil {
         return err
     }
 
@@ -148,12 +148,12 @@ func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request
     return nil
 }
 
-func (h *PublishedPropertyHandler) updateStatus(portal string, propId int64, status store.PublishedStatus) error {
-	if !validStatus(status) {
+func (h *PublishedPropertyHandler) updateStatus(portal string, propId int64, update *store.UpdatePublishedProperty) error {
+	if !validStatus(update.Status) {
 		return ErrBadRequest("Invalid status value")
 	}
 
-	if err := h.storer.UpdateStatus(portal, int64(propId), status); err != nil {
+	if err := h.storer.Update(portal, propId, update); err != nil {
 		return err
 	}
 
@@ -188,7 +188,9 @@ func (h *PublishedPropertyHandler) processNextItem() {
 	h.queue = h.queue[1:] // drop the first element
 
     // update the status of the current item to 'in_progress'
-    err := h.storer.UpdateStatus(h.current.Portal, int64(h.current.PropertyID), store.StatusInProgress)
+    err := h.storer.Update(h.current.Portal, int64(h.current.PropertyID), &store.UpdatePublishedProperty{
+        Status: store.StatusInProgress,
+    })
     if err != nil {
         h.logger.Error("error updating the status", 
             "portal", h.current.Portal,
@@ -202,7 +204,9 @@ func (h *PublishedPropertyHandler) processNextItem() {
         if h.publish(h.current) != nil {
             // update status processing the next item
             // this maybe can create an infinity call of goroutines?? because updateStatus create another goroutine..
-            err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), store.StatusFailed)
+            err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), &store.UpdatePublishedProperty{
+                Status: store.StatusFailed,
+            })
             if err != nil {
                 h.logger.Error("error updating the status", 
                     "portal", h.current.Portal,
@@ -239,7 +243,9 @@ func (h *PublishedPropertyHandler) handleProcessingError(item *PropertyPublishPa
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
-	h.storer.UpdateStatus(item.Portal, int64(item.PropertyID), store.StatusFailed)
+	h.storer.Update(item.Portal, int64(item.PropertyID), &store.UpdatePublishedProperty{
+        Status: store.StatusFailed,
+    })
 	
 	// Clear current and process next
 	h.current = nil
@@ -300,12 +306,13 @@ func runPublicatorApp(appHost string, portal string, property store.PortalProp) 
 
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
+    defer res.Body.Close()
     if err != nil {
         return err
     }
@@ -315,7 +322,6 @@ func runPublicatorApp(appHost string, portal string, property store.PortalProp) 
 
     return nil
 }
-
 
 func validStatus(s store.PublishedStatus) bool {
 	switch s {

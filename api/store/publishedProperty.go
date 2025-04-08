@@ -23,22 +23,30 @@ type PublishedProperty struct {
     URL        models.NullString `json:"url"         db:"url"`
     Status     PublishedStatus   `json:"status"      db:"status" validate:"required"`
     Portal     models.NullString `json:"portal"      db:"portal" validate:"required"`
+    // The internal ID of the property in one portal
+    PublicationID models.NullString `json:"publication_id" db:"publication_id" validate:"required"`
     UpdatedAt  models.NullTime   `json:"updated_at"  db:"updated_at"`
     CreatedAt  models.NullTime   `json:"created_at"  db:"created_at"`
 }
+
+type UpdatePublishedProperty struct {
+    Status          PublishedStatus `json:"status"`
+    PublicationID   models.NullString  `json:"publication_id"`
+}
+
 
 type PublishedPropertyStorer interface {
 	Create(pp *PublishedProperty) error
 	GetOne(portal string, propertyID int64) (*PublishedProperty, error)
 	GetAllByProp(propertyID int64) ([]*PublishedProperty, error)
-	UpdateStatus(portal string, propertyID int64, status PublishedStatus) error
+	Update(portal string, propertyID int64, update *UpdatePublishedProperty) error
 }
 
 const (
     insertPublishedPropQ = `
 		INSERT INTO PublishedProperty 
-			(property_id, status, portal) 
-        VALUES (:property_id, :status, :portal)`
+			(property_id, publication_id, status, portal) 
+        VALUES (:property_id, :publication_id, :status, :portal)`
 )
 
 type publishedPropertyStore struct {
@@ -64,13 +72,12 @@ func (s *publishedPropertyStore) Create(pp *PublishedProperty) error {
     return err
 }
 
-
 func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedProperty, error) {
 	query := `
         SELECT 
             name as portal, 
             ifnull(status, "not_published") as status,
-            property_id, PP.url, updated_at, created_at
+            property_id, publication_id, PP.url, updated_at, created_at
         FROM Portal P
         LEFT JOIN PublishedProperty PP
             ON P.name = PP.portal
@@ -92,7 +99,7 @@ func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedPro
 func (s *publishedPropertyStore) GetOne(portal string, propertyID int64) (*PublishedProperty, error) {
 	query := `
 		SELECT 
-			property_id, url, status, portal, updated_at, created_at 
+			property_id, publication_id, url, status, portal, updated_at, created_at 
 		FROM PublishedProperty 
 		WHERE portal = ? AND property_id = ?`
 
@@ -105,12 +112,27 @@ func (s *publishedPropertyStore) GetOne(portal string, propertyID int64) (*Publi
 	return &pp, nil
 }
 
-func (s *publishedPropertyStore) UpdateStatus(portal string, propertyID int64, status PublishedStatus) error {
-	query := `
-		UPDATE PublishedProperty 
-		SET status = ? 
-		WHERE portal = ? AND property_id = ?`
+func (s *publishedPropertyStore) Update(portal string, propertyID int64, update *UpdatePublishedProperty) error {
+    setQuery := "SET status = :status"
+    if update.PublicationID.Valid { // Only update the publication id if gives one valid
+        setQuery += ", publication_id = :publication_id"
+    }
 
-	_, err := s.db.Exec(query, status, portal, propertyID)
+    p := PublishedProperty{
+        Status: update.Status,
+        PublicationID: update.PublicationID,
+        Portal: models.NullString{String: portal, Valid: true},
+        PropertyID: models.NullInt16{Int16: int16(propertyID), Valid: true},
+    }
+
+	query := fmt.Sprintf(`
+		UPDATE PublishedProperty %s 
+        WHERE portal = :portal 
+        AND property_id = :property_id
+    `, setQuery)
+    fmt.Println(query)
+    fmt.Printf("%#v\n", p)
+
+	_, err := s.db.NamedExec(query, p)
 	return SQLNotFound(err, "property does not exists")
 }

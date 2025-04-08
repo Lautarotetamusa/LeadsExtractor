@@ -185,12 +185,13 @@ class Lamudi(Portal):
         if res is None or not res.ok:
             return Exception(f"cannot delete the property with id: {property_id}")
 
-    def publish(self, property: Property) -> Exception | None:
+    def publish(self, property: Property):
         id = str(uuid.uuid4())
 
         self.logger.debug("getting the address geo location")
         location_data = self.get_location(property.ubication.address)
-        if location_data is None: return Exception("cannot get the location data")
+        if location_data is None: 
+            return Exception("cannot get the location data"), None
         self.logger.success("geolocation data getted successfully")
 
         ad_payload = {
@@ -268,7 +269,7 @@ class Lamudi(Portal):
             img_data = download_file(token, image["url"])
             self.logger.debug("image downloaded successfully")
             if img_data is None:
-                return Exception("cannot download the image")
+                return Exception("cannot download the image"), None
             img_type = "png" if "png" in image["url"] else "jpeg"
 
             files.append(
@@ -281,7 +282,7 @@ class Lamudi(Portal):
         self.logger.debug("publishing property")
         res = self.request.make(f"{API_URL}/properties/{id}", "POST", files=files)
         if res is None or not res.ok:
-            return Exception("cannot publish the property")
+            return Exception("cannot publish the property"), None
         self.logger.success("property published successfully")
 
-        return None
+        return None, id
