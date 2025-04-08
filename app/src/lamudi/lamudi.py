@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import json
 import os
 from typing import Iterator
@@ -11,6 +11,7 @@ from src.onedrive.main import download_file, token
 from src.property import Property
 from src.portal import Mode, Portal
 from src.lead import Lead
+from src.lamudi.amenities import amenities, nearby_locations
 
 API_URL = "https://api.proppit.com"
 DATE_FORMAT = os.getenv("DATE_FORMAT")
@@ -151,8 +152,8 @@ class Lamudi(Portal):
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
     def get_location(self, address) -> dict | None: 
-        prediction_url = f"https://api.proppit.com/address-suggestions?query={address}"
-        address_url = f"https://api.proppit.com/property-geolocations/address?address={address}"
+        prediction_url = f"{API_URL}/address-suggestions?query={address}"
+        address_url = f"{API_URL}/property-geolocations/address?address={address}"
 
         res = self.request.make(prediction_url, "GET")
         if res is None or not res.ok:
@@ -177,13 +178,18 @@ class Lamudi(Portal):
         # }
         return res.json().get("data")
 
+    def delete_prop(self, property_id: str) -> Exception | None:
+        url = f"{API_URL}/properties/{property_id}"
+
+        res = self.request.make(url, "DELETE")
+        if res is None or not res.ok:
+            return Exception(f"cannot delete the property with id: {property_id}")
+
     def publish(self, property: Property) -> Exception | None:
         id = str(uuid.uuid4())
 
         self.logger.debug("getting the address geo location")
-        ## con la direccion que me pasa Diego no anda...
-        hardcoded_addr = "Avenida Aviación S/N Jardines de Nuevo México, 45200 Zapopan, Jal., México"
-        location_data = self.get_location(hardcoded_addr)
+        location_data = self.get_location(property.ubication.address)
         if location_data is None: return Exception("cannot get the location data")
         self.logger.success("geolocation data getted successfully")
 
@@ -210,23 +216,22 @@ class Lamudi(Portal):
             "id": id,
             "bathrooms": property.bathrooms,
             "bedrooms": property.rooms,
+            "toilets": property.half_bathrooms,
+            "parkingSpaces": property.parking_lots,
             "bankProperty": False,
-            "condition": "semi-renovated",
+            "condition": "new",
             "furnished": "unfurnished",
-            # "communityFeesAmount": 0,
-            # "communityFeesCurrency": "MXN",
+            "constructionYear": date.today().year - (property.antiquity if property.antiquity is not None else 0),
             "floorArea": property.m2_total,
             "floorAreaUnit": "sqm",
             "usableArea": property.m2_covered,
             "usableAreaUnit": "sqm",
             "plotArea": [],
-            "amenities": [],
-            "rules": [],
-            "nearbyLocations": [],
+            "amenities": amenities,
+            "nearbyLocations": nearby_locations,
             "contactEmails": [CONTACT_EMAIL],
             "contactWhatsApp": SENDER_PHONE,
             "contactPhone": SENDER_PHONE,
-            "virtualTours": [],
             "propertyType": property.type.__str__(),
             "operations": [{
                 "type": property.operation_type.__str__(),
@@ -237,6 +242,11 @@ class Lamudi(Portal):
             }],
             "propertyImagesSortedWithAi": False
         }
+
+        if property.video_url is not None:
+            ad_payload["video"] = property.video_url
+        if property.virtual_route is not None:
+            ad_payload["virtualTours"] = [property.virtual_route]
 
         i = 0
         # Construct the propertyImages ad_payload field
