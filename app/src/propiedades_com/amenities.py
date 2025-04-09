@@ -1,0 +1,18 @@
+amenities = {
+    "property[services][pool]": "1",
+    "property[services][pets]": "1",
+    "property[services][basement]": "1",
+    "property[services][terrace]": "1",
+    "property[services][service_room]": "1",
+    "property[services][gym]": "1",
+    "property[services][in_private]": "1",
+    "property[services][gardens]": "1",
+    "property[services][air_conditioning]": "1",
+    "property[services][laundry]": "1",
+    "property[services][private_security]": "1",
+    "property[services][heating]": "1",
+    "property[services][telephony]": "1",
+    "property[services][chimney]": "1",
+    "property[services][cistern]": "1",
+    "property[services][natural_gas]": "1",
+}

@@ -12,7 +12,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.onedrive.main import download_file, token
-from src.property import OperationType, Property, PropertyType
+from src.propiedades_com.amenities import amenities
+from src.property import OperationType, Property, PropertyType, Ubication
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -24,6 +25,21 @@ with open("src/propiedades_com/properties.json") as f:
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
+
+MAIN_API = "https://propiedades.com/api/v3"
+
+ZENROWS_PARAMS = {
+    "apikey": os.getenv("ZENROWS_APIKEY"),
+    "url": "",
+    # "js_render": "true",
+    "antibot": "true",
+    "premium_proxy": "true",
+    "proxy_country": "mx",
+    # "session_id": 10,
+    "custom_headers": "true",
+    "original_status": "true",
+    "autoparse": "true"
+}
 
 
 # Lista de estados posibles de un lead
@@ -148,7 +164,55 @@ class Propiedades(Portal):
     def make_contacted(self, lead: dict):
         self._change_status(lead, Status.CERRADA)
 
-    def publish(self, property: Property) -> Exception | None:
+
+    def get_location(self, ubication: Ubication) -> dict | None: 
+        prediction_url = f"{MAIN_API}/property/sepomexid?address={ubication.address}&lat={ubication.location.lat}&lon={ubication.location.lng}"
+
+        cookies = {
+            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
+        }
+        
+        params = ZENROWS_PARAMS.copy()
+        params["url"] = prediction_url
+
+        res = requests.get("https://api.zenrows.com/v1/", 
+            params=params, 
+            cookies=cookies,
+            headers=self.request.headers
+        )
+
+        data = res.json().get("data")
+        if data is None or not "location" in data: 
+            self.logger.error("cannot get address internal location: " + str(res.json()))
+            return None
+
+        return data["location"]
+
+    def unpublish(self, publication_id: str) -> Exception | None:
+        # Update the property status to "active": "1"
+        params = ZENROWS_PARAMS.copy()
+        params["url"] = f"{MAIN_API}/property/status"
+        cookies = {
+            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
+        }
+        update_status_payload = {
+            "properties_id": [publication_id],
+            "status": "0",
+            "isNewPublish": True,
+            "source": "token",
+            "requestFromFunnel": True
+        }
+        res = requests.post("https://api.zenrows.com/v1/", 
+            params=params, 
+            json=update_status_payload, 
+            cookies=cookies, 
+            headers=self.request.headers
+        )
+
+        if res is None or not res.ok: 
+            return Exception("error updating status"+res.text)
+
+    def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         operation_type_map = {
             OperationType.SALE.value: "1",
             OperationType.RENT.value: "2"
@@ -159,85 +223,90 @@ class Propiedades(Portal):
             PropertyType.HOUSE.value: "2",
         }
 
+        location_data = self.get_location(property.ubication)
+        if location_data is None:
+            return Exception("cannot get location data"), None
+
         payload = {
             "from_funnel": "true",
             "source": "token",
-            "property[status]": "1",
+            "property[status]": "17",
 
             "property[type]": property_type_map.get(str(property.type), "2"),
             "property[type_children]": property_type_map.get(str(property.type), "2"),
             "property[purpose]": operation_type_map.get(str(property.operation_type), "1"),
             "property[description]": property.description,
-            # "property[features][gardens]": "false",
             "property[features][bedrooms]": str(property.rooms),
             "property[features][floor]": "1",
             "property[features][bathrooms]": str(property.bathrooms),
+            "property[features][bathrooms_half]": str(property.half_bathrooms),
             "property[features][property_old]": str(property.antiquity),
             "property[features][size_house]": str(property.m2_covered),
             "property[features][size_ground]": str(property.m2_total),
             "property[features][garden_size]": 0,
-            "property[services][none]": "1",
             "property[price][sale_price]": str(property.price),
             "property[price][currency]": property.currency.upper(),
-            "property[address][sepomex_id]": "56001",
             "property[address][lat]": property.ubication.location.lat,
             "property[address][lng]": property.ubication.location.lng,
+
+            # Address data
+            "property[address][sepomex_id]": location_data.get("id", ""),
+            "property[address][colony_id]": location_data.get("id", ""),
             "property[address][streetListData][0][id]": "-1",
             "property[address][streetListData][0][name]": "Otro",
             "property[address][externalNumListData][0][id]": "-1",
             "property[address][externalNumListData][0][name]": "Otro",
             "property[address][check_location]": "true",
-
-            # Address properties
-            "property[address][colony_id]": "56001",
-            "property[address][state_id]": "14",
-            "property[address][state]": "Jalisco",
-            "property[address][city_id]": "533",
-            "property[address][city]": "Guadalajara",
-            "property[address][colony]": "Moderna",
-            "property[address][zipcode]": "44190",
-            "property[address][street]": "Avenida+8+de+Julio+823A",
-            "property[address][num_ext]": "823A",
+            "property[address][state_id]": location_data.get("state_id", ""),
+            "property[address][state]": location_data.get("state", ""),
+            "property[address][city_id]": location_data.get("city_id", ""),
+            "property[address][city]": location_data.get("city", ""),
+            "property[address][colony]": location_data.get("colony", ""),
+            "property[address][zipcode]": location_data.get("zipcode", ""),
+            "property[address][street]": property.ubication.address.split(", ")[0],
+            "property[address][num_ext]": "",
             "property[address][num_int]": "",
+
+            # Add amenities
+            **amenities
         }
+
+        print(json.dumps(payload, indent=4))
 
         cookies = {
             "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
         }
         
-        params = {
-            "apikey": os.getenv("ZENROWS_APIKEY"),
-            "url": "https://propiedades.com/api/v3/property/property",
-            # "js_render": "true",
-            "antibot": "true",
-            "premium_proxy": "true",
-            "proxy_country": "mx",
-            # "session_id": 10,
-            "custom_headers": "true",
-            "original_status": "true",
-            "autoparse": "true"
-        }
+        params = ZENROWS_PARAMS.copy()
+        params["url"] = f"{MAIN_API}/property/property"
         res = requests.post("https://api.zenrows.com/v1/", 
             params=params, 
-            data=payload,
             cookies=cookies,
-            headers=self.request.headers
+            headers={
+                **self.request.headers,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data=payload
         )
 
-        if res is None or not res.ok: return Exception("error creating the property: "+res.text)
+        if res is None or not res.ok: 
+            return Exception("error creating the property: "+res.text), None
+
+        print(res.json())
 
         property_id = res.json().get("data", {}).get("id_property")
-        if property_id is None: return Exception("cannot get the property id")
+        if property_id is None: 
+            return Exception("cannot get the property id"), None
         self.logger.success("property published successfully id:" + str(property_id))
 
         # upload_images changes the x-api-key Header, we need to restore it to the original value
         prev_api_key = self.request.headers["x-api-key"]
         err = self.upload_images(property_id, property.images)
-        if err != None: return err
+        if err != None: return err, None
         self.request.headers["x-api-key"] = prev_api_key
     
         # Update the property status to "active": "1"
-        params["url"] = "https://propiedades.com/api/v3/property/status"
+        params["url"] = f"{MAIN_API}/property/status"
         update_status_payload = {
             "properties_id": [property_id],
             "status": "1",
@@ -252,8 +321,9 @@ class Propiedades(Portal):
             headers=self.request.headers
         )
 
-        if res is None or not res.ok: return Exception("error creating the property: "+res.text)
-        return None
+        if res is None or not res.ok: 
+            return Exception("error creating the property: "+res.text), None
+        return None, property_id
 
     # The upload process of the images its complex, requires multiple steps.
     # 1. Sign the images with amazon s3 bucket

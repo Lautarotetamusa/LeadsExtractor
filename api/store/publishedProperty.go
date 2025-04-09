@@ -130,8 +130,6 @@ func (s *publishedPropertyStore) Update(portal string, propertyID int64, update 
         WHERE portal = :portal 
         AND property_id = :property_id
     `, setQuery)
-    fmt.Println(query)
-    fmt.Printf("%#v\n", p)
 
 	_, err := s.db.NamedExec(query, p)
 	return SQLNotFound(err, "property does not exists")

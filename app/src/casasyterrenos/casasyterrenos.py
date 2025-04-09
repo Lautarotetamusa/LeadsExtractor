@@ -95,16 +95,19 @@ class CasasYTerrenos(Portal):
 
         return lead
 
-    def publish(self, property: Property) -> Exception | None:
+    def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         prop_id = self.publish_first_step(property)
         if prop_id is None:
-            return Exception("cannot obtain the property id")
+            return Exception("cannot obtain the property id"), None
         err = self.add_ubication(prop_id, property)
         if err is not None:
-            return err
+            return err, None
 
-        self.add_ubication(prop_id, property)
-        return self.upload_images(prop_id, property.images)
+        err = self.upload_images(prop_id, property.images)
+        if err is not None:
+            return err, None
+
+        return None, str(prop_id)
 
     # The property its pending, returns the property id,
     def publish_first_step(self, property: Property) -> int | None:
@@ -132,14 +135,8 @@ class CasasYTerrenos(Portal):
             "parking": property.parking_lots,
             "age": property.antiquity,
             "half_bathrooms": property.half_bathrooms,
-            # "levels": 0,
-            # "floors": 0,
-            # "sqr_mt_office": 0,
-            # "sqr_mt_cellar": 0,
-            # "sqr_mt_front": 0,
-            # "sqr_mt_long": 0,
-            # "sqr_mt_terrace": 0,
-            # "sqr_mt_vault": 0
+            "virtual_tour_url": property.virtual_route,
+            "youtube_url": property.video_url
         }
 
         if property.operation_type == OperationType.RENT.value:
@@ -176,8 +173,6 @@ class CasasYTerrenos(Portal):
         res = self.request.make(f"{API_URL}/property/{prop_id}", "PATCH", json=payload)
         if res is None or not res.ok:
             return Exception("error adding ubication data")
-        # data = res.json()
-        # return data.get("id")
         return None
 
     # 1. Sign the all the in one POST request images

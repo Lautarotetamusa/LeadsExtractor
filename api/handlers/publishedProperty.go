@@ -88,8 +88,8 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
             // If the property its already publicated on this portal 
             //   and the status its not "published" then dont add it to the queue
             if prop.Status == store.StatusInQueue || prop.Status == store.StatusInProgress {
-                continue
-                // return ErrBadRequest(fmt.Sprintf("the property %d has a publication in progress, wait until the end", pp.PropertyID))
+                // continue
+                return ErrBadRequest(fmt.Sprintf("the property %d has a publication in progress, wait until the end", pp.PropertyID))
             }
 
             // The property exists but status its "published", then republish
@@ -201,7 +201,7 @@ func (h *PublishedPropertyHandler) processNextItem() {
 
 	// Start processing in background
 	go func(){
-        if h.publish(h.current) != nil {
+        if err := h.publish(h.current); err != nil {
             // update status processing the next item
             // this maybe can create an infinity call of goroutines?? because updateStatus create another goroutine..
             err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), &store.UpdatePublishedProperty{
@@ -312,10 +312,10 @@ func runPublicatorApp(appHost string, portal string, property store.PortalProp) 
 	req.Header.Add("Content-Type", "application/json")
 
 	res, err := client.Do(req)
-    defer res.Body.Close()
     if err != nil {
         return err
     }
+    defer res.Body.Close()
     if res.StatusCode != http.StatusCreated {
         return ErrBadRequest("error publishing the property")
     }
