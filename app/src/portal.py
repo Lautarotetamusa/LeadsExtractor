@@ -84,6 +84,9 @@ class Portal():
         @returns error or property internal portal id
         """
         return None, "not-implemented"
+    def unpublish(self, publication_id: str) -> Exception | None:
+        """removes a publication from a portal"""
+        pass
     def login(self):
         pass
 

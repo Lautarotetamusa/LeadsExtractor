@@ -178,12 +178,12 @@ class Lamudi(Portal):
         # }
         return res.json().get("data")
 
-    def delete_prop(self, property_id: str) -> Exception | None:
-        url = f"{API_URL}/properties/{property_id}"
+    def unpublish(self, publication_id: str) -> Exception | None:
+        url = f"{API_URL}/properties/{publication_id}"
 
         res = self.request.make(url, "DELETE")
         if res is None or not res.ok:
-            return Exception(f"cannot delete the property with id: {property_id}")
+            return Exception(f"cannot delete the property with id: {publication_id}")
 
     def publish(self, property: Property):
         id = str(uuid.uuid4())

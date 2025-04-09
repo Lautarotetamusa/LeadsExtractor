@@ -6,7 +6,8 @@ METHODS = {
     'GET': requests.get,
     'POST': requests.post,
     'PUT': requests.put,
-    'PATCH': requests.patch
+    'PATCH': requests.patch,
+    'DELETE': requests.delete
 }
 
 class ApiRequest():

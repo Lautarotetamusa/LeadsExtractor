@@ -11,7 +11,7 @@ def run_all():
         if portal_name == "all":
             continue
          
-        thread = Thread(target=PORTALS[portal_name]["main"], args=())
+        thread = Thread(target=PORTALS[portal_name].main, args=())
         thread.start()
         threads.append(thread)
 
@@ -29,6 +29,7 @@ PORTAL_TASKS = [
     "first_run",
     "main",
     "test",
+    "unpublish"
 ]
 
 def USAGE():
@@ -46,10 +47,12 @@ def USAGE():
             - first_run
             - main
             - test
+            - unpublish <PUBLICATION_ID>
     """)
 
 def portal(args: list[str]):
-    if len(args) < 1:
+    if len(args) < 2:
+        print("TASK its required")
         USAGE()
         exit(1)
 
@@ -64,6 +67,11 @@ def portal(args: list[str]):
         print(f"Task {task} doesnt exists")
         USAGE()
         exit(1)
+
+    if task == "unpublish" and len(args) < 3:
+        print("PUBLICATION_ID its required")
+        USAGE()
+        exit(1)
     
     portal = PORTALS[portal_name]() 
-    getattr(portal, task)()
+    getattr(portal, task)(*args[2:])

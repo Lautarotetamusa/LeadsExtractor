@@ -1,6 +1,6 @@
-from src.commands.cotizador import cotizador
-from src.commands.portal import portal
-from src.commands.scrapers import scraper
+from commands.cotizador import cotizador
+from commands.portal import portal
+from commands.scrapers import scraper
 
 import sys
 
