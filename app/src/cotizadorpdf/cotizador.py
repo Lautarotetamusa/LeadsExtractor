@@ -230,17 +230,18 @@ def translateContext(cin):
     }
 
     print(area_rampa*valor_rampa)
+    print("valor alberca", valor_alberca)
     print(area_alberca*valor_alberca)
     print(area_jardin*valor_jardin)
     print(area_muro_perimetral*valor_muro_perimetral)
 
     print("---")
-    print(valor_exterior)
-    print(area_interior)
-    print(importe_calidad)
-    print(valor_interior)
-    print(valor_permisos)
-    print(valor_total)
+    print("valor exterior:", valor_exterior)
+    print("area interio", area_interior)
+    print("importe calidad:", importe_calidad)
+    print("valor interior:", valor_interior)
+    print("valor permisos:",valor_permisos)
+    print("valor total:",valor_total)
 
     return contexto
 
