@@ -223,11 +223,16 @@ class Lamudi(Portal):
             "condition": "new",
             "furnished": "unfurnished",
             "constructionYear": date.today().year - (property.antiquity if property.antiquity is not None else 0),
-            "floorArea": property.m2_total,
+            "floorArea": property.m2_covered, # Built area
             "floorAreaUnit": "sqm",
-            "usableArea": property.m2_covered,
+            "usableArea": property.m2_covered, # Usable = Built area
             "usableAreaUnit": "sqm",
-            "plotArea": [],
+            "plotArea": [ # Terrain
+                {
+                    "value": property.m2_total,
+                    "unit": "m2"
+                }
+            ],
             "amenities": amenities,
             "nearbyLocations": nearby_locations,
             "contactEmails": [CONTACT_EMAIL],

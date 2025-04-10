@@ -1,8 +1,8 @@
 {
   "address": "Av. Juan Palomar y Arias 1249, Vallarta Universidad, 45110 Zapopan, Jal.",
   "coordinates": {
-    "latitude": 20.694754,
-    "longitude": -103.426216
+    "latitude": 20.695019,
+    "longitude": -103.427055
   },
   "geoLevels": [
     {
@@ -26,88 +26,89 @@
   "floorPlans": [],
   "propertyImages": [
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b12e-7167-8aaf-82e991d79f78.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-8521-71e3-96cd-c88d8f51155f.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b228-721c-8a2d-bf591b3efd43.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-865d-73a6-b4da-1905fd088df7.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b26e-7076-b3cf-3c0990cb26d0.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-8692-7229-9adf-b2b7475bd404.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b2cd-714c-9aee-707ea79a0815.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-86dd-7168-8a0a-d45ef5436862.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b316-73a6-a72a-6975d3377b9a.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-8752-7160-b2fd-cbea03452b93.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b35b-72b2-96bb-5b6b6ca3717a.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-87bf-7050-84ee-f21dd31e4bef.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b393-7087-b45e-60f09be9c29b.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-880e-7085-8d11-80bd113b1852.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b3da-7229-8f32-d28f95baf2a9.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-886a-7193-bfdd-cc0645c9e0e8.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b44a-7070-b526-29e6165ac2f1.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-8889-70bf-b3af-a9d118fa01e3.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b4a9-7144-89c3-4efb999c9890.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-88e4-7297-8d98-f3c825e59578.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b51a-7071-950d-647298cd2d67.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-8904-7009-8cf1-ab07b819379b.jpg",
       "isProjectImage": false
     },
     {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b573-7035-aec4-29d921e63d08.jpg",
-      "isProjectImage": false
-    },
-    {
-      "url": "https://images.proppit.com/properties/d8520a43-8539-4493-94f6-4d7170e5ad44/01961785-b5b9-71d8-af3d-51d7b7a8946b.jpg",
+      "url": "https://images.proppit.com/properties/26bbd1da-8ec4-46f3-a6bb-909debbdced3/0196194d-8921-708f-a30e-cf80d9aef065.jpg",
       "isProjectImage": false
     }
   ],
   "mainImageIndex": 0,
   "titleMultiLanguage": [
     {
-      "text": "Casa en Venta en ALCAZAR PONIENTE Acabados Modernos y Alta Calidad",
+      "text": "Casa en Venta en ALCAZAR PONIENTE Increíble Diseño y Amplitud",
       "locale": "es-MX"
     }
   ],
   "descriptionMultiLanguage": [
     {
-      "text": "Don't miss the opportunity to own this stunning home in ALCAZAR PONIENTE.",
+      "text": "A perfect blend of comfort and style in ALCAZAR PONIENTE.",
       "locale": "es-MX"
     }
   ],
-  "id": "d8520a43-8539-4493-94f6-4d7170e5ad44",
-  "creationDate": "2025-04-08T22:29:21Z",
+  "id": "26bbd1da-8ec4-46f3-a6bb-909debbdced3",
+  "creationDate": "2025-04-09T06:47:14Z",
   "published": true,
-  "bathrooms": 6,
-  "bedrooms": 7,
+  "bathrooms": 5,
+  "bedrooms": 6,
   "toilets": 1,
   "bankProperty": false,
-  "parkingSpaces": 7,
+  "parkingSpaces": 6,
   "condition": "new",
   "furnished": "unfurnished",
   "constructionYear": 2025,
   "communityFeesCurrency": "MXN",
-  "floorArea": 544,
+  "floorArea": 666,
   "floorAreaUnit": "sqm",
-  "usableArea": 650,
+  "usableArea": 666,
   "usableAreaUnit": "sqm",
-  "plotArea": [],
+  "plotArea": [
+    {
+      "value": 999,
+      "unit": "m2"
+    }
+  ],
   "amenities": [
     "security",
     "car park",
@@ -167,7 +168,7 @@
     {
       "type": "sell",
       "price": {
-        "amount": 17070475,
+        "amount": 30156540,
         "currency": "MXN"
       }
     }
