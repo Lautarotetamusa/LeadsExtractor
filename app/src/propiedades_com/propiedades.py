@@ -11,6 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from src.address import extract_street_from_address
 from src.onedrive.main import download_file, token
 from src.propiedades_com.amenities import amenities
 from src.property import OperationType, Property, PropertyType, Ubication
@@ -41,6 +42,13 @@ ZENROWS_PARAMS = {
     "autoparse": "true"
 }
 
+path = os.path.join(os.path.dirname(__file__), "internal_zones.json")
+try:
+    with open(path, "r") as f:
+        internal_ubications = json.load(f)
+except Exception as e:
+    print(f"missing zones {path}")
+    exit(1)
 
 # Lista de estados posibles de un lead
 class Status(IntEnum):
@@ -223,55 +231,73 @@ class Propiedades(Portal):
             PropertyType.HOUSE.value: "2",
         }
 
-        location_data = self.get_location(property.ubication)
-        if location_data is None:
-            return Exception("cannot get location data"), None
+        # If the address its in the internal ubication map
+        if property.ubication.address in internal_ubications: 
+            location_data = internal_ubications[property.ubication.address]["internal"]
+        else: # Otherwise get the address via API
+            self.logger.debug("getting the location data")
+            location_data = self.get_location(property.ubication)
+            if location_data is None:
+                return Exception("cannot get location data"), None
+            self.logger.success("location data obtained successfully")
 
-        payload = {
-            "from_funnel": "true",
-            "source": "token",
-            "property[status]": "17",
-
-            "property[type]": property_type_map.get(str(property.type), "2"),
-            "property[type_children]": property_type_map.get(str(property.type), "2"),
-            "property[purpose]": operation_type_map.get(str(property.operation_type), "1"),
-            "property[description]": property.description,
-            "property[features][bedrooms]": str(property.rooms),
-            "property[features][floor]": "1",
-            "property[features][bathrooms]": str(property.bathrooms),
-            "property[features][bathrooms_half]": str(property.half_bathrooms),
-            "property[features][property_old]": str(property.antiquity),
-            "property[features][size_house]": str(property.m2_covered),
-            "property[features][size_ground]": str(property.m2_total),
-            "property[features][garden_size]": 0,
-            "property[price][sale_price]": str(property.price),
-            "property[price][currency]": property.currency.upper(),
+        ubication = {
             "property[address][lat]": property.ubication.location.lat,
             "property[address][lng]": property.ubication.location.lng,
-
-            # Address data
-            "property[address][sepomex_id]": location_data.get("id", ""),
-            "property[address][colony_id]": location_data.get("id", ""),
-            "property[address][streetListData][0][id]": "-1",
-            "property[address][streetListData][0][name]": "Otro",
-            "property[address][externalNumListData][0][id]": "-1",
-            "property[address][externalNumListData][0][name]": "Otro",
-            "property[address][check_location]": "true",
-            "property[address][state_id]": location_data.get("state_id", ""),
-            "property[address][state]": location_data.get("state", ""),
-            "property[address][city_id]": location_data.get("city_id", ""),
-            "property[address][city]": location_data.get("city", ""),
-            "property[address][colony]": location_data.get("colony", ""),
-            "property[address][zipcode]": location_data.get("zipcode", ""),
-            "property[address][street]": property.ubication.address.split(", ")[0],
             "property[address][num_ext]": "",
             "property[address][num_int]": "",
-
-            # Add amenities
-            **amenities
+            "property[address][state]": location_data.get("state", ""),
+            "property[address][state_id]": location_data.get("state_id", ""),
+            "property[address][city]": location_data.get("city", ""), # Municipality
+            "property[address][city_id]": location_data.get("city_id", ""), # Municipalty
+            "property[address][colony]": location_data.get("colony", ""),
+            "property[address][colony_id]": location_data.get("id", ""),
+            "property[address][sepomex_id]": location_data.get("id", ""),
+            "property[address][zipcode]": location_data.get("zipcode", ""),
+            "property[address][street]": extract_street_from_address(property.ubication.address),
+            "property[address][check_location]": "true",
         }
 
-        print(json.dumps(payload, indent=4))
+        payload = {
+            # Defaults
+            "from_funnel": "true",
+            "source": "token",
+            "id": "0",
+
+            "property[price][sale_price]": str(property.price),
+            "property[price][currency]": property.currency.upper(),
+            "property[description]": property.description,
+
+            "property[type]": "1", # Its always "1" for house and aparment, type_children indicates that.
+            "property[type_children]": property_type_map.get(str(property.type), "2"),
+            "property[purpose]": operation_type_map.get(str(property.operation_type), "1"),
+
+            # Features
+            "property[features][bedrooms]": str(property.rooms) if property.bathrooms is not None else "0",
+            "property[features][bathrooms]": str(property.bathrooms) if property.bathrooms is not None else "0",
+            "property[features][bathrooms_half]": str(property.half_bathrooms) if property.half_bathrooms is not None else "0",
+            "property[features][parking_num]": str(property.parking_lots) if property.parking_lots is not None else "0",
+            "property[features][floor]": "1",
+            "property[features][size_ground]": str(property.m2_total),
+            "property[features][ground_unit]": "1",
+            "property[features][size_house]": str(property.m2_covered),
+            "property[features][size_house_unit]": "1",
+            "property[features][gardens]": "false",
+            "property[features][property_old]": str(max(property.antiquity, 1)), # If the antiquity its 0, must send "1" and set property_new=true
+            "property[features][know_property_old]": "1",
+
+            **amenities,
+            **ubication,
+
+            # Status
+            "property[status]": "17", # Borrador
+        }
+
+        # its different if the property its new or not
+        if property.antiquity == 0:
+            payload["property[features][property_new]"] = "true"
+        else:
+            payload["property[features][property_old]"] = str(property.antiquity)
 
         cookies = {
             "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
@@ -291,10 +317,13 @@ class Propiedades(Portal):
 
         if res is None or not res.ok: 
             return Exception("error creating the property: "+res.text), None
+        response = res.json()
+        success = response.get("success") 
+        if not success: 
+            error = response.get("errors", {}).get("message", "")
+            return Exception(f"error creating the property: {error}"), None
 
-        print(res.json())
-
-        property_id = res.json().get("data", {}).get("id_property")
+        property_id = response.get("data", {}).get("id_property")
         if property_id is None: 
             return Exception("cannot get the property id"), None
         self.logger.success("property published successfully id:" + str(property_id))
@@ -342,6 +371,8 @@ class Propiedades(Portal):
         upload_url = "https://propiedadescom.s3.amazonaws.com/"
         confirm_url = "https://ujj28ojnla.execute-api.us-east-2.amazonaws.com/prod/confirm_upload_s3"
 
+        max_fail_uploads = 4 
+
         ## 1. Sign all the images to upload to the s3 bucket
         jpeg_count = len(list(filter(lambda i : "jpg" in i["url"] or "jpeg" in i["url"], images)))
         sign_payload = {
@@ -371,6 +402,8 @@ class Propiedades(Portal):
             "jpeg": 0,
         }
         i = 0 # global index
+        fail_uploads = 0 # cant of images that fails the uploading process
+
         for image in images:
             self.logger.debug(f"downloading {image['url']}")
             img_data = download_file(token, image["url"])
@@ -398,8 +431,14 @@ class Propiedades(Portal):
             ]
             self.logger.debug(f"uploading {image['url']}")
             res = requests.post(upload_url, files=files)
-            if not res.ok: return Exception("cannot upload the image: "+res.text)
+            if not res.ok: 
+                fail_uploads += 1
+                self.logger.error("cannot upload the image: "+res.text)
+                continue
             self.logger.success("image uploaded successfully")
+
+            if fail_uploads > max_fail_uploads:
+                return Exception(f"{fail_uploads} images fails to upload, cancel the publication")
 
             index[img_type] += 1
             i += 1
@@ -427,9 +466,6 @@ class Propiedades(Portal):
             res = self.request.make(confirm_url, "POST", json=placeholder)
             if res is None or not res.ok:
                 return Exception(f"cannot confirm the image {placeholder['image_id']}")
-
-            print(placeholder["image_id"])
-            print(placeholder["image_original_url"])
 
             self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
 
