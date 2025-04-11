@@ -2,7 +2,6 @@
 
 import re
 
-
 def USAGE():
     print("""
         python search_internal_zones.py <neighborhoods-file.json> <state-id>
@@ -66,7 +65,6 @@ if __name__ == "__main__":
     zones = {}
     with open("zones.csv", "r") as f:
         rows = csv.DictReader(f)
-        headers = next(rows)
 
         for row in rows:
             if row["internal"] == "":
