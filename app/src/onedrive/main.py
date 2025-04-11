@@ -54,7 +54,6 @@ class OneDrive():
             self.token = new_token
 
 def download_file(token, download_url: str) -> bytes | None:
-    print(f"downloading {download_url}")
     if time() >= token["expires_at"]:
         print("refreshing OneDrive code..")
         new_token = refresh_access_token(token)
