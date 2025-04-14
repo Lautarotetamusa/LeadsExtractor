@@ -1,4 +1,3 @@
-import time
 from jinja2 import Environment, FileSystemLoader
 import os
 from datetime import date, datetime
@@ -97,7 +96,7 @@ def translateContext(cin):
     valor_topografia = int(cin['valor_permisos']['topografia'] /coeficiente_ganancia)
     valor_mecanica = int(cin['valor_permisos']['mecanica'] / coeficiente_ganancia)
     valor_calculo = int(cin['valor_permisos']['calculo'] / coeficiente_ganancia)
-    valor_permisos = (valor_licencia + valor_gestorias + valor_calculo) * area_interior + 5800 * valor_mecanica + valor_topografia
+    valor_permisos = (valor_licencia + valor_gestorias + valor_calculo) * area_interior + 3 * valor_mecanica + valor_topografia
     valor_metro_rebora = 2000
     valor_rebora = valor_metro_rebora * area_interior
     valor_preconstruccion = int(valor_rebora*0.3)

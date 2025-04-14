@@ -283,6 +283,7 @@ class Propiedades(Portal):
             "property[features][size_house]": str(property.m2_covered),
             "property[features][size_house_unit]": "1",
             "property[features][gardens]": "false",
+            # Its impossible to set the property_new in only one request, if needed must create the prop and later edit and add the property_new field
             "property[features][property_old]": str(max(property.antiquity, 1)), # If the antiquity its 0, must send "1" and set property_new=true
             "property[features][know_property_old]": "1",
 
@@ -292,12 +293,6 @@ class Propiedades(Portal):
             # Status
             "property[status]": "17", # Borrador
         }
-
-        # its different if the property its new or not
-        if property.antiquity == 0:
-            payload["property[features][property_new]"] = "true"
-        else:
-            payload["property[features][property_old]"] = str(property.antiquity)
 
         cookies = {
             "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
