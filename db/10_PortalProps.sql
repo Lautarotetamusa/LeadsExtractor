@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS PortalProp(
     title VARCHAR(256) NOT NULL,
     price VARCHAR(32) NOT NULL,
     currency CHAR(5) NOT NULL,
-    description VARCHAR(512) NOT NULL, 
+    description VARCHAR(4096) NOT NULL, 
     type ENUM("house", "apartment") NOT NULL,
     antiquity INT NOT NULL,
     parkinglots INT NOT NULL DEFAULT 0,
