@@ -51,18 +51,20 @@ DROP TABLE IF EXISTS Portal;
 CREATE TABLE IF NOT EXISTS Portal (
     name    VARCHAR(64) NOT NULL,
     url     VARCHAR(256) NOT NULL,
+    base_url VARCHAR(64) NOT NULL,
 
     CHECK (name <> ""),
     CHECK (url <> ""),
+    check (base_url <> ""),
 
     PRIMARY KEY(name)
 );
 
-INSERT INTO Portal (name, url) VALUES
-("lamudi", "https://lamudi.com.mx"),
-("inmuebles24", "https://inmuebles24.com"),
-("casasyterrenos", "https://casasyterrenos.com"),
-("propiedades", "https://propiedades.com");
+INSERT INTO Portal (name, url, base_url) VALUES
+("lamudi", "https://lamudi.com.mx",  "https://www.lamudi.com.mx/detalle/"),
+("inmuebles24", "https://inmuebles24.com", " - "),
+("casasyterrenos", "https://casasyterrenos.com",  "https://www.casasyterrenos.com/propiedad/-"),
+("propiedades", "https://propiedades.com", "https://propiedades.com/inmuebles/-");
 
 DROP TABLE IF EXISTS PublishedProperty;
 CREATE TABLE IF NOT EXISTS PublishedProperty (

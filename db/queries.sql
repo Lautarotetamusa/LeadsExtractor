@@ -509,3 +509,17 @@ inner join Source S
 inner join Property P
     on P.id = S.property_id
 group by P.portal_id;
+
+
+/* Obtain the published properties with the publication ids */
+select 'id','title','price','currency','type','antiquity','parkinglots','bathrooms','half_bathrooms','rooms','operation_type','m2_total','m2_covered','video_url','virtual_route','address','lat','lng','url'
+UNION ALL
+select id,title,price,currency,type,antiquity,parkinglots,bathrooms,half_bathrooms,rooms,operation_type,m2_total,m2_covered,video_url,virtual_route,address,lat,lng,
+CONCAT(Portal.base_url, Published.publication_id) as url
+from PublishedProperty Published
+inner join PortalProp Prop
+on Prop.id = Published.property_id
+inner join Portal
+on Portal.name = Published.portal
+where status = 'published'
+INTO OUTFILE '/data/properties.csv';
