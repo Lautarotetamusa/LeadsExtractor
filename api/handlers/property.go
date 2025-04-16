@@ -30,7 +30,7 @@ func NewPropertyHandler(s store.PropertyPortalStore, logger *slog.Logger) *Prope
 
 func (h *PropertyHandler) RegisterRoutes(router *mux.Router) {
     var props []store.PortalProp
-    csvHandler := middleware.NewCSVHandler("csv_file", "properties", props)
+    csvHandler := middleware.NewCSVHandler("csv_file", "properties", props).WithLimit(2000)
     // TODO: change the name to /property xD
     router.Handle("/properties/csv", csvHandler.CSVMiddleware(
         http.HandlerFunc(HandleErrors(h.CreateFromCSV)),
@@ -62,15 +62,16 @@ func (h *PropertyHandler) CreateFromCSV(w http.ResponseWriter, r *http.Request) 
     // fmt.Println(string(j))
 
     // TODO: make only one request..
-    for _, prop := range props {
-        err := h.storer.Insert(&prop)
-        if err != nil {
-            h.logger.Error("error inserting property", "err", err)
-            continue
+    go func() {
+        for _, prop := range props {
+            err := h.storer.Insert(&prop)
+            if err != nil {
+                h.logger.Error("error inserting property", "err", err)
+                continue
+            }
+            // h.logger.Info("property created succesfully")
         }
-        h.logger.Info("property created succesfully")
-    }
-
+    }()
     messageResponse(w, "properties creation process has started")
     return nil
 }
@@ -81,8 +82,12 @@ func (h *PropertyHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	dataResponse(w, props)
-	return nil
+	w.Header().Set("Content-Type", "application/json")
+	return json.NewEncoder(w).Encode(map[string]any{
+		"success": true,
+		"data":    props,
+        "count": len(props),
+	})
 }
 
 func (h *PropertyHandler) GetOne(w http.ResponseWriter, r *http.Request) error {

@@ -47,7 +47,7 @@ func (c *CSVHandler[T]) WithLimit(limit int) *CSVHandler[T] {
 func (c *CSVHandler[T]) CSVMiddleware(next http.Handler) http.Handler {
 	return handleErrorFunc(func(w http.ResponseWriter, r *http.Request) error {
 		// Parse multipart form (adjust max memory as needed)
-		if err := r.ParseMultipartForm(32 << 20); err != nil {
+		if err := r.ParseMultipartForm(4 << 30); err != nil { // 4Mb
 			return err
 		}
 
