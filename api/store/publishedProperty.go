@@ -34,12 +34,12 @@ type UpdatePublishedProperty struct {
     PublicationID   models.NullString  `json:"publication_id"`
 }
 
-
 type PublishedPropertyStorer interface {
 	Create(pp *PublishedProperty) error
 	GetOne(portal string, propertyID int64) (*PublishedProperty, error)
 	GetAllByProp(propertyID int64) ([]*PublishedProperty, error)
 	Update(portal string, propertyID int64, update *UpdatePublishedProperty) error
+    GetAllByStatus(status PublishedStatus) ([]*PublishedProperty, error)
 }
 
 const (
@@ -91,6 +91,23 @@ func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedPro
     }
     if len(pp) == 0 {
         panic("Are not any Portal in the db, insert at least one portal")
+    }
+	
+	return pp, nil
+}
+
+func (s *publishedPropertyStore) GetAllByStatus(status PublishedStatus) ([]*PublishedProperty, error) {
+	query := `
+        SELECT 
+           portal, status, property_id, publication_id, PP.url, updated_at, created_at
+        FROM PublishedProperty PP
+        WHERE status = ?`
+
+	var pp []*PublishedProperty
+
+    err := s.db.Select(&pp, query, status)
+    if err != nil {
+        return nil, fmt.Errorf("error obtaining publications by status %w", err)
     }
 	
 	return pp, nil

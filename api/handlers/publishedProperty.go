@@ -36,13 +36,30 @@ type PublishedPropertyHandler struct {
 }
 
 func NewPublishedPropertyHandler(storer store.PublishedPropertyStorer, propertyStorer store.PropertyPortalStore, appHost string) *PublishedPropertyHandler {
-	return &PublishedPropertyHandler{
+    h := &PublishedPropertyHandler{
         storer: storer,
         propertyStorer: propertyStorer,
         appHost: appHost,
         queue: make([]*PropertyPublishPayload, 0),
         logger: slog.Default(),
     }
+
+    h.logger.Info("getting the properties in queue")
+    props, err := storer.GetAllByStatus(store.StatusInQueue)
+    if err != nil {
+        panic(fmt.Sprintf("cannot get the props in queue err: %w", err))
+    }
+    for _, prop := range props {
+        h.queue = append(h.queue, &PropertyPublishPayload{
+            PropertyID: prop.PropertyID.Int16,
+            Portal: prop.Portal.String,
+        })
+    }
+    if len(props) > 0 {
+        // h.current = h.queue[0]
+		go h.processNextItem()
+    }
+    return h
 }
 
 func (h *PublishedPropertyHandler) WithLogger(logger *slog.Logger) {
@@ -232,9 +249,10 @@ func (h *PublishedPropertyHandler) publish(item *PropertyPublishPayload) error {
     }
 
     // Run the scraper to publish the property
-    if err = runPublicatorApp(h.appHost, item.Portal, *property); err != nil {
-        return err
-    }
+    // if err = runPublicatorApp(h.appHost, item.Portal, *property); err != nil {
+    //     return err
+    // }
+    time.Sleep(time.Second * 10)
 
     return nil
 }
