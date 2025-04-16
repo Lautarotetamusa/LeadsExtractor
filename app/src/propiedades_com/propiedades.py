@@ -277,7 +277,7 @@ class Propiedades(Portal):
             "property[features][bathrooms]": str(property.bathrooms) if property.bathrooms is not None else "0",
             "property[features][bathrooms_half]": str(property.half_bathrooms) if property.half_bathrooms is not None else "0",
             "property[features][parking_num]": str(property.parking_lots) if property.parking_lots is not None else "0",
-            "property[features][floor]": "1",
+            "property[features][floor]": "3", # Default 3 floors if the option exists. TODO: dont hardcode this
             "property[features][size_ground]": str(property.m2_total),
             "property[features][ground_unit]": "1",
             "property[features][size_house]": str(property.m2_covered),

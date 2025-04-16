@@ -283,9 +283,17 @@ class Lamudi(Portal):
             )
             i += 1
 
-        # print(json.dumps(ad_payload, indent=4))
-        self.logger.debug("publishing property")
+        self.logger.debug("creating property")
         res = self.request.make(f"{API_URL}/properties/{id}", "POST", files=files)
+        if res is None or not res.ok:
+            return Exception("cannot create the property"), None
+        self.logger.success("property created successfully")
+
+        self.logger.debug("publishing property")
+        publish_url = f"{API_URL}/properties/{id}/published"
+        res = self.request.make(publish_url, "PUT", json={
+            "published": True
+        })
         if res is None or not res.ok:
             return Exception("cannot publish the property"), None
         self.logger.success("property published successfully")

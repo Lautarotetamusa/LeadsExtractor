@@ -127,14 +127,17 @@ class CasasYTerrenos(Portal):
             "department": "19"
         }
 
+        # casasyterrenos uses html description, its necessary to do this to see correctly the enters 
+        description = property.description.replace("\n", "<br>")
+
         payload = {
             "bathrooms": property.bathrooms,
             "rooms": property.rooms,
             # "floor_number": 0,
-            "sqr_mt_lot": property.m2_covered,
-            "sqr_mt_construction": property.m2_total,
+            "sqr_mt_lot": property.m2_total,
+            "sqr_mt_construction": property.m2_covered,
             "name": property.title,
-            "description": f"<div><!--block-->Ubicacion: {property.ubication.address}<br>{property.description}!</div>",
+            "description": f"<div><!--block-->Ubicacion: {property.ubication.address}<br>{description}!</div>",
             "property_type": property_type_map[str(property.type)],
             "operation_type": [operation_type_map[str(property.operation_type)]],
             # "membership": "434451",

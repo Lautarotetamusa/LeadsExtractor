@@ -1,1 +1,47 @@
-{"elaborado_por": {"nombre": "Diego Torres", "telefono": "341 946-6986", "mail": "diego.torres@rebora.com.mx", "porcentaje_administracion": 21, "is_valor_permisos": True, "valor_terreno": 10000000, "area_terreno": 500}, "datos": {"nombre": "Juan Alonso"}, "pagos": {"inicial": 1500000, "porcentaje_inicio_obra": 25, "meses": 18, "tipo": "Premium"}, "areas_interiores": {"cuartos": 5, "banos": 6, "sotano": 50, "planta_baja": 200, "planta_alta": 200, "roof": 50}, "areas_exteriores": {"rampa": 50, "jardin": 20, "alberca": 100, "muro_perimetral": 100}, "valor_exteriores": {"rampa": 7000, "jardin": 28500, "alberca": 3500, "muro_perimetral": 1500}, "valor_permisos": {"licencia": 300, "gestorias": 38, "topografia": 9500, "mecanica": 4, "calculo": 59}}
+{
+    "elaborado_por": {
+        "nombre": "rafael sanchez ",
+        "telefono": 3326213145,
+        "mail": "rafael.sanchez@rebora.com.mx",
+        "porcentaje_administracion": 23,
+        "is_valor_permisos": true,
+        "valor_terreno": 100,
+        "area_terreno": 500
+    },
+    "datos": {
+        "nombre": "Rafael S\u00e1nchez "
+    },
+    "pagos": {
+        "inicial": 2500000,
+        "porcentaje_inicio_obra": 30,
+        "meses": 16,
+        "tipo": "Premium"
+    },
+    "areas_interiores": {
+        "cuartos": 4,
+        "banos": 5,
+        "sotano": 0,
+        "planta_baja": 159,
+        "planta_alta": 157,
+        "roof": 70
+    },
+    "areas_exteriores": {
+        "rampa": 0,
+        "jardin": 0,
+        "alberca": 18,
+        "muro_perimetral": 0
+    },
+    "valor_exteriores": {
+        "rampa": 1505,
+        "jardin": 390,
+        "alberca": 16176,
+        "muro_perimetral": 3550
+    },
+    "valor_permisos": {
+        "licencia": 300,
+        "gestorias": 38,
+        "topografia": 9500,
+        "mecanica": 4,
+        "calculo": 59
+    }
+}
