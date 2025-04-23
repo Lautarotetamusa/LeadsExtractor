@@ -146,7 +146,7 @@ func (s *CommunicationService) SaveLead(c *models.Communication) (*models.Lead, 
 func (s CommunicationService) runAction(c *models.Communication) {
 	action, err := s.Store.GetLastActionFromLead(c.Telefono)
 	if err != nil {
-		s.Logger.Error("cannot get the lead last action", "err", err)
+		s.Logger.Warn("cannot get the lead last action", "err", err)
 	}
 
 	if action != nil && action.OnResponse.Valid {

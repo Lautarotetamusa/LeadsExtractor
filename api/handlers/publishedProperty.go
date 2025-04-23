@@ -249,10 +249,9 @@ func (h *PublishedPropertyHandler) publish(item *PropertyPublishPayload) error {
     }
 
     // Run the scraper to publish the property
-    // if err = runPublicatorApp(h.appHost, item.Portal, *property); err != nil {
-    //     return err
-    // }
-    time.Sleep(time.Second * 10)
+    if err = runPublicatorApp(h.appHost, item.Portal, *property); err != nil {
+        return err
+    }
 
     return nil
 }

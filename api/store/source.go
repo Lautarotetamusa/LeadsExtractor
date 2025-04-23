@@ -92,7 +92,7 @@ func (s *SourceDBStore) InsertSource(propertyId int) error {
 }
 
 func (s *SourceDBStore) InsertProperty(p *models.Propiedad) error {
-	res, err := s.db.NamedExec(insertQuery, &p)
+	res, err := s.db.NamedExec(insertPropQ, &p)
 	if err != nil {
 		return fmt.Errorf("error inserting property: %s", err.Error())
 	}

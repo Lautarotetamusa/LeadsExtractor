@@ -34,11 +34,13 @@ func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, err
 	url := fmt.Sprintf("persons/%d/deals", personId)
 
 	var deals []Deal
+
 	err := p.makeRequest("GET", url, nil, &deals)
 
 	if err != nil {
 		return nil, err
 	}
+
 	if len(deals) == 0 {
 		return nil, fmt.Errorf("el asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
 	}
