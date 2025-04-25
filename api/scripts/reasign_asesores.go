@@ -16,7 +16,7 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-func main(){
+func oo(){
     if len(os.Args) <= 1 {
         log.Fatal("falta el argumento 'phone'")
     }

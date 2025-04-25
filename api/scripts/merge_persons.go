@@ -15,7 +15,7 @@ import (
 	"github.com/lmittmann/tint"
 )
 
-func main(){
+func ooo(){
     w := os.Stderr
 
     logger := slog.New(

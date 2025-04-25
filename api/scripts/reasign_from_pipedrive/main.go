@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"leadsextractor/models"
+	"leadsextractor/pkg/numbers"
 	"leadsextractor/pkg/pipedrive"
 	"leadsextractor/store"
 	"log/slog"
@@ -32,7 +32,9 @@ func main(){
 		panic("Error loading .env file")
 	}
 	db := store.ConnectDB(context.Background())
-    s := store.NewStore(db, logger) 
+
+    asesorStore := store.NewAsesorDBStore(db)
+    leadStore := store.NewLeadStore(db)
 
     pipedriveConfig := pipedrive.Config{
         ClientId: os.Getenv("PIPEDRIVE_CLIENT_ID"),
@@ -42,8 +44,7 @@ func main(){
     }
 	pipe := pipedrive.NewPipedrive(pipedriveConfig, logger)
 
-    var asesores []models.Asesor
-    err = s.GetAllAsesores(&asesores)
+    asesores, err := asesorStore.GetAllActive()
     if err != nil {
         panic("no fue posible obtener la lista de asesores")
     }
@@ -68,22 +69,22 @@ func main(){
                 continue
             }
 
-            dbLead, err := s.GetOne(person.Phone[0].Value)
+            dbLead, err := leadStore.GetOne(numbers.PhoneNumber(person.Phone[0].Value))
             if err != nil {
-                //logger.Warn("no se encontro el lead", "err", err.Error())
+                logger.Warn("no se encontro el lead", "err", err.Error())
                 continue
             }
            
             if dbLead.Asesor.Email != person.Owner.Email {
                 logger.Info("Reasignando", "lead", dbLead.Name, "old asesor", dbLead.Asesor.Name, "new asesor", asesor.Name)
 
-                asesor, err := s.GetAsesorFromEmail(person.Owner.Email) 
+                asesor, err := asesorStore.GetFromEmail(person.Owner.Email) 
                 if err != nil {
                     logger.Warn("no se encontro el asesor", "err", err.Error())
                     continue
                 }
 
-                if err := s.UpdateAsesor(dbLead.Phone, asesor); err != nil {
+                if err := leadStore.UpdateAsesor(dbLead.Phone, asesor); err != nil {
                     logger.Error(err.Error())
                 }
             }
