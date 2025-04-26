@@ -8,7 +8,7 @@ import (
 type Deal struct {
 	Id       uint32 `json:"id"`
 	Title    string `json:"title"`
-	Value    uint32 `json:"value"`
+	Value    uint64 `json:"value"`
 	Currency string `json:"currency"`
 	User     User   `json:"user_id"`
 	//VisibleTo   string  `json:"visible_to"`

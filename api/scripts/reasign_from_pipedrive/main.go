@@ -10,6 +10,7 @@ import (
 	"leadsextractor/store"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -56,37 +57,43 @@ func main(){
             continue
         }
 
-        persons, err := pipe.GetUserPersons(user)
+        deals, err := pipe.GetUserDeals(user)
         if err != nil {
             logger.Error(err.Error())
         }
 
-        fmt.Printf("%s id=%d have %d persons\n", user.Name, user.Id, len(persons))
+        fmt.Printf("%s id=%d have %d deals\n", user.Name, user.Id, len(deals))
 
-        for _, person := range persons {
+        for _, deal := range deals {
+            person := deal.Person
             if person.Phone == nil || len(person.Phone) <= 0 {
                 logger.Warn("person sin telefono", "person", person)
                 continue
             }
+            rawPhone := person.Phone[0].Value
+            phone, err := numbers.NewPhoneNumber(strings.ReplaceAll(rawPhone, " ", ""))
 
-            dbLead, err := leadStore.GetOne(numbers.PhoneNumber(person.Phone[0].Value))
+            if err != nil {
+                logger.Warn("invalid phone", "phone", person.Phone[0].Value)
+                continue
+            }
+
+            dbLead, err := leadStore.GetOne(*phone)
             if err != nil {
                 logger.Warn("no se encontro el lead", "err", err.Error())
                 continue
             }
            
-            if dbLead.Asesor.Email != person.Owner.Email {
-                logger.Info("Reasignando", "lead", dbLead.Name, "old asesor", dbLead.Asesor.Name, "new asesor", asesor.Name)
+            logger.Info("Reasignando", "lead", dbLead.Name, "old asesor", dbLead.Asesor.Name, "new asesor", asesor.Name)
 
-                asesor, err := asesorStore.GetFromEmail(person.Owner.Email) 
-                if err != nil {
-                    logger.Warn("no se encontro el asesor", "err", err.Error())
-                    continue
-                }
+            // asesor, err := asesorStore.GetFromEmail(person.Owner.Email) 
+            // if err != nil {
+            //     logger.Warn("no se encontro el asesor", "err", err.Error())
+            //     continue
+            // }
 
-                if err := leadStore.UpdateAsesor(dbLead.Phone, asesor); err != nil {
-                    logger.Error(err.Error())
-                }
+            if err := leadStore.UpdateAsesor(dbLead.Phone, asesor); err != nil {
+                logger.Error(err.Error())
             }
         }
     }
