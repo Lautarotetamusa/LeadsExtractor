@@ -168,6 +168,10 @@ func main() {
 	// Logs
 	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods(http.MethodGet, http.MethodOptions)
 
+    // OneDrive images
+    fs := http.StripPrefix("/onedrive/", http.FileServer(http.Dir("./onedrive/")))
+    router.PathPrefix("/onedrive").Handler(fs)
+
 	server.Run(router)
 }
 
