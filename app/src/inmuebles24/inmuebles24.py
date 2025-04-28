@@ -353,9 +353,9 @@ class Inmuebles24(Portal):
 
         return postings[0]["postingId"]
 
-    def get_properties(self) -> list[dict]:
+    def get_properties(self, status="DRAFT", page=1) -> list[dict]:
         self.logger.debug("getting properties")
-        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?page=1&limit=20&searchParameters=status:DRAFT;sort:createdNewer&onlineFirst=true"
+        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?page={page}&limit=20&searchParameters=status:{status};sort:createdNewer&onlineFirst=true"
         # params = {
         #     "page": 1,
         #     "limit": 20,
@@ -371,6 +371,20 @@ class Inmuebles24(Portal):
             return []
 
         return res.json().get("postings", [])
+
+    def unpublish_multiple(self, publication_ids: list[str]) -> Exception | None:
+        unpublish_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/suspend"
+        payload = {
+            "finishReasonId": "6", # Operation canceledstr
+            "finishReasonText":	None,
+            "postings": [id for id in publication_ids]
+        }
+
+        params = PARAMS.copy()
+        params["url"] = unpublish_url
+        res = self.request.make(ZENROWS_API_URL, "PUT", params=params, json=payload)
+        if res is None or not res.ok:
+            return Exception("cannot unpublish the property")
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         tipo_propiedad_map = {
