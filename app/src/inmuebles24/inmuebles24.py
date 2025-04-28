@@ -5,11 +5,13 @@ import json
 from typing import Any
 import requests
 
-from src.onedrive.main import download_file, token
+from src.address import extract_street_from_address
+from src.api import download_file
 from src.property import Property
 from src.make_requests import ApiRequest
 from src.portal import Mode, Portal
 from src.lead import Lead
+from src.inmuebles24.amenities import amenities
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
@@ -17,17 +19,39 @@ SITE_URL = "https://www.inmuebles24.com/"
 ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 ZENROWS_API_KEY = os.getenv("ZENROWS_APIKEY")
 PARAMS = {
-        "apikey": ZENROWS_API_KEY,
-        "url": "",
-        # "js_render": "true",
-        "antibot": "true",
-        "premium_proxy": "true",
-        "proxy_country": "mx",
-        # "session_id": 10,
-        "custom_headers": "true",
-        "original_status": "true",
-        "autoparse": "true"
-    }
+    "apikey": ZENROWS_API_KEY,
+    "url": "",
+    # "js_render": "true",
+    # "antibot": "true",
+    "premium_proxy": "true",
+    "proxy_country": "mx",
+    # "session_id": 10,
+    "custom_headers": "true",
+    "original_status": "true",
+    # "autoparse": "true"
+}
+
+path = os.path.join(os.path.dirname(__file__), "internal_zones.json")
+try:
+    with open(path, "r") as f:
+        internal_ubications = json.load(f)
+except Exception as e:
+    print(f"missing zones {path}")
+    exit(1)
+
+# PARAMS = {
+#     "apikey": ZENROWS_API_KEY,
+#     "url": "",
+#     # "js_render": "true",
+#     # "antibot": "true",
+#     "premium_proxy": "true",
+#     "proxy_country": "mx",
+#     "custom_headers": "true",
+#     # "session_id": "3",
+#     "original_status": "true",
+#     # "autoparse": "true",
+#     # "screenshot": "true"
+# }
 
 def extract_busqueda_info(data: dict | None) -> dict:
     if data is None:
@@ -78,6 +102,42 @@ class Inmuebles24(Portal):
                 filename=__file__
                 )
         self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
+        self.request.cookies = {
+            "allowCookies": "true",
+            "changeInbox": "true",
+            "crto_is_user_optout": "false",
+            "G_ENABLED_IDPS": "google",
+            "hashKey": self.request.headers["hashKey"],
+            "hideWelcomeBanner": "true",
+            "IDusuario": self.request.headers["idUsuario"],
+            "JSESSIONID": "1971D320A1B78F9CDD06DAA4DF456B3C",
+            "pasoExitoso": "{'trigger':'Continuar'&'stepId':1&'stepName':'Datos principales-Profesional'}",
+            "reputationModalLevelSeen": "true",
+            "reputationModalLevelSeen2": "true",
+            "reputationTourLevelSeen": "true",
+            "sessionId": self.request.headers["sessionId"],
+            "showWelcomePanelStatus": "true",
+            "tableCreditsOpen": "true",
+            "usuarioPublisher": "true",
+            "usuarioFormId": self.request.headers["idUsuario"],
+
+            # TODO: dont hardcode this fields
+            "usuarioFormApellido": "Residences",
+            "usuarioFormEmail": "control.general@rebora.com.mx",
+            "usuarioFormNombre": "RBA",
+            "usuarioFormTelefono": "523341690109",
+            "usuarioIdCompany": "50796870",
+            "usuarioLogeado": "control.general@rebora.com.mx",
+        }
+
+        # postings = self.get_properties()
+        # if len(postings) == 0:
+        #     self.logger.error("cannot get the properties")
+        #     return
+        #
+        # self.last_prop_id = postings[0]["postingId"]
+        self.last_prop_id = 146281619
+        self.logger.debug("last posting id: " + str(self.last_prop_id))
 
     def login(self):
         self.logger.debug("Iniciando sesion")
@@ -102,9 +162,10 @@ class Inmuebles24(Portal):
 
         self.request.headers = {
             "sessionId": data["contenido"]["sessionID"],
+            "idUsuario": str(data["contenido"]["idUsuario"]),
+            "hashKey": data["contenido"]["cookieHash"],
             "x-panel-portal": "24MX",
             "content-type": "application/json;charset=UTF-8",
-            "idUsuario": str(data["contenido"]["idUsuario"])
         }
 
         with open(self.params_file, "w") as f:
@@ -284,7 +345,34 @@ class Inmuebles24(Portal):
             self.logger.error(f"Error marcando al lead {contact_id} como {status}")
         PARAMS["autoparse"] = True
 
-    def publish(self, property: Property) -> Exception | None:
+    def get_last_prop_id(self) -> None | int: 
+        postings = self.get_properties()
+        if len(postings) == 0:
+            self.logger.error("cannot get the properties")
+            return
+
+        return postings[0]["postingId"]
+
+    def get_properties(self) -> list[dict]:
+        self.logger.debug("getting properties")
+        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?page=1&limit=20&searchParameters=status:DRAFT;sort:createdNewer&onlineFirst=true"
+        # params = {
+        #     "page": 1,
+        #     "limit": 20,
+        #     "searchParameters": "sort:createdNewer&onlineFirst=true"
+        # }
+        # list_url += "?" + urllib.parse.urlencode(params)
+
+        params = PARAMS.copy()
+        params["url"] = list_url
+        res = self.request.make(ZENROWS_API_URL, "GET", params=params)
+        if res is None or not res.ok:
+            self.logger.error("cannot get the properties")
+            return []
+
+        return res.json().get("postings", [])
+
+    def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         tipo_propiedad_map = {
             "house": "1",
         }
@@ -292,112 +380,128 @@ class Inmuebles24(Portal):
             "MXN": "10"
         }
 
-        # payload = {
-        #     "aviso.titulo": property.title,
-        #     "aviso.descripcion": property.description,
-        #     "isDesarrollo-control": "false",
-        #     "aviso.idTipoDePropiedad": tipo_propiedad_map[str(property.type)],
-        #     "aviso.antiguedad": property.antiquity,
-        #     "aviso.habitaciones": property.rooms,
-        #     "aviso.garages": property.parking_lots,
-        #     "aviso.banos": property.bathrooms,
-        #     "aviso.mediosBanos": property.half_bathrooms,
-        #     "monedaVenta": currency_map[property.currency],
-        #     "precioVenta": property.price,
-        #     "aviso.valorCondominio": "",
-        #     "aviso.metrosCubiertos": property.m2_covered,
-        #     "aviso.metrosTotales": property.m2_total,
-        #     "aviso.idProvincia": "69",
-        #     "aviso.idCiudad": "516",
-        #     "aviso.idZona": "305005799",
-        #     "aviso.idSubZonaCiudad": "",
-        #     "aviso.direccion": "Marsella+246",
-        #     "aviso.codigoPostal": "",
-        #     "direccion.mapa": "sinMapa",
-        #     "aviso.claveInterna": "",
-        #     "idGeoloc": "",
-        #     "lat": property.ubication.location.lat,
-        #     "lng": property.ubication.location.lng,
-        #     "southwest": "",
-        #     "zoom": "13",
-        #     "aviso.email": "",
-        #     "aviso.idAviso": "",
-        #     "checkContentEnhancerHidden": "",
-        #     "guardarComoBorrador": "",
-        #     "irAlPaso": ""
-        # }
-
         payload = {
-            "aviso.titulo":"Casa de prueba",
-            "aviso.descripcion":"una hermosa casa de prueba. una hermosa casa de prueba",
-            "isDesarrollo-control":"false",
-            "aviso.idTipoDePropiedad":"1",
-            "aviso.antiguedad":"2",
-            "aviso.habitaciones":"0",
-            "aviso.garages":"0",
-            "aviso.banos":"3",
-            "aviso.mediosBanos":"0",
-            "monedaVenta":"10",
-            "precioVenta":"10,000,000",
-            "aviso.valorCondominio":"",
-            "aviso.metrosCubiertos":"100",
-            "aviso.metrosTotales":"200",
-            "aviso.idProvincia":"69",
-            "aviso.idCiudad":"516",
-            "aviso.idZona":"305005799",
-            "aviso.idSubZonaCiudad":"",
-            "aviso.direccion":"Marsella 246",
-            "aviso.codigoPostal":"",
-            "direccion.mapa":"sinMapa",
-            "aviso.claveInterna":"",
-            "idGeoloc":"",
-            "lat":"",
-            "lng":"",
-            "southwest":"",
-            "zoom":"13",
-            "aviso.email":"",
-            "aviso.idAviso":"",
-            "checkContentEnhancerHidden":"",
-            "guardarComoBorrador":"",
-            "irAlPaso":""
+            "aviso.titulo": property.title,
+            "aviso.descripcion": property.description,
+            "isDesarrollo-control": "false",
+            "aviso.idTipoDePropiedad": tipo_propiedad_map[str(property.type)],
+            "aviso.antiguedad": property.antiquity,
+            "aviso.habitaciones": property.rooms,
+            "aviso.garages": property.parking_lots,
+            "aviso.banos": property.bathrooms,
+            "aviso.mediosBanos": property.half_bathrooms,
+            "monedaVenta": currency_map[property.currency],
+            "precioVenta": property.price,
+            "aviso.valorCondominio": "",
+            "aviso.metrosCubiertos": property.m2_covered,
+            "aviso.metrosTotales": property.m2_total,
+            "lat": property.ubication.location.lat,
+            "lng": property.ubication.location.lng,
+
+            "southwest": "",
+            "zoom": "13",
+            "aviso.email": "",
+            "aviso.idAviso": "",
+            "checkContentEnhancerHidden": "",
+            "guardarComoBorrador": "1",
+            "irAlPaso": ""
         }
-    
+
+        if property.ubication.address in internal_ubications: 
+            ubication = internal_ubications[property.ubication.address]["internal"]
+
+            payload = {
+                **payload,
+                "aviso.idProvincia": ubication["state_id"],
+                "aviso.idCiudad": ubication["city_id"],
+                "aviso.idZona": str(ubication["id"]),
+                # "aviso.idSubZonaCiudad": "",
+                "aviso.direccion": extract_street_from_address(property.ubication.address),
+                "aviso.codigoPostal": "",
+                "direccion.mapa": "zona",
+                "aviso.claveInterna": "",
+                # "idGeoloc": "",
+            }
+
+        cookies = {
+            "allowCookies": "true",
+            "changeInbox": "true",
+            "crto_is_user_optout": "false",
+            "G_ENABLED_IDPS": "google",
+            "hashKey": self.request.headers["hashKey"],
+            "hideWelcomeBanner": "true",
+            "IDusuario": self.request.headers["idUsuario"],
+            # "JSESSIONID": "1971D320A1B78F9CDD06DAA4DF456B3C",
+            "pasoExitoso": "{'trigger':'Continuar'&'stepId':1&'stepName':'Datos principales-Profesional'}",
+            "reputationModalLevelSeen": "true",
+            "reputationModalLevelSeen2": "true",
+            "reputationTourLevelSeen": "true",
+            "sessionId": self.request.headers["sessionId"],
+            "showWelcomePanelStatus": "true",
+            "tableCreditsOpen": "true",
+            "usuarioPublisher": "true",
+            "usuarioFormId": self.request.headers["idUsuario"],
+
+            # TODO: dont hardcode this fields
+            "usuarioFormApellido": "Residences",
+            "usuarioFormEmail": "control.general@rebora.com.mx",
+            "usuarioFormNombre": "RBA",
+            "usuarioFormTelefono": "523341690109",
+            "usuarioIdCompany": "50796870",
+            "usuarioLogeado": "control.general@rebora.com.mx",
+        }
+
+        # print(json.dumps(payload, indent=4))
+
         first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
-        res = self.api_req.make(first_step_url, "POST", data=payload)
+        res = self.api_req.make(first_step_url, "POST", data=payload, cookies=cookies)
         if res is None or not res.ok:
-            return Exception("error in creation of the property")
-        self.logger.debug("property succesfully publicated")
+            return Exception("error in creation of the property"), None
+        self.logger.success("property succesfully publicated")
 
+        # The request dont give us the id of the property created, then we save the last prop id and updated
+        self.last_prop_id = self.get_last_prop_id()
 
-        print("HEADERS:")
-        print(res.headers)
-        print("RESPONSE:")
-        print(res.text)
-        print("STATUS:")
-        print(res.status_code)
+        self.logger.debug("adding amenities")
+        amenities_url = f"https://www.inmuebles24.com/publicarPasoCaracteristicas.bum?idaviso={self.last_prop_id}&checkContentEnhancerUrl=true"
+        res = self.api_req.make(amenities_url, "POST", data=amenities, cookies=cookies)
+        if res is None or not res.ok:
+            return Exception("error adding the amenities"), None
+        self.logger.success("amenities succesfully added")
 
-        with open("res", "w") as f:
-            f.write(res.text)
+        err = self.upload_images(str(self.last_prop_id), property, cookies)
+        if err is not None:
+            self.logger.error("error uploading images")
+            return err, None
 
-        return None
+        # Publish
+        self.logger.debug("publishing property")
+        publish_url = f"{SITE_URL}publicarPasoPublicacion.bum?idaviso={self.last_prop_id}&idProducto=101491&idPlanDePublicacion=103"
+        res = self.api_req.make(publish_url, "GET", cookies=cookies)
+        if res is None or not res.ok:
+            return Exception("error publishing the property"), None
 
-        # prop_id = "146019337"
-        #
-        # return self.upload_images(prop_id, property.images)
+        return None, str(self.last_prop_id)
 
     # upload each image multipart/form-data to upload_url
     # add image to the property with add_image_url
-    def upload_images(self, prop_id: str, images: list[dict[str, str]]):
+    # add the video and virtual route too
+    def upload_images(self, prop_id: str, prop: Property, cookies):
         upload_url = f"https://www.inmuebles24.com/avisoImageUploader.bum?idAviso={prop_id}"
         add_image_url = f"https://www.inmuebles24.com/publicarPasoMultimedia.bum?idaviso={prop_id}"
 
         uploaded_images = []
-        for image in images:
+        for image in prop.images:
             self.logger.debug(f"downloading {image['url']}")
-            img_data = download_file(token, image["url"])
+            img_data = download_file(image["url"])
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
             self.logger.success("image downloaded successfully")
+
+            files = [
+                ('name', ("image.png")),
+                ('file', ("image.png", img_data, f"image/png")),
+            ]
 
             img_type = "png" if "png" in image["url"] else "jpeg"
             file_name = f"image.{img_type}"
@@ -408,47 +512,96 @@ class Inmuebles24(Portal):
 
             self.logger.debug("uploading the image")
 
-            PARAMS = {
-                "apikey": ZENROWS_API_KEY,
-                "url": upload_url,
-                "js_render": "true",
-                "antibot": "true",
-                "premium_proxy": "true",
-                "proxy_country": "mx",
-                # "session_id": 10,
-                "custom_headers": "true",
-                "original_status": "true",
-                "autoparse": "true"
-            }
-            res = requests.post(upload_url, headers=self.request.headers)
+            params = PARAMS.copy()
+            params["url"] = upload_url
+            res = requests.post(
+                ZENROWS_API_URL,
+                # "POST",
+                params=params,
+                files=files,
+                cookies=cookies,
+                headers={
+                    "sessionId": self.request.headers["sessionId"],
+                    "idUsuario": self.request.headers["idUsuario"],
+                }
+            )
+            # res = self.api_req.make(upload_url, "POST", files=files, cookies=cookies)
             if res is None or not res.ok:
-                print(res.text)
                 self.logger.error("error uploading the image")
-                return
                 continue
 
-            file_id = res.text.replace("FILEID:", "")
-            uploaded_images.append(file_id)
-            self.logger.success(f"image uploaded successfully, file_id: {file_id}")
+            file_url = res.text.replace("FILEID:", "")
+            self.logger.success(f"image uploaded successfully, url: {file_url}")
 
+            uploaded_images.append(file_url)
+
+        # print(json.dumps(uploaded_images, indent=4))
         payload: dict[str, Any] = {
-            "multimediaaviso.idMultimediaAviso[]": []
+            "multimediaaviso.idMultimediaAviso[]": [],
+            "idAviso": prop_id,
+            "irAlPaso": "",
+            "checkContentEnhancerHidden": "",
+            "guardarComoBorrador": "1",
+            "mutimediaaviso.keyRecorrido360": prop.virtual_route if prop.virtual_route is not None else "",
+            "mutimediaaviso.idRecorrido360": "-1",
+            "mutimediaaviso.idRecorrido360Multimedia--1": prop.virtual_route if prop.virtual_route is not None else "",
+            "mutimediaaviso.idRecorrido360Orden[-1]": "2"
         }
+
+        # add the video url
+        if prop.video_url is not None:
+            # https://youtu.be/H9RlIXuS1is. key => H9RlIXuS1is
+            parts = prop.video_url.split("/") 
+            video_key = parts[len(parts) - 1]
+
+            payload = {
+                **payload,
+                "mutimediaaviso.keyvideo": video_key,
+                f"mutimediaaviso.idVideoMultimediaOrden[{video_key}]": "1",
+            }
+
         i = 0
-        for img_id in uploaded_images:
+        for img_url in uploaded_images:
+            # Obtain the file name. ej:
+            # file_url: https://storage.googleapis.com/rp-tmp-images/avisos/18/01/46/26/66/66/180x140/temp_aviso_146266666_656c6604-52ef-4b20-8ba5-21b0b9d3cbd6.jpg
+            # the file id its: temp_aviso_146266666_656c6604-52ef-4b20-8ba5-21b0b9d3cbd6.jpg
+            # split by / and get the last part
+            parts = img_url.split("/")
+            img_id = parts[len(parts)-1]
+
             id = f"nueva_{i}"
-            payload[f"multimediaaviso.orden[{id}]"] = str(i)
-            payload[f"multimediaaviso.rotacion[{id}"] = "0"
+            payload[f"multimediaaviso.orden[{id}]"] = str(i+1)
+            payload[f"multimediaaviso.rotacion[{id}]"] = "0"
             payload[f"multimediaaviso.urlTempImage[{id}]"] = img_id
             payload[f"multimediaaviso.titulo[{id}]"] = ""
             payload["multimediaaviso.idMultimediaAviso[]"].append(id)
 
             i += 1 
 
-        res = self.request.make(add_image_url, "POST", json=payload)
-        if res is None or not res.ok:
-            return Exception("error uploading the image")
+        # print(json.dumps(payload, indent=4))
 
+        params = PARAMS.copy()
+        params["js_render"] = "true"
+        params["antibot"] = "true"
+        params["url"] = add_image_url
+        res = requests.post(
+            ZENROWS_API_URL,
+            # "POST",
+            params=params, 
+            data=payload, 
+            cookies=cookies, 
+            headers={
+                "sessionId": self.request.headers["sessionId"],
+                "idUsuario": self.request.headers["idUsuario"],
+            }
+        )
+        if res is None or not res.ok:
+            return Exception("error adding the image to the publication")
+
+        if "CAPTCHA" in res.text:
+            return Exception("CAPTCHA found on the image publication response")
+
+        self.logger.success("images added successfully to the publication")
 
     def make_contacted(self, lead: dict):
         self._change_status(lead, Status.contacted)
