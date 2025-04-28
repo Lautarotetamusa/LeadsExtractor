@@ -13,12 +13,20 @@ assert API_PORT is not None, "Error: 'API_PORT env variable not set'"
 assert API_HOST is not None, "Error: 'API_HOST env variable not set'"
 assert API_PROTOCOL is not None, "Error: 'API_PROTOCOL env variable not set'"
 
+API_BASE_URL = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}" 
+
+def download_file(url: str) -> bytes | None:
+    res = requests.get(url)
+    if not res.ok:
+        return None
+
+    return res.content
 
 def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
-    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/assign"
+    url = f"{API_BASE_URL}/assign"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
-        logger.error("Error en la peticion: "+str(res.json()))
+        logger.error("Request error: "+str(res.json()))
         return False, None
     logger.success("Asesor obtenido correctamente")
 
@@ -30,10 +38,10 @@ def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
 
 
 def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
-    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/communication"
+    url = f"{API_BASE_URL}/communication"
     res = requests.post(url, json=lead.__dict__)
     if not res.ok:
-        logger.error("Error en la peticion: "+str(res.text))
+        logger.error("Request error: "+str(res.text))
         return False, None
     logger.success("Communication cargada correctamente")
 
@@ -45,14 +53,14 @@ def new_communication(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
 
 
 def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> list[Lead]:
-    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/communications?date={date}"
+    url = f"{API_BASE_URL}/communications?date={date}"
 
     if is_new is not None:
         url += f"&is_new={'true' if is_new else 'false'}"
 
     res = requests.get(url)
     if not res.ok:
-        logger.error("Error en la peticion: "+str(res.json()))
+        logger.error("Request error: "+str(res.json()))
         return []
 
     leads = []
@@ -67,7 +75,7 @@ def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> l
     return leads
 
 def update_publication(property_id: int, portal: str, status: str, publication_id: str | None = None):
-    url = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}/property/{property_id}/publications/{portal}"
+    url = f"{API_BASE_URL}/property/{property_id}/publications/{portal}"
     payload = {
         "status": status,
     }

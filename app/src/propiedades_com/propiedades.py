@@ -12,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from src.address import extract_street_from_address
-from src.onedrive.main import download_file, token
+from src.api import download_file
 from src.propiedades_com.amenities import amenities
 from src.property import OperationType, Property, PropertyType, Ubication
 from src.portal import Mode, Portal
@@ -401,7 +401,7 @@ class Propiedades(Portal):
 
         for image in images:
             self.logger.debug(f"downloading {image['url']}")
-            img_data = download_file(token, image["url"])
+            img_data = download_file(image["url"])
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
 
