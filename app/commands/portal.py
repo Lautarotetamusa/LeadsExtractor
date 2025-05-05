@@ -29,7 +29,8 @@ PORTAL_TASKS = [
     "first_run",
     "main",
     "test",
-    "unpublish"
+    "unpublish",
+    "highlight"
 ]
 
 def USAGE():
@@ -48,6 +49,7 @@ def USAGE():
             - main
             - test
             - unpublish <PUBLICATION_ID>
+            - highlight <PUBLICATION_ID>
     """)
 
 def portal(args: list[str]):
@@ -68,7 +70,7 @@ def portal(args: list[str]):
         USAGE()
         exit(1)
 
-    if task == "unpublish" and len(args) < 3:
+    if task == "unpublish" or task == "highlight" and len(args) < 3:
         print("PUBLICATION_ID its required")
         USAGE()
         exit(1)

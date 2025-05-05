@@ -178,6 +178,19 @@ class Lamudi(Portal):
         # }
         return res.json().get("data")
 
+    def highlight(self, publication_id: str) -> Exception | None:
+        highlight_url = f"{API_URL}/properties/{publication_id}/superboost"
+
+        payload = {
+            "superboosted": True
+        }
+
+        res = self.request.make(highlight_url, "PUT", json=payload)
+        if res is None:
+            return Exception(f"error highlighting the property with id {publication_id}")
+        if not res.ok:
+            return Exception(f"error highlighting the property with id {publication_id}. err: {res.text}")
+
     def unpublish(self, publication_id: str) -> Exception | None:
         url = f"{API_URL}/properties/{publication_id}"
 
