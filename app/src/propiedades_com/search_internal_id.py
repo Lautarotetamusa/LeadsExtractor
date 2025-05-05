@@ -1,7 +1,5 @@
 # Script: get the casasyterrenos internal ids for the required zones
 
-import re
-
 def USAGE():
     print("""
         python search_internal_zones.py <neighborhoods-file.json> <state> <state-id> <city> <city-id>
