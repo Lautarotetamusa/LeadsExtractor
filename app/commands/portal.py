@@ -70,7 +70,7 @@ def portal(args: list[str]):
         USAGE()
         exit(1)
 
-    if task == "unpublish" or task == "highlight" and len(args) < 3:
+    if (task == "unpublish" or task == "highlight") and len(args) < 3:
         print("PUBLICATION_ID its required")
         USAGE()
         exit(1)

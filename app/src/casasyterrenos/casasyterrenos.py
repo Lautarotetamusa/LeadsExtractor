@@ -3,7 +3,8 @@ import time
 import os
 import uuid
 import requests
-from datetime import datetime
+import urllib.parse
+from datetime import datetime, date, timedelta
 from typing import Iterator
 
 from selenium import webdriver
@@ -101,6 +102,60 @@ class CasasYTerrenos(Portal):
         })
 
         return lead
+
+    def unpublish(self, publication_id: str) -> Exception | None:
+        unpublish_url = f"{API_URL}/property/{publication_id}"
+
+        payload = {
+            "id": publication_id,
+            "status": "inactive"
+        }
+
+        res = self.request.make(unpublish_url, "PATCH", json=payload)
+        if res is None:
+            return Exception(f"error unpublishing the property with id {publication_id}")
+        if not res.ok:
+            return Exception(f"error unpublishing the property with id {publication_id}. err: {res.text}")
+
+    def highlight(self, publication_id: str) -> Exception | None:
+        url = f"{API_URL}/featured_property/"
+        days_duration = 3 # i dont know if this can be greater 
+        payload = {
+            "properties": [
+                {
+                    "end_date": (date.today() + timedelta(days=days_duration)).strftime("%Y-%m-%d"), # "2025-08-05",,
+                    "property": publication_id,
+                    "start_date": date.today().strftime("%Y-%m-%d"), # "2025-05-05",
+                    "status": 1
+                }
+            ]
+        }
+        res = self.request.make(url, "POST", json=payload)
+        if res is None:
+            return Exception(f"error unpublishing the property with id {publication_id}")
+        if not res.ok:
+            return Exception(f"error unpublishing the property with id {publication_id}. err: {res.text}")
+
+    def get_properties(self, status="published", featured=True) -> Iterator[dict]:
+        url = f"{API_URL}/my_property?"
+        params = {
+            "page": 1,
+            "ordering": "-created",
+            "status": status,
+            "featured": featured
+        }
+
+        next = url + urllib.parse.urlencode(params, doseq=True)
+        while next is not None:
+            res = self.request.make(next, "GET")
+            if res is None:
+                break
+
+            data = res.json()
+            for result in data.get("results"):
+                yield result
+
+            next = data.get("next")
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         prop_id = self.publish_first_step(property)
@@ -301,7 +356,6 @@ class CasasYTerrenos(Portal):
             access_token = driver.execute_script(f"return window.localStorage.getItem('CognitoIdentityServiceProvider.{CLIENT_ID}.{self.username}.idToken');")
             if access_token is not None:
                 self.logger.success("Access token obtenido con exito")
-                self.logger.success(access_token)
             else:
                 self.logger.error("No se pudo obtener el access_token")
 
