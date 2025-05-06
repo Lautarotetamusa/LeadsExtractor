@@ -178,6 +178,31 @@ class Lamudi(Portal):
         # }
         return res.json().get("data")
 
+    def get_properties(self, status="", featured=False) -> Iterator[dict]:
+        url = f"{API_URL}/properties"
+        params = {
+            "_limit": 25,
+            "_order": "desc",
+            "_page": 1,
+            "_sort": "date",
+            # "published": 1,
+            "superboosted": featured,
+        }
+
+        props = [1]
+        while len(props) > 0:
+            self.logger.debug("page: " + str(params["_page"]))
+            res = self.request.make(url, "GET", params=params)
+            if res is None or not res.ok:
+                break
+
+            data = res.json().get("data", {})
+            props = data.get("rows", [])
+            params["_page"] += 1
+
+            for prop in props:
+                yield prop
+
     def highlight(self, publication_id: str) -> Exception | None:
         highlight_url = f"{API_URL}/properties/{publication_id}/superboost"
 
