@@ -1,15 +1,15 @@
 # Script: get the inmuebles24 internal ids for the required zones
 # state: Jalisco - 74
 # city:  Zapopan - 779
-
-import re
+# city: Tlajomulco de Zúñiga - 790
 
 def USAGE():
     print("""
-        python search_internal_zones.py <neighborhoods-file.json> <state> <state-id> <city> <city-id>
+        python search_internal_zones.py <neighborhoods-file.json> <state-id> <city-id>
+        python search_internal_zones.py validate
 
           Ej:
-        python search_internal_zones.py municipalities.json 74 779
+        python search_internal_zones.py neighborhoods-779.json 74 779
     """)
 
 def search_neighborhood(neighbors: list[dict], key: str) -> dict | None:
@@ -26,29 +26,52 @@ def search_neighborhood(neighbors: list[dict], key: str) -> dict | None:
 
     return None
 
+def validate():
+    with open("internal_zones.json", "r") as f:
+        zones = json.load(f)
+
+    with open("zones.csv", "r") as f:
+        rows = csv.DictReader(f)
+
+        not_found = 1
+        for row in rows:
+            if row["address"] not in zones:
+                not_found += 1
+                print(row["internal"], "dont found")
+
+        print("not found: ", not_found)
+
 if __name__ == "__main__":
     import json
     import csv
     import sys
 
-    if len(sys.argv) < 6:
+    if sys.argv[1] == "validate":
+        validate()
+        exit(0)
+
+    if len(sys.argv) < 4:
         print("missing required parasm")
         USAGE()
         exit(1)
 
     neighborhood_file = sys.argv[1]
-    state = sys.argv[2]
-    state_id = sys.argv[3]
-    city = sys.argv[4]
-    city_id = sys.argv[5]
+    state_id = sys.argv[2]
+    city_id = sys.argv[3]
+
+    print("state_id: ", state_id)
+    print("city_id: ", city_id)
 
     with open(neighborhood_file, "r") as f:
         neighborhoods = json.load(f)["contenido"]["localidades"]
 
-    zones = {}
+    with open("internal_zones.json", "r") as f:
+        zones = json.load(f)
+ 
     with open("zones.csv", "r") as f:
         rows = csv.DictReader(f)
 
+        not_found = 1
         for row in rows:
             if row["internal"] == "":
                 continue
@@ -56,18 +79,22 @@ if __name__ == "__main__":
             internal_ubication = search_neighborhood(neighborhoods, row["internal"])
 
             if internal_ubication is None:
-                print(row["internal"], "not found")
+                not_found += 1
+                # print(row["internal"], "not found")
                 continue
+            print(row["internal"])
 
-            internal_ubication["state"] = state
+            # internal_ubication["state"] = state
             internal_ubication["state_id"] = state_id
-            internal_ubication["city"] = city
+            # internal_ubication["city"] = city
             internal_ubication["city_id"] = city_id
 
             zones[row["address"]] = {
                 "zone": row["zone"],
                 "internal": internal_ubication,
             }
+
+        print("not found: ", not_found)
 
     # print(json.dumps(zones, indent=4))
     with open("internal_zones.json", "w") as f:

@@ -436,6 +436,10 @@ class Inmuebles24(Portal):
                 "aviso.claveInterna": "",
                 # "idGeoloc": "",
             }
+        else:
+            return Exception(f"no internal zone, address: {property.ubication.address}"), None
+
+        print(json.dumps(payload, indent=4))
 
         cookies = {
             "allowCookies": "true",
@@ -598,22 +602,38 @@ class Inmuebles24(Portal):
         params["js_render"] = "true"
         params["antibot"] = "true"
         params["url"] = add_image_url
-        res = requests.post(
-            ZENROWS_API_URL,
-            # "POST",
-            params=params, 
-            data=payload, 
-            cookies=cookies, 
-            headers={
-                "sessionId": self.request.headers["sessionId"],
-                "idUsuario": self.request.headers["idUsuario"],
-            }
-        )
-        if res is None or not res.ok:
-            return Exception("error adding the image to the publication")
 
-        if "CAPTCHA" in res.text:
-            return Exception("CAPTCHA found on the image publication response")
+        max_tries = 3
+        t = 1
+        error = True
+
+        while error and t <= max_tries:
+            res = requests.post(
+                ZENROWS_API_URL,
+                # "POST",
+                params=params, 
+                data=payload, 
+                cookies=cookies, 
+                headers={
+                    "sessionId": self.request.headers["sessionId"],
+                    "idUsuario": self.request.headers["idUsuario"],
+                }
+            )
+            if res is None or not res.ok:
+                self.logger.error("error adding the image to the publication")
+                t += 1
+                continue
+
+            if "CAPTCHA" in res.text:
+                self.logger.error("CAPTCHA found on the image publication response")
+                t += 1
+                continue
+            
+            t += 1
+            error = False
+
+        if error:
+            return Exception("cannot add the images to the publication")
 
         self.logger.success("images added successfully to the publication")
 
