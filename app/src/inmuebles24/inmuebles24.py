@@ -424,6 +424,10 @@ class Inmuebles24(Portal):
         if property.ubication.address in internal_ubications: 
             ubication = internal_ubications[property.ubication.address]["internal"]
 
+            err, id_geoloc = self.get_geolocation(ubication, property.ubication.address)
+            if err is not None:
+                return err, None
+
             payload = {
                 **payload,
                 "aviso.idProvincia": ubication["state_id"],
@@ -432,9 +436,9 @@ class Inmuebles24(Portal):
                 # "aviso.idSubZonaCiudad": "",
                 "aviso.direccion": extract_street_from_address(property.ubication.address),
                 "aviso.codigoPostal": "",
-                "direccion.mapa": "zona",
+                "direccion.mapa": "exacta", # exacta | zona | mapa
                 "aviso.claveInterna": "",
-                # "idGeoloc": "",
+                "idGeoloc": id_geoloc,
             }
         else:
             return Exception(f"no internal zone, address: {property.ubication.address}"), None
@@ -449,7 +453,6 @@ class Inmuebles24(Portal):
             "hashKey": self.request.headers["hashKey"],
             "hideWelcomeBanner": "true",
             "IDusuario": self.request.headers["idUsuario"],
-            # "JSESSIONID": "1971D320A1B78F9CDD06DAA4DF456B3C",
             "pasoExitoso": "{'trigger':'Continuar'&'stepId':1&'stepName':'Datos principales-Profesional'}",
             "reputationModalLevelSeen": "true",
             "reputationModalLevelSeen2": "true",
@@ -500,6 +503,44 @@ class Inmuebles24(Portal):
             return Exception("error publishing the property"), None
 
         return None, str(self.last_prop_id)
+
+    def get_geolocation(self, ubication, address: str) -> tuple[Exception, None] | tuple[None, str]:
+        self.logger.debug("getting geolocation")
+        url_obtener_loc = "https://www.inmuebles24.com/publicar_obtenerLocalidadAGeoloc.ajax"
+        url_geolicalizar = "https://www.inmuebles24.com/publicar_geolocalizar.ajax"
+
+        payload = {
+            "idCiudad": ubication["city_id"],
+            "idZona": str(ubication["id"]),
+            "idSubZona": "",
+            "idCodigoPostal": ""
+        }
+        print(payload)
+        res = self.api_req.make(url_obtener_loc, "POST", data=payload)
+        if res is None or not res.ok:
+            return Exception("error getting geolocation"), None
+
+        data = res.json()
+        print(json.dumps(data, indent=4))
+        # ej: Fraccionamiento Las Lomas Club Golf,Zapopan,Jalisco,Mexico
+        contenido = data.get("contenido")
+        if contenido is None:
+            return Exception("cannot get geolocation content"), None
+        payload = {
+            "direccionOriginal": address + ", " + contenido
+        }
+        print(payload)
+
+        res = self.api_req.make(url_geolicalizar, "POST", data=payload)
+        if res is None or not res.ok:
+            return Exception("error getting geolocation"), None
+
+        data = res.json()
+        geo_id: str | None = data.get("contenido", {}).get("geolocdefault", {}).get("idgeolocalizacion")
+        if geo_id is None:
+            print(json.dumps(data, indent=4))
+            return Exception("cannot get geolocation id"), None
+        return None, geo_id
 
     # upload each image multipart/form-data to upload_url
     # add image to the property with add_image_url
