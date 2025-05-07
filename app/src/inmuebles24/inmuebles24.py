@@ -31,6 +31,10 @@ PARAMS = {
     # "autoparse": "true"
 }
 
+class PublicationPlan(Enum):
+    SuperHighlighted = 101
+    Highlighted = 102
+
 path = os.path.join(os.path.dirname(__file__), "internal_zones.json")
 try:
     with open(path, "r") as f:
@@ -38,20 +42,6 @@ try:
 except Exception as e:
     print(f"missing zones {path}")
     exit(1)
-
-# PARAMS = {
-#     "apikey": ZENROWS_API_KEY,
-#     "url": "",
-#     # "js_render": "true",
-#     # "antibot": "true",
-#     "premium_proxy": "true",
-#     "proxy_country": "mx",
-#     "custom_headers": "true",
-#     # "session_id": "3",
-#     "original_status": "true",
-#     # "autoparse": "true",
-#     # "screenshot": "true"
-# }
 
 def extract_busqueda_info(data: dict | None) -> dict:
     if data is None:
@@ -129,15 +119,6 @@ class Inmuebles24(Portal):
             "usuarioIdCompany": "50796870",
             "usuarioLogeado": "control.general@rebora.com.mx",
         }
-
-        # postings = self.get_properties()
-        # if len(postings) == 0:
-        #     self.logger.error("cannot get the properties")
-        #     return
-        #
-        # self.last_prop_id = postings[0]["postingId"]
-        self.last_prop_id = 146281619
-        self.logger.debug("last posting id: " + str(self.last_prop_id))
 
     def login(self):
         self.logger.debug("Iniciando sesion")
@@ -371,6 +352,26 @@ class Inmuebles24(Portal):
             return []
 
         return res.json().get("postings", [])
+
+    def highlight(self, publication_id: str) -> Exception | None:
+        self.logger.debug("highlighting property")
+        url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/publish"
+
+        payload = {
+            # "postingAndPublisherId": {
+            #     "146374728": 50322706
+            # },
+            "postingIds": [
+                publication_id
+            ],
+            "publicationPlan": PublicationPlan.Highlighted.value
+        }
+
+        params = PARAMS.copy()
+        params["url"] = url
+        res = self.request.make(ZENROWS_API_URL, "PUT", params=params, json=payload)
+        if res is None or not res.ok:
+            return Exception(f"cannot highlight the property {res.text if res is not None else ''}")
 
     def unpublish_multiple(self, publication_ids: list[str]) -> Exception | None:
         unpublish_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/suspend"
