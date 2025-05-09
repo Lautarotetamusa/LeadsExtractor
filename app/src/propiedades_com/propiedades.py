@@ -42,14 +42,6 @@ ZENROWS_PARAMS = {
     "autoparse": "true"
 }
 
-path = os.path.join(os.path.dirname(__file__), "internal_zones.json")
-try:
-    with open(path, "r") as f:
-        internal_ubications = json.load(f)
-except Exception as e:
-    print(f"missing zones {path}")
-    exit(1)
-
 # Lista de estados posibles de un lead
 class Status(IntEnum):
     NUEVO = 1

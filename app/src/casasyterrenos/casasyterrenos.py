@@ -27,14 +27,6 @@ API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
 MEDIA_URL = "https://cyt-media.s3.amazonaws.com/"
 CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
 
-path = os.path.join(os.path.dirname(__file__), "internal_zones.json")
-try:
-    with open(path, "r") as f:
-        internal_ubications = json.load(f)
-except Exception as e:
-    print(f"missing zones {path}")
-    exit(1)
-
 class CasasYTerrenos(Portal):
     def __init__(self):
         super().__init__(
@@ -221,18 +213,7 @@ class CasasYTerrenos(Portal):
         return data.get("id")
 
     def add_ubication(self, prop_id: int, property: Property) -> Exception | None:
-        ubication = { # Default harcoded ubication
-            # Hardcoded for now. i cannot have a simple way to obtain the internal 
-            # state, municipality id
-            "state": "14", # Jalisco
-            "colony": 834012,
-            "municipality": 2995,
-            "exterior_number": "246",
-            "interior_number": "",
-            "street": "Marsella"
-        }
-        if property.ubication.address in internal_ubications: 
-            ubication = internal_ubications[property.ubication.address]["internal"]
+        ubication = internal_ubications[property.ubication.address]["internal"]
 
         payload = {
             "latitude": property.ubication.location.lat,

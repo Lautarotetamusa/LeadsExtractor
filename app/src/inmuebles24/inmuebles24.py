@@ -35,14 +35,6 @@ class PublicationPlan(Enum):
     SuperHighlighted = 101
     Highlighted = 102
 
-path = os.path.join(os.path.dirname(__file__), "internal_zones.json")
-try:
-    with open(path, "r") as f:
-        internal_ubications = json.load(f)
-except Exception as e:
-    print(f"missing zones {path}")
-    exit(1)
-
 def extract_busqueda_info(data: dict | None) -> dict:
     if data is None:
         return {}
@@ -140,6 +132,7 @@ class Inmuebles24(Portal):
             return
 
         data = res.json()
+        print(data)
 
         self.request.headers = {
             "sessionId": data["contenido"]["sessionID"],
@@ -422,27 +415,24 @@ class Inmuebles24(Portal):
             "irAlPaso": ""
         }
 
-        if property.ubication.address in internal_ubications: 
-            ubication = internal_ubications[property.ubication.address]["internal"]
+        ubication = internal_ubications[property.ubication.address]["internal"]
 
-            err, id_geoloc = self.get_geolocation(ubication, property.ubication.address)
-            if err is not None:
-                return err, None
+        err, id_geoloc = self.get_geolocation(ubication, property.ubication.address)
+        if err is not None:
+            return err, None
 
-            payload = {
-                **payload,
-                "aviso.idProvincia": ubication["state_id"],
-                "aviso.idCiudad": ubication["city_id"],
-                "aviso.idZona": str(ubication["id"]),
-                # "aviso.idSubZonaCiudad": "",
-                "aviso.direccion": extract_street_from_address(property.ubication.address),
-                "aviso.codigoPostal": "",
-                "direccion.mapa": "exacta", # exacta | zona | mapa
-                "aviso.claveInterna": "",
-                "idGeoloc": id_geoloc,
-            }
-        else:
-            return Exception(f"no internal zone, address: {property.ubication.address}"), None
+        payload = {
+            **payload,
+            "aviso.idProvincia": ubication["state_id"],
+            "aviso.idCiudad": ubication["city_id"],
+            "aviso.idZona": str(ubication["id"]),
+            # "aviso.idSubZonaCiudad": "",
+            "aviso.direccion": extract_street_from_address(property.ubication.address),
+            "aviso.codigoPostal": "",
+            "direccion.mapa": "exacta", # exacta | zona | mapa
+            "aviso.claveInterna": "",
+            "idGeoloc": id_geoloc,
+        }
 
         print(json.dumps(payload, indent=4))
 
