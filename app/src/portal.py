@@ -4,7 +4,7 @@ import time
 from typing import Iterator, Tuple
 from multiprocessing.pool import ThreadPool
 
-from src.property import Property
+from src.property import PlanType, Property
 from src.lead import Lead
 from src.make_requests import Request
 from src.logger import Logger
@@ -81,7 +81,7 @@ class Portal():
         pass
     def make_failed(self, lead: dict):
         pass
-    def highlight(self, publication_id: str) -> Exception | None:
+    def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
         pass
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         """publish a property in a portal.

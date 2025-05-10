@@ -1,3 +1,4 @@
+from typing import TypedDict
 from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 import threading
@@ -12,7 +13,7 @@ from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
 
 from src.api import update_publication
-from src.property import Location, Property, Ubication
+from src.property import Internal, Location, PlanType, Property, Ubication
 from src.logger import Logger
 import src.tasks as tasks
 
@@ -50,6 +51,9 @@ PORTALS: dict[str, Portal] = {
     "lamudi": Lamudi()
 }
 
+with open("internal_zones.json", "r") as f:
+    internal_zones: dict[str, dict[str, Internal]]= json.load(f)
+
 thread = threading.Thread(target=tasks.init_task_scheduler)
 thread.start()
 
@@ -83,12 +87,25 @@ def ejecutar_script_route():
     return "Proceso en segundo plano iniciado."
 
 def publish(portal: str, property: Property):
+    logger.debug("plan: " +str(property.plan))
+    # json.dumps(property.__dict__, indent=4)
     err, publication_id = PORTALS[portal].publish(property)
-    if err is None:
-        update_publication(property.id, portal, "published", publication_id)
-    else:
+    if err is not None or publication_id is None:
         update_publication(property.id, portal, "failed")
         logger.error("publication failed: " + err.__str__())
+        return
+
+    if property.plan != PlanType.SIMPLE.value:
+        err = PORTALS[portal].highlight(publication_id, property.plan)
+        if err is not None:
+            update_publication(property.id, portal, "failed")
+            logger.error("publication failed: " + err.__str__())
+            return
+
+    update_publication(property.id, portal, "published", publication_id)
+
+def get_internal(portal: str, zone: str) -> Internal | None:
+    return internal_zones.get(portal, {}).get(zone)
 
 @app.route('/publish/<portal>', methods=['POST'])
 def publish_route(portal: str):
@@ -96,6 +113,11 @@ def publish_route(portal: str):
         return jsonify({"error": f"Portal f{portal} is not valid"}), 400
 
     data = request.get_json()
+    internal = get_internal(portal, data.get("zone"))
+    if internal is None:
+        return jsonify({"error": f"zone {data.get('zone')} does not have internal for {portal}"}), 400
+    data["internal"] = internal
+
     property = Property(**data)
     property.ubication = Ubication(**data["ubication"])
     property.ubication.location = Location(**data["ubication"]["location"])

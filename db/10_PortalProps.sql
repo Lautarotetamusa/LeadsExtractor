@@ -19,12 +19,15 @@ CREATE TABLE IF NOT EXISTS PortalProp(
     video_url VARCHAR(256) DEFAULT NULL,
     virtual_route VARCHAR(256) DEFAULT NULL,
 
+    zone VARCHAR(256) NOT NULL,
+
     /* Ubication fields */
     address VARCHAR(256) NOT NULL, /*Full google valid address*/
     lat FLOAT NOT NULL,
     lng FLOAT NOT NULL,
 
     CHECK (title <> ""),
+    CHECK (zone <> ""),
     CHECK (price <> ""),
     CHECK (currency <> ""),
     CHECK (description <> ""),
@@ -76,6 +79,8 @@ CREATE TABLE IF NOT EXISTS PublishedProperty (
     url     VARCHAR(256) DEFAULT NULL,
     status  ENUM("in_progress", "in_queue", "published", "failed") DEFAULT "in_progress" NOT NULL,
     portal  VARCHAR(64) NOT NULL,
+
+    plan    ENUM("simple", "highlighted", "super") DEFAULT "simple" NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Type, TypedDict
 from enum import Enum
 
 class PropertyType(Enum):
@@ -10,6 +10,11 @@ class PropertyType(Enum):
 class OperationType(Enum):
     SALE = "sell"
     RENT = "rent"
+
+class PlanType(Enum):
+    SIMPLE = "simple"
+    HIGHLIGHT = "highlight"
+    SUPER = "super"
 
 @dataclass
 class Image:
@@ -25,10 +30,20 @@ class Ubication:
     address: str
     location: Location
 
+class Internal(TypedDict):
+    state: str
+    state_id: int
+    city: str
+    city_id: int
+    colony: str
+    colony_id: int
+    zipcode: str | None
+
 @dataclass
 class Property:
     id: int
     title: str
+    zone: str
     price: str  # Stored as string to preserve formatting (e.g., "300000")
     currency: str
     description: str
@@ -41,10 +56,13 @@ class Property:
     ubication: Ubication # Full GOOGLE address
     updated_at: datetime
     created_at: datetime
+    plan: PlanType 
+
+    internal: Internal
+
     images: list[dict[str, str]]
     parking_lots: Optional[int] = None
     bathrooms: Optional[int] = None
     half_bathrooms: Optional[int] = None
     video_url: Optional[str] = None
     virtual_route: Optional[str] = None
-    neighborhood: Optional[str] = None

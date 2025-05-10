@@ -1,5 +1,6 @@
 import os
 import sys
+from threading import Thread
 sys.path[0] = os.getcwd()
 
 from src.casasyterrenos.casasyterrenos import CasasYTerrenos
@@ -7,6 +8,19 @@ from src.propiedades_com.propiedades import Propiedades
 from src.lamudi.lamudi import Lamudi
 from src.inmuebles24.inmuebles24 import Inmuebles24
 from src.portal import Portal
+
+def run_all():
+    threads = []
+    for portal_name in PORTALS:
+        if portal_name == "all":
+            continue
+         
+        thread = Thread(target=PORTALS[portal_name].main, args=())
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
 
 if __name__ == "__main__":
     PORTALS: dict[str, Portal ]= {
@@ -28,7 +42,7 @@ if __name__ == "__main__":
         exit(1)
 
     portal = PORTALS[portal_name]
-    for prop in portal.get_properties(featured=True):
+    for prop in portal.get_properties(featured=False):
         id = prop.get("id")
         print(id)
         if id is None:

@@ -523,3 +523,85 @@ inner join Portal
 on Portal.name = Published.portal
 where status = 'published'
 INTO OUTFILE '/data/properties.csv';
+
+/* Get all the properties in queue */
+select * from PublishedProperty
+where status = 'in_queue';
+
+update PublishedProperty
+set status = 'in_queue'
+where status = 'failed';
+
+update PublishedProperty
+set status = 'in_queue'
+where status = 'failed';
+
+update Asesor
+set email = "control.general@rebora.com.mx", name = "Control General"
+where phone = "5213314299454";
+
+/* Publicar todo en inmuebles24 */ 
+select * from PublishedProperty
+where portal = "inmuebles24";
+
+delete from PublishedProperty
+where portal = "inmuebles24";
+
+insert into PublishedProperty (property_id, status, portal)
+select id, "in_queue", "inmuebles24" from PortalProp;
+
+select id from PortalProp
+where address = "La Rioja, Los Gavilanes, 45645 Los Gavilanes, Jal.";
+
+/* obtener cantidad de propiedades correctamente publicadas */
+select COUNT(*)
+from PublishedProperty
+where portal = "inmuebles24"
+and status = "in_progress";
+
+/* UPDATE */
+/* UPDATE */
+update PublishedProperty
+set status = "in_queue"
+where status = "in_progress"
+and portal = "inmuebles24";
+/* UPDATE */
+/* UPDATE */
+
+EL PALOMAR
+LA RIOJA
+LAGO NOGAL
+LAS VILLAS
+LOS GAVILANES
+PROVENZA
+PUNTO SUR
+MARTIN DEL TAJO
+
+SELECT id 
+FROM PortalProp 
+WHERE title LIKE '%PUNTO SUR%';
+
+UPDATE PublishedProperty
+SET status = 'in_queue'
+WHERE portal = 'inmuebles24'
+AND property_id IN (
+    SELECT id 
+    FROM PortalProp 
+    WHERE title LIKE '%MARTIN DEL TAJO%'
+);
+
+select * from PublishedProperty
+where property_id = 3
+and portal = "casasyterrenos";
+
+select * from PublishedProperty
+where portal = "casasyterrenos";
+
+update PublishedProperty
+select * from PublishedProperty
+where status = "failed"
+and portal = "casasyterrenos";
+
+select * from PublishedProperty
+where publication_id is not null
+and portal = "casasyterrenos";
