@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import Iterator, Tuple
+from typing import Iterator 
 from multiprocessing.pool import ThreadPool
 
 from src.property import PlanType, Property
@@ -107,93 +107,92 @@ class Portal():
         else:
             self.logger.warning("No se encontro campo para enviar mensaje")
 
-    def main(self):
-        for page in self.get_leads(Mode.NEW):
-            for lead_res in page:
-                lead = self.get_lead_info(lead_res)
+def main(portal: Portal):
+    for page in portal.get_leads(Mode.NEW):
+        for lead_res in page:
+            lead = portal.get_lead_info(lead_res)
 
-                if lead.telefono is None or lead.telefono == "":
-                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
-                    self.make_contacted(lead_res)
-                    self.make_failed(lead_res)
-                    continue
+            if lead.telefono is None or lead.telefono == "":
+                portal.logger.debug("El lead no tiene telefono, no hacemos nada")
+                portal.make_contacted(lead_res)
+                portal.make_failed(lead_res)
+                continue
 
-                lead.print()
-                is_new, lead = api.new_communication(self.logger, lead)
-                if lead is None:
-                    # TODO: No hardcodear esto
-                    not_valid_msg = """Verificamos tu número de teléfono, y no es válido, para llamar o para enviarte un WhatsApp, por favor envíanos un mensaje a nuestro WhatsApp oficial, o si prefieres llamarnos, te comparto el número de nuestro departamento comercial que está listo, para ayudarte en todo el proceso, bienvenido a tu nueva casa con Rebora"""
-                    txt = bienvenida_1 + not_valid_msg 
-                    self.default_action(lead_res, txt)
-                    self.make_failed(lead_res)
-                    continue
+            lead.print()
+            is_new, lead = api.new_communication(portal.logger, lead)
+            if lead is None:
+                # TODO: No hardcodear esto
+                not_valid_msg = """Verificamos tu número de teléfono, y no es válido, para llamar o para enviarte un WhatsApp, por favor envíanos un mensaje a nuestro WhatsApp oficial, o si prefieres llamarnos, te comparto el número de nuestro departamento comercial que está listo, para ayudarte en todo el proceso, bienvenido a tu nueva casa con Rebora"""
+                txt = bienvenida_1 + not_valid_msg 
+                portal.default_action(lead_res, txt)
+                portal.make_failed(lead_res)
+                continue
 
-                if is_new:
-                    portal_msg = bienvenida_1 + ' ' + format_msg(lead, bienvenida_2)
-                else:
-                    portal_msg = format_msg(lead, response_msg)
+            if is_new:
+                portal_msg = bienvenida_1 + ' ' + format_msg(lead, bienvenida_2)
+            else:
+                portal_msg = format_msg(lead, response_msg)
 
-                self.default_action(lead_res, portal_msg)
+            portal.default_action(lead_res, portal_msg)
 
+def first_run(portal: Portal):
+    pool = ThreadPool(processes=20)
 
-    def first_run(self):
-        pool = ThreadPool(processes=20)
+    count = 0
+    for page in portal.get_leads(Mode.ALL):
+        results = []
+        for lead_res in page:
+            r = pool.apply_async(portal.get_lead_info, args=(lead_res, ))
+            time.sleep(0.4)
+            results.append(r)
 
-        count = 0
-        for page in self.get_leads(Mode.ALL):
-            results = []
-            for lead_res in page:
-                r = pool.apply_async(self.get_lead_info, args=(lead_res, ))
-                time.sleep(0.4)
-                results.append(r)
+        for r in results:
+            lead = r.get()
+            if lead.telefono is None or lead.telefono == "":
+                portal.logger.debug("El lead no tiene telefono, no hacemos nada")
+                continue
 
-            for r in results:
-                lead = r.get()
-                if lead.telefono is None or lead.telefono == "":
-                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
-                    continue
-
-                is_new, lead = api.new_communication(self.logger, lead)
-                self.logger.debug(count)
-                count += 1
-
-    # Obtener solamente 10 leads para ver si está funcionando correctamente
-    def test(self):
-        # self.login()
-
-        pool = ThreadPool(processes=20)
-
-        count = 0
-        max = 10
-        for page in self.get_leads(Mode.ALL):
-            results = []
-            for lead_res in page:
-                r = pool.apply_async(self.get_lead_info, args=(lead_res, ))
-                time.sleep(0.4)
-                results.append(r)
-                count += 1
-                if count >= max:
-                    break
-
-            for r in results:
-                lead = r.get()
-                if lead.telefono is None or lead.telefono == "":
-                    self.logger.debug("El lead no tiene telefono, no hacemos nada")
-                    continue
-
-                lead.print()
-                api.new_communication(self.logger, lead)
-                self.logger.debug(count)
-
-            return
-
-    # Testear si la paginacion esta funcionando bien
-    def test_page(self):
-        count = 0
-        max_pages = 4
-        for page in self.get_leads(Mode.NEW):
-            if count >= max_pages:
-                pass
-                # break
-
+            is_new, lead = api.new_communication(portal.logger, lead)
+            portal.logger.debug(count)
             count += 1
+
+# Obtener solamente 10 leads para ver si está funcionando correctamente
+def test(portal: Portal):
+    # portal.login()
+
+    pool = ThreadPool(processes=20)
+
+    count = 0
+    max = 10
+    for page in portal.get_leads(Mode.ALL):
+        results = []
+        for lead_res in page:
+            r = pool.apply_async(portal.get_lead_info, args=(lead_res, ))
+            time.sleep(0.4)
+            results.append(r)
+            count += 1
+            if count >= max:
+                break
+
+        for r in results:
+            lead = r.get()
+            if lead.telefono is None or lead.telefono == "":
+                portal.logger.debug("El lead no tiene telefono, no hacemos nada")
+                continue
+
+            lead.print()
+            api.new_communication(portal.logger, lead)
+            portal.logger.debug(count)
+
+        return
+
+# Testear si la paginacion esta funcionando bien
+def test_page(portal: Portal):
+    count = 0
+    max_pages = 4
+    for page in portal.get_leads(Mode.NEW):
+        if count >= max_pages:
+            pass
+            # break
+
+        count += 1

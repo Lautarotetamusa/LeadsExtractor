@@ -5,6 +5,8 @@ from src.propiedades_com.propiedades import Propiedades
 from src.lamudi.lamudi import Lamudi
 from src.inmuebles24.inmuebles24 import Inmuebles24
 
+from src.portal import Portal, main, first_run, test
+
 def run_all():
     threads = []
     for portal_name in PORTALS:
@@ -75,5 +77,10 @@ def portal(args: list[str]):
         USAGE()
         exit(1)
     
-    portal = PORTALS[portal_name]() 
-    getattr(portal, task)(*args[2:])
+    portal: Portal = PORTALS[portal_name]() 
+    if task == "main":
+        main(portal, *args[2:]) 
+    if task == "first_run":
+        first_run(portal, *args[2:]) 
+    if task == "test":
+        test(portal, *args[2:]) 
