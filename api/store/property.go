@@ -46,7 +46,9 @@ type Ubication struct {
 }
 
 type PortalProp struct {
-	ID            int64          `json:"id" db:"id"`
+    ID            int64          `json:"id" db:"id" csv:"id"`
+
+    Zone          string            `json:"zone" db:"zone" csv:"zone" validate:"required"`
 
     Title         string            `json:"title" db:"title" csv:"title" validate:"required"`
     Description   string            `json:"description" db:"description" csv:"description" validate:"required"`
@@ -83,18 +85,18 @@ type Images []PropertyImage
 const (
     createPropertyQ = `
         INSERT INTO PortalProp 
-                (title, price, currency, description, type, antiquity, parkinglots, bathrooms, half_bathrooms, rooms, 
+                (title, price, zone, currency, description, type, antiquity, parkinglots, bathrooms, half_bathrooms, rooms, 
                 operation_type, m2_total, m2_covered, video_url, virtual_route,
                 address, lat, lng
             ) 
-        VALUES (:title, :price, :currency, :description, :type, :antiquity, :parkinglots, :bathrooms, :half_bathrooms, :rooms, 
+            VALUES (:title, :price, :zone, :currency, :description, :type, :antiquity, :parkinglots, :bathrooms, :half_bathrooms, :rooms, 
                 :operation_type, :m2_total, :m2_covered, :video_url, :virtual_route,
                 :ubication.address, :ubication.location.lat, :ubication.location.lng
             )`
 
 	updatePropertyQ = `
 		UPDATE PortalProp 
-		SET title = :title, price = :price, currency = :currency, description = :description, type = :type,
+        SET title = :title, price = :price, zone = :zone, currency = :currency, description = :description, type = :type,
 			antiquity = :antiquity, parkinglots = :parkinglots, bathrooms = :bathrooms, 
 			half_bathrooms = :half_bathrooms, rooms = :rooms, operation_type = :operation_type, 
 			m2_total = :m2_total, m2_covered = :m2_covered, video_url = :video_url, virtual_route = :virtual_route,
@@ -102,7 +104,7 @@ const (
 		WHERE id = :id`
 
     selectPropertyQ = `
-        SELECT id, title, price, currency, description, type, antiquity, parkinglots, bathrooms, half_bathrooms,
+        SELECT id, title, zone, price, currency, description, type, antiquity, parkinglots, bathrooms, half_bathrooms,
                rooms, operation_type, m2_total, m2_covered, video_url, virtual_route, created_at, updated_at,
                address as "ubication.address",
                lat as "ubication.location.lat",

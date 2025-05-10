@@ -69,7 +69,6 @@ func (h *PropertyHandler) CreateFromCSV(w http.ResponseWriter, r *http.Request) 
                 h.logger.Error("error inserting property", "err", err)
                 continue
             }
-            // h.logger.Info("property created succesfully")
         }
     }()
     messageResponse(w, "properties creation process has started")

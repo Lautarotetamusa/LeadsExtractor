@@ -23,6 +23,9 @@ type PublishedProperty struct {
     URL        models.NullString `json:"url"         db:"url"`
     Status     PublishedStatus   `json:"status"      db:"status" validate:"required"`
     Portal     models.NullString `json:"portal"      db:"portal" validate:"required"`
+
+    Plan models.NullString `json:"plan" db:"plan" validate:"required,oneof=simple highlighted super"`
+
     // The internal ID of the property in one portal
     PublicationID models.NullString `json:"publication_id" db:"publication_id" validate:"required"`
     UpdatedAt  models.NullTime   `json:"updated_at"  db:"updated_at"`
@@ -45,8 +48,8 @@ type PublishedPropertyStorer interface {
 const (
     insertPublishedPropQ = `
 		INSERT INTO PublishedProperty 
-			(property_id, publication_id, status, portal) 
-        VALUES (:property_id, :publication_id, :status, :portal)`
+			(property_id, publication_id, status, portal, plan) 
+            VALUES (:property_id, :publication_id, :status, :portal, :plan)`
 )
 
 type publishedPropertyStore struct {
@@ -77,7 +80,7 @@ func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedPro
         SELECT 
             name as portal, 
             ifnull(status, "not_published") as status,
-            property_id, publication_id, PP.url, updated_at, created_at
+            property_id, plan, publication_id, PP.url, updated_at, created_at
         FROM Portal P
         LEFT JOIN PublishedProperty PP
             ON P.name = PP.portal
@@ -99,7 +102,7 @@ func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedPro
 func (s *publishedPropertyStore) GetAllByStatus(status PublishedStatus) ([]*PublishedProperty, error) {
 	query := `
         SELECT 
-           portal, status, property_id, publication_id, PP.url, updated_at, created_at
+           portal, status, plan, property_id, publication_id, PP.url, updated_at, created_at
         FROM PublishedProperty PP
         WHERE status = ?`
 
@@ -116,7 +119,7 @@ func (s *publishedPropertyStore) GetAllByStatus(status PublishedStatus) ([]*Publ
 func (s *publishedPropertyStore) GetOne(portal string, propertyID int64) (*PublishedProperty, error) {
 	query := `
 		SELECT 
-			property_id, publication_id, url, status, portal, updated_at, created_at 
+			property_id, plan, publication_id, url, status, portal, updated_at, created_at 
 		FROM PublishedProperty 
 		WHERE portal = ? AND property_id = ?`
 

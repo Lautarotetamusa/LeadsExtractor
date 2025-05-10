@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"leadsextractor/models"
 	"leadsextractor/store"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -18,6 +20,7 @@ import (
 type PropertyPublishPayload struct {
     PropertyID  int16   `json:"property_id"`
     Portal      string  `json:"portal"`
+    Plan        string  `json:"plan"`
 }
 
 type PublishPayload struct {
@@ -53,6 +56,7 @@ func NewPublishedPropertyHandler(storer store.PublishedPropertyStorer, propertyS
         h.queue = append(h.queue, &PropertyPublishPayload{
             PropertyID: prop.PropertyID.Int16,
             Portal: prop.Portal.String,
+            Plan: prop.Plan.String,
         })
     }
     if len(props) > 0 {
@@ -116,12 +120,14 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
             if err != nil {
                 return err
             }
+            pp.Plan = prop.Plan.String
         } else {
             // If the property does not have a publication on the portal, create it
             err := h.storer.Create(&store.PublishedProperty{
                 PropertyID: models.NullInt16{Int16: pp.PropertyID, Valid: true},
                 Portal: models.NullString{String: pp.Portal,Valid: true},
                 Status: store.StatusInProgress,
+                Plan: models.NullString{String: pp.Plan, Valid: true},
             })
 
             if err != nil {
@@ -219,6 +225,7 @@ func (h *PublishedPropertyHandler) processNextItem() {
 	// Start processing in background
 	go func(){
         if err := h.publish(h.current); err != nil {
+            h.logger.Error("error in publish", "err", err)
             // update status processing the next item
             // this maybe can create an infinity call of goroutines?? because updateStatus create another goroutine..
             err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), &store.UpdatePublishedProperty{
@@ -231,7 +238,7 @@ func (h *PublishedPropertyHandler) processNextItem() {
                     "err", err,
                 )
             }
-        }
+        }     
     }()
 }
 
@@ -249,7 +256,13 @@ func (h *PublishedPropertyHandler) publish(item *PropertyPublishPayload) error {
     }
 
     // Run the scraper to publish the property
-    if err = runPublicatorApp(h.appHost, item.Portal, *property); err != nil {
+    if err = runPublicatorApp(h.appHost, item, *property); err != nil {
+        if errors.Is(err, syscall.ECONNREFUSED) {
+            h.mu.Lock()
+            defer h.mu.Unlock()
+            h.logger.Debug("connection refused error, cleaning queue")
+            h.queue = make([]*PropertyPublishPayload, 0)
+        }         
         return err
     }
 
@@ -309,11 +322,19 @@ func (h *PublishedPropertyHandler) GetPublication(w http.ResponseWriter, r *http
     return nil
 }
 
-func runPublicatorApp(appHost string, portal string, property store.PortalProp) error {
-    url := fmt.Sprintf("%s/publish/%s", appHost, portal)
+func runPublicatorApp(appHost string, p *PropertyPublishPayload, property store.PortalProp) error {
+    url := fmt.Sprintf("%s/publish/%s", appHost, p.Portal)
 
     // pass the pointer to the Marshaller to correctly unmarshall the NullString fields
-	jsonBody, err := json.Marshal(&property)
+    type Payload struct {
+        store.PortalProp
+        Plan string `json:"plan"`
+    }
+    payload := Payload{
+        Plan: string(p.Plan),
+        PortalProp: property,
+    }
+	jsonBody, err := json.Marshal(&payload)
     if err != nil {
         return err
     }
