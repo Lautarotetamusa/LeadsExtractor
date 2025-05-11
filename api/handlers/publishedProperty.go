@@ -355,6 +355,9 @@ func runPublicatorApp(appHost string, p *PropertyPublishPayload, property store.
     }
     defer res.Body.Close()
     if res.StatusCode != http.StatusCreated {
+        var text []byte
+        res.Body.Read(text)
+        fmt.Println(string(text))
         return ErrBadRequest("error publishing the property")
     }
 

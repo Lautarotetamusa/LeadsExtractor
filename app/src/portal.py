@@ -81,16 +81,20 @@ class Portal():
         pass
     def make_failed(self, lead: dict):
         pass
+
     def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
         pass
+
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         """publish a property in a portal.
         @returns error or property internal portal id
         """
         return None, "not-implemented"
+
     def unpublish(self, publication_id: str) -> Exception | None:
         """removes a publication from a portal"""
         pass
+
     def login(self):
         pass
 

@@ -132,7 +132,10 @@ class Inmuebles24(Portal):
             return
 
         data = res.json()
-        print(data)
+        contenido = data.get("contenido", {}) 
+        if not contenido.get("result", False):
+            self.logger.error(str(contenido.get("validation", {}).get("errores")))
+            return
 
         self.request.headers = {
             "sessionId": data["contenido"]["sessionID"],
@@ -415,17 +418,15 @@ class Inmuebles24(Portal):
             "irAlPaso": ""
         }
 
-        ubication = internal_ubications[property.ubication.address]["internal"]
-
-        err, id_geoloc = self.get_geolocation(ubication, property.ubication.address)
+        err, id_geoloc = self.get_geolocation(property.internal["colony_id"], property.internal["city_id"], property.ubication.address)
         if err is not None:
             return err, None
 
         payload = {
             **payload,
-            "aviso.idProvincia": ubication["state_id"],
-            "aviso.idCiudad": ubication["city_id"],
-            "aviso.idZona": str(ubication["id"]),
+            "aviso.idProvincia": property.internal["state_id"],
+            "aviso.idCiudad": property.internal["city_id"],
+            "aviso.idZona": str(property.internal["colony_id"]),
             # "aviso.idSubZonaCiudad": "",
             "aviso.direccion": extract_street_from_address(property.ubication.address),
             "aviso.codigoPostal": "",
@@ -495,14 +496,14 @@ class Inmuebles24(Portal):
 
         return None, str(self.last_prop_id)
 
-    def get_geolocation(self, ubication, address: str) -> tuple[Exception, None] | tuple[None, str]:
+    def get_geolocation(self, city_id, colony_id, address: str) -> tuple[Exception, None] | tuple[None, str]:
         self.logger.debug("getting geolocation")
         url_obtener_loc = "https://www.inmuebles24.com/publicar_obtenerLocalidadAGeoloc.ajax"
         url_geolicalizar = "https://www.inmuebles24.com/publicar_geolocalizar.ajax"
 
         payload = {
-            "idCiudad": ubication["city_id"],
-            "idZona": str(ubication["id"]),
+            "idCiudad": city_id,
+            "idZona": str(colony_id),
             "idSubZona": "",
             "idCodigoPostal": ""
         }

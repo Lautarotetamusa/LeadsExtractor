@@ -2,7 +2,8 @@ from datetime import datetime
 import json
 import os
 from enum import IntEnum
-from typing import Generator
+from typing import Generator, Iterator
+import urllib.parse
 
 import requests
 from selenium import webdriver
@@ -14,7 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from src.address import extract_street_from_address
 from src.api import download_file
 from src.propiedades_com.amenities import amenities
-from src.property import OperationType, Property, PropertyType, Ubication
+from src.property import OperationType, PlanType, Property, PropertyType, Ubication
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -51,6 +52,10 @@ class Status(IntEnum):
     CONVERTIDO = 5
     CERRADA = 6
 
+class PropertyStatus(IntEnum):
+    PAUSADO = 1
+    ARCHIVADO = 9
+    VENDIDO = 12
 
 class Propiedades(Portal):
     def __init__(self):
@@ -188,29 +193,65 @@ class Propiedades(Portal):
 
         return data["location"]
 
-    def unpublish(self, publication_id: str) -> Exception | None:
+    def get_properties(self, status="", featured=False) -> Iterator[dict]:
+        url = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod/get_properties_admin?"
+        api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS" 
+
+        params = {
+            "page": 1,
+            "country": "MX",
+            "identifier": 1,
+            "purpose": 3,
+            "order": "update_desc",
+            "highlighted": featured
+        }
+
+        prev_api_key = self.request.headers["x-api-key"]
+        while params["page"] is not None:
+            next = url + urllib.parse.urlencode(params, doseq=True)
+            self.request.headers["x-api-key"] = api_key
+            res = self.request.make(next, "GET")
+            if res is None or not res.ok: 
+                self.request.headers["x-api-key"] = prev_api_key
+                break
+
+            data = res.json()
+
+            params["page"] = data.get("paginate", {}).get("next_page")
+
+            for property in data.get("properties", []):
+                yield property
+
+        self.request.headers["x-api-key"] = prev_api_key
+
+    # For the moment its not necessary 
+    def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
+        return super().highlight(publication_id, plan)
+
+    def change_prop_status(self, publication_id: str, status: PropertyStatus) -> Exception | None:
         # Update the property status to "active": "1"
         params = ZENROWS_PARAMS.copy()
         params["url"] = f"{MAIN_API}/property/status"
         cookies = {
             "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
         }
-        update_status_payload = {
-            "properties_id": [publication_id],
-            "status": "0",
-            "isNewPublish": True,
-            "source": "token",
-            "requestFromFunnel": True
-        }
+        files = [
+            ('status', (None, status.value)),
+            ('properties_id[0]', (None, publication_id))
+        ]
         res = requests.post("https://api.zenrows.com/v1/", 
             params=params, 
-            json=update_status_payload, 
+            files=files,
             cookies=cookies, 
             headers=self.request.headers
         )
 
         if res is None or not res.ok: 
             return Exception("error updating status"+res.text)
+        print(res.json())
+
+    def unpublish(self, publication_id: str) -> Exception | None:
+        return self.change_prop_status(publication_id, PropertyStatus.VENDIDO)
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         operation_type_map = {
@@ -223,29 +264,27 @@ class Propiedades(Portal):
             PropertyType.HOUSE.value: "2",
         }
 
-        # If the address its in the internal ubication map
-        if property.ubication.address in internal_ubications: 
-            location_data = internal_ubications[property.ubication.address]["internal"]
-        else: # Otherwise get the address via API
-            self.logger.debug("getting the location data")
-            location_data = self.get_location(property.ubication)
-            if location_data is None:
-                return Exception("cannot get location data"), None
-            self.logger.success("location data obtained successfully")
+        # TODO: If the prop doesnt have itnernal zone, searche it
+        # else: # Otherwise get the address via API
+        #     self.logger.debug("getting the location data")
+        #     location_data = self.get_location(property.ubication)
+        #     if location_data is None:
+        #         return Exception("cannot get location data"), None
+        #     self.logger.success("location data obtained successfully")
 
         ubication = {
             "property[address][lat]": property.ubication.location.lat,
             "property[address][lng]": property.ubication.location.lng,
             "property[address][num_ext]": "",
             "property[address][num_int]": "",
-            "property[address][state]": location_data.get("state", ""),
-            "property[address][state_id]": location_data.get("state_id", ""),
-            "property[address][city]": location_data.get("city", ""), # Municipality
-            "property[address][city_id]": location_data.get("city_id", ""), # Municipalty
-            "property[address][colony]": location_data.get("colony", ""),
-            "property[address][colony_id]": location_data.get("id", ""),
-            "property[address][sepomex_id]": location_data.get("id", ""),
-            "property[address][zipcode]": location_data.get("zipcode", ""),
+            "property[address][state]": property.internal["state"],
+            "property[address][state_id]": property.internal["state_id"],
+            "property[address][city]": property.internal["city"], # Municipality
+            "property[address][city_id]": property.internal["city_id"], # Municipalty
+            "property[address][colony]": property.internal["colony"],
+            "property[address][colony_id]": property.internal["colony_id"],
+            "property[address][sepomex_id]": property.internal["colony_id"],
+            "property[address][zipcode]": property.internal["zipcode"],
             "property[address][street]": extract_street_from_address(property.ubication.address),
             "property[address][check_location]": "true",
         }

@@ -8,7 +8,7 @@ import requests
 
 from src.api import download_file
 from src.scraper import SENDER_PHONE
-from src.property import Property
+from src.property import PlanType, Property
 from src.portal import Mode, Portal
 from src.lead import Lead
 from src.lamudi.amenities import amenities, nearby_locations
@@ -185,9 +185,9 @@ class Lamudi(Portal):
             "_order": "desc",
             "_page": 1,
             "_sort": "date",
-            # "published": 1,
-            "superboosted": featured,
         }
+        if featured:
+            params["superboosted"] = True
 
         props = [1]
         while len(props) > 0:
@@ -200,10 +200,12 @@ class Lamudi(Portal):
             props = data.get("rows", [])
             params["_page"] += 1
 
+            print(len(props))
+
             for prop in props:
                 yield prop
 
-    def highlight(self, publication_id: str) -> Exception | None:
+    def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
         highlight_url = f"{API_URL}/properties/{publication_id}/superboost"
 
         payload = {
@@ -226,12 +228,12 @@ class Lamudi(Portal):
     def publish(self, property: Property):
         id = str(uuid.uuid4())
 
-        self.logger.debug("getting the address geo location")
-        location_data = self.get_location(property.ubication.address)
+        self.logger.debug("getting the address geo location" + str(property.internal))
+        location_data = self.get_location(property.internal)
         if location_data is None: 
             return Exception("cannot get the location data"), None
         self.logger.success("geolocation data getted successfully")
-
+    
         ad_payload = {
             "address": property.ubication.address,
             "coordinates": {

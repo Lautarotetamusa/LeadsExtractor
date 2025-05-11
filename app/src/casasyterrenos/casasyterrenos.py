@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from src.address import extract_street_from_address
 from src.api import download_file
 from src.property import Property, OperationType
 from src.portal import Mode, Portal
@@ -109,7 +110,8 @@ class CasasYTerrenos(Portal):
         if not res.ok:
             return Exception(f"error unpublishing the property with id {publication_id}. err: {res.text}")
 
-    def highlight(self, publication_id: str) -> Exception | None:
+    def highlight(self, publication_id: str, plan) -> Exception | None:
+        self.logger.debug(f"highlighting property {publication_id}")
         url = f"{API_URL}/featured_property/"
         days_duration = 3 # i dont know if this can be greater 
         payload = {
@@ -213,12 +215,17 @@ class CasasYTerrenos(Portal):
         return data.get("id")
 
     def add_ubication(self, prop_id: int, property: Property) -> Exception | None:
-        ubication = internal_ubications[property.ubication.address]["internal"]
+        # {"colony": 32151, "municipality": 2995, "state": "14", "street": "Av. Juan Palomar y Arias 370", "exterior_number": "", "internal_number": ""}
 
         payload = {
             "latitude": property.ubication.location.lat,
             "longitude": property.ubication.location.lng,
-            **ubication
+            "state": property.internal["state_id"],
+            "municipality": property.internal["city_id"],
+            "colony": property.internal["colony_id"],
+            "street": extract_street_from_address(property.ubication.address),
+            "exterior_number": "",
+            "interior_number": ""
         }
 
         res = self.request.make(f"{API_URL}/property/{prop_id}", "PATCH", json=payload)
