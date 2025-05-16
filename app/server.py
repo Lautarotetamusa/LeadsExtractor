@@ -110,11 +110,13 @@ def get_internal(portal: str, zone: str) -> Internal | None:
 @app.route('/publish/<portal>', methods=['POST'])
 def publish_route(portal: str):
     if portal not in PORTALS: 
+        logger.warning(f"Portal f{portal} is not valid")
         return jsonify({"error": f"Portal f{portal} is not valid"}), 400
 
     data = request.get_json()
     internal = get_internal(portal, data.get("zone"))
     if internal is None:
+        logger.warning(f"zone {data.get('zone')} does not have internal for {portal}")
         return jsonify({"error": f"zone {data.get('zone')} does not have internal for {portal}"}), 400
     data["internal"] = internal
 

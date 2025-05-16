@@ -96,19 +96,20 @@ class CasasYTerrenos(Portal):
 
         return lead
 
-    def unpublish(self, publication_id: str) -> Exception | None:
-        unpublish_url = f"{API_URL}/property/{publication_id}"
+    def unpublish(self, publication_ids: list[str]) -> Exception | None:
+        for publication_id in publication_ids:
+            unpublish_url = f"{API_URL}/property/{publication_id}"
 
-        payload = {
-            "id": publication_id,
-            "status": "inactive"
-        }
+            payload = {
+                "id": publication_id,
+                "status": "inactive"
+            }
 
-        res = self.request.make(unpublish_url, "PATCH", json=payload)
-        if res is None:
-            return Exception(f"error unpublishing the property with id {publication_id}")
-        if not res.ok:
-            return Exception(f"error unpublishing the property with id {publication_id}. err: {res.text}")
+            res = self.request.make(unpublish_url, "PATCH", json=payload)
+            if res is None:
+                return Exception(f"error unpublishing the property with id {publication_id}")
+            if not res.ok:
+                return Exception(f"error unpublishing the property with id {publication_id}. err: {res.text}")
 
     def highlight(self, publication_id: str, plan) -> Exception | None:
         self.logger.debug(f"highlighting property {publication_id}")

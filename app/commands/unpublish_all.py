@@ -27,13 +27,22 @@ if __name__ == "__main__":
         print(f"Portal {portal_name} doesnt exists")
         exit(1)
 
+    # id_key = "postingId"
+    id_key = "id"
+
     portal = PORTALS[portal_name]
+    ids = []
     for prop in portal.get_properties(featured=False):
-        id = prop.get("id")
+        id = prop.get(id_key)
         print(id)
         if id is None:
             continue
 
-        err = portal.unpublish(id)
-        if err is not None:
-            print(err)
+        ids.append(id)
+
+        if len(ids) == 8:
+            err = portal.unpublish(ids)
+            if err is not None:
+                print(err)
+
+            ids = []

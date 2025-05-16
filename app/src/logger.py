@@ -29,21 +29,21 @@ class Logger():
     def __init__(self, fuente):
         self.fuente = fuente
 
-    def log_print(self, msg: str, log_type: LogType):
+    def log_print(self, log_type: LogType, *args):
         color = COLOR_MAP[log_type]["color"]
         time = strftime('%H:%M:%S', gmtime())
 
         if log_type.value <= LOG_LEVEL.value:
-            print(f"\033[95m[{time}][{self.fuente}]{color} {msg}")
+            print(f"\033[95m[{time}][{self.fuente}]{color}", *args)
 
-    def debug(self, msg):
-        self.log_print(msg, LogType.debug)
+    def debug(self, *args):
+        self.log_print(LogType.debug, *args)
 
-    def error(self, msg):
-        self.log_print(msg, LogType.error)
+    def error(self, *args):
+        self.log_print(LogType.error, *args)
 
-    def warning(self, msg):
-        self.log_print(msg, LogType.warning)
+    def warning(self, *args):
+        self.log_print(LogType.warning, *args)
 
-    def success(self, msg):
-        self.log_print(msg, LogType.success)
+    def success(self, *args):
+        self.log_print(LogType.success, *args)

@@ -13,7 +13,7 @@ class OperationType(Enum):
 
 class PlanType(Enum):
     SIMPLE = "simple"
-    HIGHLIGHT = "highlight"
+    HIGHLIGHTED = "highlighted"
     SUPER = "super"
 
 @dataclass

@@ -2,12 +2,14 @@ from datetime import datetime
 from enum import Enum
 import os
 import json
-from typing import Any
+from typing import Any, Iterator
 import requests
+import concurrent.futures
+import urllib.parse
 
 from src.address import extract_street_from_address
 from src.api import download_file
-from src.property import Property
+from src.property import Internal, PlanType, Property
 from src.make_requests import ApiRequest
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -31,9 +33,10 @@ PARAMS = {
     # "autoparse": "true"
 }
 
-class PublicationPlan(Enum):
-    SuperHighlighted = 101
-    Highlighted = 102
+publication_plan_map: dict[str, int] = {
+    PlanType.HIGHLIGHTED.value: 102,
+    PlanType.SUPER.value: 101
+}
 
 def extract_busqueda_info(data: dict | None) -> dict:
     if data is None:
@@ -323,34 +326,64 @@ class Inmuebles24(Portal):
         PARAMS["autoparse"] = True
 
     def get_last_prop_id(self) -> None | int: 
-        postings = self.get_properties()
-        if len(postings) == 0:
+        posts = self.get_properties_page(1)
+        if len(posts) == 0:
             self.logger.error("cannot get the properties")
-            return
+            return None
 
-        return postings[0]["postingId"]
+        return posts[0]["postingId"]
+    
+    def get_properties_page(self, page=1) -> list[dict]:
+        self.logger.debug("getting properties") 
+        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?"
+        params = {
+            "page": page,
+            "limit": 20,
+            "searchParameters": "sort:createdNewer&onlineFirst=true"
+        }
 
-    def get_properties(self, status="DRAFT", page=1) -> list[dict]:
-        self.logger.debug("getting properties")
-        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?page={page}&limit=20&searchParameters=status:{status};sort:createdNewer&onlineFirst=true"
-        # params = {
-        #     "page": 1,
-        #     "limit": 20,
-        #     "searchParameters": "sort:createdNewer&onlineFirst=true"
-        # }
-        # list_url += "?" + urllib.parse.urlencode(params)
+        list_url += urllib.parse.urlencode(params)
 
-        params = PARAMS.copy()
-        params["url"] = list_url
-        res = self.request.make(ZENROWS_API_URL, "GET", params=params)
+        p = PARAMS.copy()
+        p["url"] = list_url
+        res = self.request.make(ZENROWS_API_URL, "GET", params=p)
         if res is None or not res.ok:
-            self.logger.error("cannot get the properties")
             return []
 
-        return res.json().get("postings", [])
+        return res.json().get("postings", []) 
 
-    def highlight(self, publication_id: str) -> Exception | None:
-        self.logger.debug("highlighting property")
+    def get_properties(self, status="DRAFT", featured=False) -> Iterator[dict]:
+        self.logger.debug("getting properties") 
+        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?"
+        # "page={page}&limit=20&searchParameters=status:{status};sort:createdNewer&onlineFirst=true"
+        params = {
+            "page": 1,
+            "limit": 20,
+            "searchParameters": "sort:createdNewer&onlineFirst=true"
+        }
+
+        posts = [1]
+        while len(posts) > 0:
+            url = list_url + urllib.parse.urlencode(params)
+
+            p = PARAMS.copy()
+            p["url"] = url
+            self.logger.debug("GET " + str(url))
+            res = self.request.make(ZENROWS_API_URL, "GET", params=p)
+            if res is None or not res.ok:
+                self.logger.error("cannot get the properties")
+                break
+
+            params["page"] += 1
+
+            posts = res.json().get("postings", []) 
+            if posts is None:
+                break
+            for post in posts: 
+                yield post
+
+    def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
+        self.logger.debug("highlighting property plan: " + str(plan))
         url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/publish"
 
         payload = {
@@ -360,7 +393,7 @@ class Inmuebles24(Portal):
             "postingIds": [
                 publication_id
             ],
-            "publicationPlan": PublicationPlan.Highlighted.value
+            "publicationPlan": publication_plan_map[str(plan)]
         }
 
         params = PARAMS.copy()
@@ -369,7 +402,7 @@ class Inmuebles24(Portal):
         if res is None or not res.ok:
             return Exception(f"cannot highlight the property {res.text if res is not None else ''}")
 
-    def unpublish_multiple(self, publication_ids: list[str]) -> Exception | None:
+    def unpublish(self, publication_ids: list[str]) -> Exception | None:
         unpublish_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/suspend"
         payload = {
             "finishReasonId": "6", # Operation canceledstr
@@ -418,7 +451,7 @@ class Inmuebles24(Portal):
             "irAlPaso": ""
         }
 
-        err, id_geoloc = self.get_geolocation(property.internal["colony_id"], property.internal["city_id"], property.ubication.address)
+        err, id_geoloc = self.get_geolocation(property)
         if err is not None:
             return err, None
 
@@ -496,14 +529,50 @@ class Inmuebles24(Portal):
 
         return None, str(self.last_prop_id)
 
-    def get_geolocation(self, city_id, colony_id, address: str) -> tuple[Exception, None] | tuple[None, str]:
-        self.logger.debug("getting geolocation")
+    def save_geolocation(self, prop: Property, internal_name: str) -> tuple[Exception, None] | tuple[None, dict]:
+        save_url = "https://www.inmuebles24.com/publicar_guardarGeoloc.ajax"
+
+        payload = {
+            "idGeolocXX": "",
+            "geoloc.type": "street_address",
+            "geoloc.location_type": "RANGE_INTERPOLATED",
+            "geoloc.streetaddress": prop.ubication.address,
+            # "geoloc.street_number": "",
+            # "geoloc.route": "Avenida+Juan+Palomar+y+Arias",
+            "geoloc.country": "Mexico",
+            "geoloc.administrative_area_level_1": prop.internal["state"],
+            "geoloc.administrative_area_level_2": "",
+            "geoloc.administrative_area_level_3": "",
+            "geoloc.locality": prop.internal["city"],
+            "geoloc.sublocality": "",
+            "geoloc.neighborhood": "",
+            "geoloc.premise": "",
+            "geoloc.subpremise": "",
+            "geoloc.point_of_interest": "",
+            # "geoloc.postal_code": "45110",
+            # "geoloc.southwest": "(20.68462221970849,+-103.4283811302915)",
+            # "geoloc.northEast": "(20.6873201802915,+-103.4256831697085)",
+            "geoloc.lat": prop.ubication.location.lat,
+            "geoloc.lng": prop.ubication.location.lng,
+            "direccionOriginal": prop.ubication.address + ", " + internal_name
+        }
+        print(json.dumps(payload, indent=4))
+
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
+        res = self.api_req.make(save_url, "POST", headers=headers, data=payload)
+        if res is None or not res.ok:
+            return Exception("error saving geolocation"), None
+
+        return None, res.json()
+
+    def get_geolocation(self, prop: Property) -> tuple[Exception, None] | tuple[None, str]:
+        self.logger.debug("getting geolocation", prop.internal["colony"])
         url_obtener_loc = "https://www.inmuebles24.com/publicar_obtenerLocalidadAGeoloc.ajax"
         url_geolicalizar = "https://www.inmuebles24.com/publicar_geolocalizar.ajax"
 
         payload = {
-            "idCiudad": city_id,
-            "idZona": str(colony_id),
+            "idCiudad": str(prop.internal["city_id"]),
+            "idZona": str(prop.internal["colony_id"]),
             "idSubZona": "",
             "idCodigoPostal": ""
         }
@@ -515,11 +584,11 @@ class Inmuebles24(Portal):
         data = res.json()
         print(json.dumps(data, indent=4))
         # ej: Fraccionamiento Las Lomas Club Golf,Zapopan,Jalisco,Mexico
-        contenido = data.get("contenido")
-        if contenido is None:
+        internal_name = data.get("contenido")
+        if internal_name is None:
             return Exception("cannot get geolocation content"), None
         payload = {
-            "direccionOriginal": address + ", " + contenido
+            "direccionOriginal": prop.ubication.address + ", " + internal_name
         }
         print(payload)
 
@@ -531,7 +600,16 @@ class Inmuebles24(Portal):
         geo_id: str | None = data.get("contenido", {}).get("geolocdefault", {}).get("idgeolocalizacion")
         if geo_id is None:
             print(json.dumps(data, indent=4))
-            return Exception("cannot get geolocation id"), None
+            self.logger.warning("cannot find geolocation, saving a new one")
+
+            err, data = self.save_geolocation(prop, internal_name)
+            if err is not None or data is None:
+                return Exception("cannot save geolocation"), None
+
+            geo_id: str | None = data.get("contenido", {}).get("geolocdefault", {}).get("idgeolocalizacion")
+            if geo_id is None:
+                return Exception("cannot get geo_id from saved geolocation"), None
+
         return None, geo_id
 
     # upload each image multipart/form-data to upload_url
@@ -541,18 +619,12 @@ class Inmuebles24(Portal):
         upload_url = f"https://www.inmuebles24.com/avisoImageUploader.bum?idAviso={prop_id}"
         add_image_url = f"https://www.inmuebles24.com/publicarPasoMultimedia.bum?idaviso={prop_id}"
 
-        uploaded_images = []
-        for image in prop.images:
+        def process_image(image):
             self.logger.debug(f"downloading {image['url']}")
             img_data = download_file(image["url"])
             if img_data is None:
                 return Exception(f"cannot download the image {image['url']}")
             self.logger.success("image downloaded successfully")
-
-            files = [
-                ('name', ("image.png")),
-                ('file', ("image.png", img_data, f"image/png")),
-            ]
 
             img_type = "png" if "png" in image["url"] else "jpeg"
             file_name = f"image.{img_type}"
@@ -562,12 +634,10 @@ class Inmuebles24(Portal):
             ]
 
             self.logger.debug("uploading the image")
-
             params = PARAMS.copy()
             params["url"] = upload_url
             res = requests.post(
                 ZENROWS_API_URL,
-                # "POST",
                 params=params,
                 files=files,
                 cookies=cookies,
@@ -576,15 +646,22 @@ class Inmuebles24(Portal):
                     "idUsuario": self.request.headers["idUsuario"],
                 }
             )
-            # res = self.api_req.make(upload_url, "POST", files=files, cookies=cookies)
             if res is None or not res.ok:
                 self.logger.error("error uploading the image")
-                continue
+                return None
 
             file_url = res.text.replace("FILEID:", "")
             self.logger.success(f"image uploaded successfully, url: {file_url}")
+            return file_url
 
-            uploaded_images.append(file_url)
+        uploaded_images = []
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(process_image, prop.images)
+            for result in results:
+                if isinstance(result, Exception):
+                    return result
+                if result is not None:
+                    uploaded_images.append(result)
 
         # print(json.dumps(uploaded_images, indent=4))
         payload: dict[str, Any] = {

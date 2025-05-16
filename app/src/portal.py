@@ -91,7 +91,7 @@ class Portal():
         """
         return None, "not-implemented"
 
-    def unpublish(self, publication_id: str) -> Exception | None:
+    def unpublish(self, publication_ids: list[str]) -> Exception | None:
         """removes a publication from a portal"""
         pass
 
