@@ -1,18 +1,20 @@
-from typing import TypedDict
 from flask import Flask, request, jsonify, Response, send_from_directory
+from time import gmtime, strftime
 from flask_cors import CORS
 import threading
 import os
 import json
+import phonenumbers
 
 # Portals
+from src.lead import Lead
 from src.portal import Portal
 from src.inmuebles24.inmuebles24 import Inmuebles24
 from src.propiedades_com.propiedades import Propiedades
 from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
 
-from src.api import update_publication
+from src.api import new_communication, update_publication
 from src.property import Internal, Location, PlanType, Property, Ubication
 from src.logger import Logger
 import src.tasks as tasks
@@ -36,6 +38,9 @@ app.config['UPLOAD_FOLDER'] = 'pdfs'
 # Asegúrate de que el directorio existe
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+DATE_FORMAT = os.getenv("DATE_FORMAT")
+assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
+
 # Ejecucion de scripts
 SCRAPERS = {
     "casasyterrenos": CasasyterrenosScraper,
@@ -56,6 +61,46 @@ with open("internal_zones.json", "r") as f:
 
 thread = threading.Thread(target=tasks.init_task_scheduler)
 thread.start()
+
+@app.route('/infobip-ivr', methods=['GET'])
+def recive_ivr_call():
+    args = request.args.to_dict()
+    phone = args.get("msidsn", None)
+    fuente = args.get("fuente", None)
+
+    if not phone or not fuente:
+        logger.error("Falta algun campo en la peticion")
+        return {
+            "error": "Falta algun campo en la peticion desde infobip (msidsn, fuente, name)"
+        }, 400
+    logger.debug("msidsn:", phone)
+
+    lead = Lead()
+    fecha = strftime(DATE_FORMAT, gmtime())
+    lead.set_args({
+        "nombre": phone,
+        "fuente": "ivr",
+        "fecha_lead": fecha,
+        "fecha": fecha
+    })
+
+    telefono = parse_number(logger, phone, "MX")
+    # Numero mexicano: 5213319466986
+    # Numero no mexicano: +525493415854220 
+    if not telefono or len(telefono) >= 15:
+        if telefono and len(telefono) >= 15:
+            logger.warning("the number recived its not mexican", telefono)
+        # Si el numero no es mexicano va a llegar con un 52 adelante igual por ejemplo 525493415854220
+        phone = phone[2::]  # Removemos el '52'
+        telefono = parse_number(logger, "+"+phone)
+    lead.telefono = telefono or lead.telefono
+
+    _, lead = new_communication(logger, lead)
+    if lead is None:
+        return {}, 400
+
+    print(lead.asesor)
+    return lead.asesor, 200
 
 @app.route('/generar_cotizacion', methods=['POST'])
 def generate_cotization_pdf():
@@ -162,6 +207,16 @@ def check_task(task_id):
 
     return jsonify(current_task)
 
+def parse_number(logger: Logger, phone: str, code=None) -> str | None:
+    logger.debug(f"Parseando numero: {phone}. code: {code}")
+    try:
+        number = phonenumbers.parse(phone, code)
+        parsed_number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+        logger.success("Numero obtenido: " + parsed_number)
+        return parsed_number
+    except phonenumbers.NumberParseException:
+        logger.error("Error parseando el numero: " + phone)
+        return None
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
