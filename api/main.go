@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 
 	"time"
 
@@ -25,6 +26,8 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/lmittmann/tint"
+
+	"github.com/robfig/cron/v3"
 )
 
 func main() {
@@ -145,7 +148,25 @@ func main() {
 	flowHandler.RegisterRoutes(router)
 	commHandler.RegisterRoutes(router)
 	asesorHandler.RegisterRoutes(router)
-    publishPropHandler.RegisterRoutes(router)
+    publishPropHandler.RegisterRoutes(router) 
+
+    // Cron report
+    reportService := handlers.NewReportService(commStore, wpp)
+    reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), ";")
+    logger.Debug("Getting report numbers", "report numbers", reportNumbers)
+    c := cron.New()
+    cronStr := "0 8 * * *" // Every day at 8:00 AM
+    // cronStr := "*/5 * * * *"
+    _, err = c.AddFunc(cronStr, func() { 
+        err = reportService.SendDailyReport(reportNumbers)
+        if err != nil {
+            logger.Error("Cannot send daily report %w", err)
+        }
+    })
+    if err != nil {
+        log.Fatal("Error programando cron:", err)
+    }
+    c.Start()
 
 	// Server
 	apiPort := os.Getenv("API_PORT")

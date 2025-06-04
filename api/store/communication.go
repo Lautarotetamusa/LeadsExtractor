@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"leadsextractor/models"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -15,10 +16,21 @@ type CommunicationStorer interface {
 	GetDistinct(params *QueryParam) ([]models.Communication, error)
 	Count(params *QueryParam) (int, error)
 	Exists(params *QueryParam) bool
+    GetCommunicationStats(start, end time.Time) ([]*DailyStatsRow, error)
 }
 
 type CommunicationStore struct {
 	db *sqlx.DB
+}
+
+type DailyStatsRow struct {
+    Source  string  `db:"source"`
+    NewLead bool    `db:"new_lead"`
+    Count   int     `db:"count"`
+}
+
+type DailyStats struct {
+    Rows    []DailyStatsRow
 }
 
 func NewCommStore(db *sqlx.DB) *CommunicationStore {
@@ -128,4 +140,26 @@ func (s *CommunicationStore) Exists(params *QueryParam) bool {
 		return false
 	}
 	return count > 0
+}
+
+func (s *CommunicationStore) GetCommunicationStats(start time.Time, end time.Time) ([]*DailyStatsRow, error) {
+    query := `
+        select count(*) as count,
+        new_lead, IF(S.type = "property", P.portal, S.type) as source 
+        FROM Communication C
+        INNER JOIN Source S
+            ON C.source_id = S.id
+        LEFT JOIN Property P
+            ON S.property_id = P.id
+        WHERE created_at BETWEEN ? AND ?
+        group by source, new_lead;
+    `
+
+    var stats []*DailyStatsRow
+    err := s.db.Select(&stats, query, start, end)
+    if err != nil {
+        return nil, fmt.Errorf("error obtaining stadistics: %w", err)
+    }
+    
+    return stats, nil
 }

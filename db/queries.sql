@@ -591,17 +591,237 @@ AND property_id IN (
 );
 
 select * from PublishedProperty
-where property_id = 3
-and portal = "casasyterrenos";
-
-select * from PublishedProperty
-where portal = "casasyterrenos";
-
-update PublishedProperty
-select * from PublishedProperty
 where status = "failed"
 and portal = "casasyterrenos";
 
 select * from PublishedProperty
-where publication_id is not null
+where portal = "inmuebles24"
+and status = "published";
+
+/*
+update PublishedProperty
+set status = "in_queue"
+where portal = "lamudi";
+*/
+
+SELECT 
+    id, 
+    property_id, 
+    REPLACE(url, 'https://reboraautomatizaciones.com', 'http://localhost:8080') AS new_url 
+FROM PropertyImages 
+LIMIT 10;
+
+UPDATE PropertyImages 
+SET url = REPLACE(url, 'https://reboraautomatizaciones.com', 'http://localhost:8080');
+
+select P.id, P.title, P.zone, status, portal, publication_id
+from PortalProp P
+inner join PublishedProperty PP
+    on P.id = PP.property_id
+where zone LIKE "PUERTA DEL BOSQUE"
+and portal = "inmuebles24";
+
+select id from PortalProp where zone = "CHAPALITA";
++-----+
+| id  |
++-----+
+| 287 |
+| 288 |
+| 289 |
+| 290 |
+| 291 |
+| 292 |
+| 293 |
++-----+
+
+select * from PublishedProperty 
+where property_id >= 287 
+and property_id <= 293 
+and portal = "propiedades";
+
+
+select id from PortalProp where zone = "COUNTRY CLUB";
++-----+
+| id  |
++-----+
+| 183 |
+| 184 |
+| 185 |
+| 186 |
+| 187 |
+| 188 |
+| 189 |
++-----+
+
+select * from PublishedProperty 
+where property_id >= 183 
+and property_id <= 189 
+and portal = "propiedades";
+
+select id from PortalProp where zone = "EL CIELO COUNTRY CLUB";
+
+select * from PublishedProperty 
+where property_id >= 308 
+and property_id <= 314 
+and portal = "propiedades";
+
+select id from PortalProp where zone = "PROVENZA";
+
+select id from PortalProp where zone = "SAN MARTIN DEL TAJO";
+select * from PublishedProperty 
+where property_id >= 308 
+and property_id <= 314 
+and portal = "propiedades";
+
+select id from PortalProp where zone = "EL MANANTIAL";
+select * from PublishedProperty 
+where property_id >= 57 
+and property_id <= 63 
+and portal = "propiedades";
+
+select id from PortalProp where zone = "PUERTA AQUA";
+select * from PublishedProperty 
+where property_id >= 217 
+and property_id <= 223 
+and portal = "propiedades";
+
+select id from PortalProp where zone = "SOLARES";
+select * from PublishedProperty 
+where property_id >= 141 
+and property_id <= 147 
+and portal = "inmuebles24";
+
+/* hay casas dos veces */
+select * from PublishedProperty where publication_id = 146439611;
++-------------+----------------+------+-----------+-------------+-------------+---------------------+---------------------+
+| property_id | publication_id | url  | status    | portal      | plan        | created_at          | updated_at          |
++-------------+----------------+------+-----------+-------------+-------------+---------------------+---------------------+
+|          16 | 146439611      | NULL | published | inmuebles24 | highlighted | 2025-05-10 13:39:25 | 2025-05-14 12:44:13 |
+|         141 | 146439611      | NULL | published | inmuebles24 | super       | 2025-05-10 13:39:25 | 2025-05-14 12:52:07 |
++-------------+----------------+------+-----------+-------------+-------------+---------------------+---------------------+
+
+select publication_id, count(publication_id) 
+from PublishedProperty
+where portal = "inmuebles24" 
+group by publication_id
+having count(publication_id) > 1;
+
++----------------+-----------------------+
+| publication_id | count(publication_id) |
++----------------+-----------------------+
+| 146426857      |                     2 |
++----------------+-----------------------+
+select zone, property_id 
+from PublishedProperty PP
+inner join PortalProp P
+    on P.id = PP.property_id
+where publication_id = 146426857 and portal = "inmuebles24";
+
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 407; /* ZOTOGRANDE */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 390; /* JARDIN REAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 388; /* JARDIN REAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 379; /* ABADIA RESIDENCIAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 360; /* LAS CAÑADAS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 305; /* LAS FUENTES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 235; /* ROYAL COUNTRY */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 221; /* PUERTA AQUA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 222; /* PUERTA AQUA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 213; /* EL COTO */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 212; /* EL COTO */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 151; /* VALLE IMPERIAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 143; /* SOLARES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 144; /* SOLARES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 141; /* SOLARES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 327; /* LAS VILLAS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 333; /* LOS GAVILANES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 323; /* LAS VILLAS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 304; /* LAS FUENTES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 296; /* CIUDAD DEL SOL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 294; /* CIUDAD DEL SOL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 289; /* CHAPALITA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 276; /* LOS SUEÑOS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 273; /* LOS SUEÑOS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 226; /* LOMAS ACUEDUCTO */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 195; /* LA ESTANCIA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 192; /* LA ESTANCIA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 162; /* VILLA MAGNA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 127; /* LAS CUMBRES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 120; /* LA TOSCANA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 118; /* LA RIOJA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 111; /* ATLAS COLOMOS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 94; /* VIRREYES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 90; /* PUERTA DEL BOSQUE */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 86; /* PUERTA DEL BOSQUE */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 79; /* PROVENZA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 45; /* CONDOMINIO CAMPO NOGAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 8; /* ARAUCA */
+
+
+select id from PortalProp where zone = "SAN ACASIO";
+select * from PublishedProperty 
+where property_id >= 245 
+and property_id <= 251 
 and portal = "casasyterrenos";
+'Empty Set'
+
++----------------+-----------------------+
+| publication_id | count(publication_id) |
++----------------+-----------------------+
+| 146436779      |                     2 |
++----------------+-----------------------+
+
+select zone, property_id 
+from PublishedProperty PP
+inner join PortalProp P
+    on P.id = PP.property_id
+where publication_id = 146436779 and portal = "inmuebles24";
+
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 195; /* LA ESTANCIA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 226; /* LOMAS ACUEDUCTO */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 273; /* LOS SUEÑOS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 276; /* LOS SUEÑOS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 289; /* CHAPALITA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 294; /* CIUDAD DEL SOL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 296; /* CIUDAD DEL SOL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 304; /* LAS FUENTES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 323; /* LAS VILLAS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 333; /* LOS GAVILANES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 327; /* LAS VILLAS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 212; /* EL COTO */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 213; /* EL COTO */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 222; /* PUERTA AQUA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 221; /* PUERTA AQUA */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 235; /* ROYAL COUNTRY */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 305; /* LAS FUENTES */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 360; /* LAS CAÑADAS */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 379; /* ABADIA RESIDENCIAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 388; /* JARDIN REAL */
+update PublishedProperty set status = "in_queue" where portal = "inmuebles24" and property_id = 386; /* JARDIN REAL */
+
++----------------+-----------------------+
+| publication_id | count(publication_id) |
++----------------+-----------------------+
+| 146455633      |                     2 |
++----------------+-----------------------+
+select zone, property_id 
+from PublishedProperty PP
+inner join PortalProp P
+    on P.id = PP.property_id
+where publication_id = 146455633 and portal = "inmuebles24";
+
+select id from PortalProp where zone = "RESERVA REAL";
+
+where property_id >= 29 
+and property_id <= 35 
+and portal = "inmuebles24";
+
+select id from PortalProp where zone = "BUGAMBILIAS";
+
+select * from PublishedProperty
+update PublishedProperty
+set status = "in_queue"
+where status = "failed";
+
+select * from PublishedProperty
+where portal = "inmuebles24"
+and status = "published";
