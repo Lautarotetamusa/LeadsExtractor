@@ -4,6 +4,7 @@ import os
 from enum import IntEnum
 from typing import Generator, Iterator
 import urllib.parse
+import concurrent.futures
 
 import requests
 from selenium import webdriver
@@ -193,7 +194,7 @@ class Propiedades(Portal):
 
         return data["location"]
 
-    def get_properties(self, status="", featured=False) -> Iterator[dict]:
+    def get_properties(self, status="", featured=False, query={}) -> Iterator[dict]:
         url = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod/get_properties_admin?"
         api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS" 
 
@@ -205,6 +206,9 @@ class Propiedades(Portal):
             "order": "update_desc",
             "highlighted": featured
         }
+
+        if "internal" in query:
+            params["search"] = query["internal"]["colony"]
 
         prev_api_key = self.request.headers["x-api-key"]
         while params["page"] is not None:
@@ -380,6 +384,8 @@ class Propiedades(Portal):
             return Exception("error creating the property: "+res.text), None
         return None, property_id
 
+
+
     # The upload process of the images its complex, requires multiple steps.
     # 1. Sign the images with amazon s3 bucket
     #   post request to the sign_url with the sign_payload data
@@ -430,44 +436,116 @@ class Propiedades(Portal):
         i = 0 # global index
         fail_uploads = 0 # cant of images that fails the uploading process
 
-        for image in images:
-            self.logger.debug(f"downloading {image['url']}")
-            img_data = download_file(image["url"])
-            if img_data is None:
-                return Exception(f"cannot download the image {image['url']}")
+        # Configura el número máximo de hilos (ajusta según necesidad)
+        MAX_WORKERS = 5
 
+        # Precomputación de metadatos para evitar condiciones de carrera
+        precomputed = []
+        index_counter = {'jpeg': 0, 'png': 0}
+        for idx, image in enumerate(images):
             img_type = "jpeg" if "jpeg" in image["url"] or "jpg" in image["url"] else "png"
-            img_sign = sign_data[img_type][index[img_type]]
-            fields = img_sign["response_s3"]["fields"]
+            
+            # Verificar suficiencia de firmas
+            if index_counter[img_type] >= len(sign_data[img_type]):
+                precomputed.append({
+                    'error': f"No hay suficientes firmas para tipo {img_type}",
+                    'position': idx
+                })
+            else:
+                img_sign = sign_data[img_type][index_counter[img_type]]
+                index_counter[img_type] += 1
+                fields = img_sign["response_s3"]["fields"]
+                precomputed.append({
+                    'url': image['url'],
+                    'img_type': img_type,
+                    'img_sign': img_sign,
+                    'fields': fields,
+                    'position': idx
+                })
 
-            placeholder_payload["images"].append({
-                "property_id": property_id,
-                "file_name": img_sign["name_image"],
-                "position": i # the first image in the property list its going to be the principal
-            })
-
+        # Función para procesar cada imagen
+        def process_image(item):
+            if 'error' in item:
+                return False, None, item['error'], False
+            
+            # Descargar imagen
+            img_data = download_file(item["url"])
+            if img_data is None:
+                return False, None, f"No se pudo descargar {item['url']}", True
+            
+            # Preparar datos para subida
             files = [
-                ('Content-Type', (None, f"image/{img_type}")),
+                ('Content-Type', (None, f"image/{item['img_type']}")),
                 ('Cache-Control', (None, "max-age=2592000")),
-                ('key', (None, fields["key"])),
-                ('AWSAccessKeyId', (None, fields["AWSAccessKeyId"])),
-                ('policy', (None, fields["policy"])),
-                ('signature', (None, fields["signature"])),
-                ('file', (img_sign["name_image"], img_data, "multipart/form-data")),
+                ('key', (None, item['fields']['key'])),
+                ('AWSAccessKeyId', (None, item['fields']['AWSAccessKeyId'])),
+                ('policy', (None, item['fields']['policy'])),
+                ('signature', (None, item['fields']['signature'])),
+                ('file', (item['img_sign']['name_image'], img_data, "multipart/form-data")),
             ]
-            self.logger.debug(f"uploading {image['url']}")
+            
+            # Subir imagen
             res = requests.post(upload_url, files=files)
-            if not res.ok: 
-                fail_uploads += 1
-                self.logger.error("cannot upload the image: "+res.text)
-                continue
-            self.logger.success("image uploaded successfully")
+            if not res.ok:
+                return False, None, f"Error subiendo {item['url']}: {res.text}", False
+            
+            # Éxito: retornar metadatos para el payload
+            return True, {
+                "property_id": property_id,
+                "file_name": item['img_sign']['name_image'],
+                "position": item['position']
+            }, None, False
 
-            if fail_uploads > max_fail_uploads:
-                return Exception(f"{fail_uploads} images fails to upload, cancel the publication")
+        # Ejecución paralela
+        fail_uploads = 0
+        critical_failure = None
+        placeholder_entries = []
 
-            index[img_type] += 1
-            i += 1
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = {executor.submit(process_image, item): item for item in precomputed}
+            
+            for future in concurrent.futures.as_completed(futures):
+                # Verificar si debemos detener el procesamiento
+                if critical_failure is not None or fail_uploads > max_fail_uploads:
+                    break
+                    
+                item = futures[future]
+                try:
+                    success, entry, error_msg, is_download_failure = future.result()
+                    
+                    if success:
+                        self.logger.success(f"Imagen subida: {item.get('url', 'N/A')}")
+                        placeholder_entries.append(entry)
+                    else:
+                        self.logger.error(error_msg)
+                        fail_uploads += 1
+                        
+                        # Manejar errores críticos
+                        if is_download_failure:
+                            critical_failure = error_msg
+                            
+                except Exception as e:
+                    fail_uploads += 1
+                    self.logger.error(f"Error inesperado: {str(e)}")
+                
+                # Verificar límites de errores después de cada tarea
+                if critical_failure is not None or fail_uploads > max_fail_uploads:
+                    # Cancelar tareas pendientes
+                    for f in futures:
+                        if not f.done():
+                            f.cancel()
+                    break
+
+        # Gestionar resultados finales
+        if critical_failure is not None:
+            return Exception(critical_failure)
+            
+        if fail_uploads > max_fail_uploads:
+            return Exception(f"{fail_uploads} imágenes fallaron, cancelando publicación")
+
+        # Agregar entradas exitosas al payload (ordenadas por posición original)
+        placeholder_entries.sort(key=lambda x: x['position'])
+        placeholder_payload["images"].extend(placeholder_entries)
 
         ## 3. Update placeholder
         self.logger.debug("update placeholders")
@@ -480,6 +558,19 @@ class Propiedades(Portal):
 
         placeholders = res.json().get("placeholders", [])
         if len(placeholders) == 0: return Exception("cannot get the placeholders")
+        #
+        # def sign_image(placeholder):
+        #     placeholder["description"] = ""
+        #     placeholder["country"] = "MX"
+        #
+        #     self.logger.debug(f"confirmed {placeholder['image_id']}")
+        #     # This url has another x-api-key
+        #     self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
+        #     res = self.request.make(confirm_url, "POST", json=placeholder)
+        #     if res is None or not res.ok:
+        #         return Exception(f"cannot confirm the image {placeholder['image_id']}")
+        #
+        #     self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
 
         ## 4. Confirm the upload
         for placeholder in placeholders:
@@ -531,3 +622,36 @@ class Propiedades(Portal):
             self.logger.error(str(e))
         finally:
             driver.quit()
+
+# Función para procesar cada imagen
+def process_image(item):
+    if 'error' in item:
+        return False, None, item['error'], False
+    
+    # Descargar imagen
+    img_data = download_file(item["url"])
+    if img_data is None:
+        return False, None, f"No se pudo descargar {item['url']}", True
+    
+    # Preparar datos para subida
+    files = [
+        ('Content-Type', (None, f"image/{item['img_type']}")),
+        ('Cache-Control', (None, "max-age=2592000")),
+        ('key', (None, item['fields']['key'])),
+        ('AWSAccessKeyId', (None, item['fields']['AWSAccessKeyId'])),
+        ('policy', (None, item['fields']['policy'])),
+        ('signature', (None, item['fields']['signature'])),
+        ('file', (item['img_sign']['name_image'], img_data, "multipart/form-data")),
+    ]
+    
+    # Subir imagen
+    res = requests.post(upload_url, files=files)
+    if not res.ok:
+        return False, None, f"Error subiendo {item['url']}: {res.text}", False
+    
+    # Éxito: retornar metadatos para el payload
+    return True, {
+        "property_id": property_id,
+        "file_name": item['img_sign']['name_image'],
+        "position": item['position']
+    }, None, False

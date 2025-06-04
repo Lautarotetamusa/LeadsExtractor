@@ -178,7 +178,7 @@ class Lamudi(Portal):
         # }
         return res.json().get("data")
 
-    def get_properties(self, status="", featured=False) -> Iterator[dict]:
+    def get_properties(self, status="", featured=False, query={}) -> Iterator[dict]:
         url = f"{API_URL}/properties"
         params = {
             "_limit": 25,
@@ -189,6 +189,12 @@ class Lamudi(Portal):
         if featured:
             params["superboosted"] = True
 
+        if "internal" in query:
+            params["query"] = query["internal"]
+
+        if "page" in query:
+            params["page"] = query["page"]
+
         props = [1]
         while len(props) > 0:
             self.logger.debug("page: " + str(params["_page"]))
@@ -198,9 +204,9 @@ class Lamudi(Portal):
 
             data = res.json().get("data", {})
             props = data.get("rows", [])
-            params["_page"] += 1
 
-            print(len(props))
+            if not "page" in query:
+                params["_page"] += 1
 
             for prop in props:
                 yield prop
@@ -218,7 +224,13 @@ class Lamudi(Portal):
         if not res.ok:
             return Exception(f"error highlighting the property with id {publication_id}. err: {res.text}")
 
-    def unpublish(self, publication_id: str) -> Exception | None:
+    def unpublish(self, publication_ids: list[str]) -> Exception | None:
+        for id in publication_ids:
+            err = self.unpublish_one(id)
+            if err is not None:
+                return err
+
+    def unpublish_one(self, publication_id: str) -> Exception | None:
         url = f"{API_URL}/properties/{publication_id}"
 
         res = self.request.make(url, "DELETE")

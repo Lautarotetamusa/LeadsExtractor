@@ -73,7 +73,7 @@ class Portal():
         yield []
     def get_lead_info(self, raw_lead: dict) -> Lead:
         return Lead()
-    def get_properties(self, status="", featured=False) -> Iterator[dict]:
+    def get_properties(self, status="", featured=False, query={}) -> Iterator[dict]:
         yield {}
     def send_message(self, id: str,  message: str):
         pass

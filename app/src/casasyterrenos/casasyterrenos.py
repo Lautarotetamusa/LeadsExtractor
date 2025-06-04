@@ -131,7 +131,7 @@ class CasasYTerrenos(Portal):
         if not res.ok:
             return Exception(f"error unpublishing the property with id {publication_id}. err: {res.text}")
 
-    def get_properties(self, status="published", featured=True) -> Iterator[dict]:
+    def get_properties(self, status="published", featured=True, query={}) -> Iterator[dict]:
         url = f"{API_URL}/my_property?"
         params = {
             "page": 1,
@@ -139,6 +139,14 @@ class CasasYTerrenos(Portal):
             "status": status,
             "featured": featured
         }
+
+        if "page" in query:
+            params["page"] = query["page"]
+
+        if "internal" in query:
+            params["state"] = query["internal"]["state_id"]
+            params["municipaliyy"] = query["internal"]["city_id"]
+            params["colony"] = query["internal"]["colony_id"]
 
         next = url + urllib.parse.urlencode(params, doseq=True)
         while next is not None:
@@ -150,7 +158,8 @@ class CasasYTerrenos(Portal):
             for result in data.get("results"):
                 yield result
 
-            next = data.get("next")
+            if not "page" in query:
+                next = data.get("next")
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         prop_id = self.publish_first_step(property)

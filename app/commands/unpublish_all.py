@@ -16,6 +16,12 @@ if __name__ == "__main__":
         "lamudi": Lamudi(),
     }
 
+    ID_KEYS = {
+        "inmuebles24": "postingId",
+        "casasyterrenos": "id",
+        "lamudi": "id",
+    }
+
     args = sys.argv
 
     if len(args) < 2:
@@ -27,20 +33,17 @@ if __name__ == "__main__":
         print(f"Portal {portal_name} doesnt exists")
         exit(1)
 
-    # id_key = "postingId"
-    id_key = "id"
-
     portal = PORTALS[portal_name]
     ids = []
-    for prop in portal.get_properties(featured=False):
-        id = prop.get(id_key)
-        print(id)
+    for prop in portal.get_properties(featured=False, query={"page": 1}):
+        id = prop.get(ID_KEYS[portal.name])
+        print("id:", id)
         if id is None:
             continue
 
         ids.append(id)
 
-        if len(ids) == 8:
+        if len(ids) == 20:
             err = portal.unpublish(ids)
             if err is not None:
                 print(err)
