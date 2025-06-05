@@ -43,9 +43,9 @@ async function main(workbook: ExcelScript.Workbook) {
             },
             areas_exteriores: {
                 alberca: datosVenta.getRange("B16").getValue() as number,
-                muro_perimetral: datosVenta.getRange("B16").getValue() as number,
-                jardin: datosVenta.getRange("B16").getValue() as number,
-                rampa: datosVenta.getRange("B16").getValue() as number,
+                muro_perimetral: datosVenta.getRange("B17").getValue() as number,
+                jardin: datosVenta.getRange("B18").getValue() as number,
+                rampa: datosVenta.getRange("B19").getValue() as number,
             },
             valor_exteriores: {
                 alberca: datosFijos.getRange("B2").getValue() as number,
