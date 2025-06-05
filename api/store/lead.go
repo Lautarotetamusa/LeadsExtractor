@@ -35,7 +35,7 @@ const (
             ON a.phone = l.asesor`
 
 	selectLeadQ = `SELECT 
-        a.phone as "Asesor.phone", a.name as "Asesor.name", a.email as "Asesor.email",
+        a.phone as "Asesor.phone", a.name as "Asesor.name", a.email as "Asesor.email", a.active as "Asesor.active",
         l.phone, l.name, l.email, l.cotizacion
         FROM Leads l
         INNER JOIN Asesor a
@@ -44,6 +44,7 @@ const (
 
 	updateQ = `UPDATE Leads 
         SET name=:name, 
+            email=:email,
             cotizacion=:cotizacion 
         WHERE phone=:phone`
 )

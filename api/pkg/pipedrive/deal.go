@@ -14,6 +14,8 @@ type Deal struct {
 	//VisibleTo   string  `json:"visible_to"`
 	Person *Person    `json:"person_id"`
 	Status DealStatus `json:"status"`
+
+    StageId int `json:"stage_id"`
 }
 
 type CreateDeal struct {
@@ -27,6 +29,7 @@ type CreateDeal struct {
 
 type UpdateDeal struct {
 	Status DealStatus `json:"status"`
+    StageId int `json:"stage_id"`
 }
 
 // Buscamos para la persona con id personId una trato con el asesor con id userId

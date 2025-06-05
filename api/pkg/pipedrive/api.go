@@ -148,9 +148,10 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) {
 
 		p.logger.Info("Deal creado correctamente")
 	} else if deal.Status == Lost {
-		p.logger.Debug("El deal está perdido, reabriendo")
+		p.logger.Debug(fmt.Sprintf("El deal está perdido, reabriendo en el stage %d", deal.StageId))
 		_, err := p.updateDeal(deal.Id, &UpdateDeal{
 			Status: Open,
+            StageId: deal.StageId,
 		})
 		if err != nil {
 			p.logger.Error("Error reabriendo el deal", "err", err)
