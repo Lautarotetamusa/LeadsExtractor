@@ -148,16 +148,7 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) {
 
 		p.logger.Info("Deal creado correctamente")
 	} else if deal.Status == Lost {
-		p.logger.Debug(fmt.Sprintf("El deal está perdido, reabriendo en el stage %d", deal.StageId))
-		_, err := p.updateDeal(deal.Id, &UpdateDeal{
-			Status: Open,
-            StageId: deal.StageId,
-		})
-		if err != nil {
-			p.logger.Error("Error reabriendo el deal", "err", err)
-			return
-		}
-		p.logger.Info("Deal reabierto con exito")
+        p.reopenDeal(deal)
 	}
 
 	p.logger.Debug(fmt.Sprintf("Deal: %v", deal))
@@ -168,6 +159,32 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) {
 	} else {
 		p.logger.Info("Nota cargada con exito")
 	}
+}
+
+// We want to reopens the deals in the first stage or a specific pipeline
+func (p *Pipedrive) reopenDeal(deal *Deal) {
+    fmt.Printf("%#v\n", deal)
+
+    // Get the first stage of the same pipeline of the deal
+    stages, err := p.GetStages(StageFilter{
+        PipelineId: deal.PipelineId,
+        SortBy: "order_nr",
+    })
+    if err != nil || len(stages) == 0{
+        p.logger.Error(fmt.Sprintf("cannot get the stages for pipeline (%d)", deal.PipelineId), "err", err.Error())
+        return
+    }
+    p.logger.Debug(fmt.Sprintf("El deal está perdido, reabriendo en el stage %d", stages[0].ID))
+
+    _, err = p.updateDeal(deal.Id, &UpdateDeal{
+        Status: Open,
+        StageId: stages[0].ID,
+    })
+    if err != nil {
+        p.logger.Error("Error reabriendo el deal", "err", err)
+        return
+    }
+    p.logger.Info("Deal reabierto con exito")
 }
 
 func (p *Pipedrive) saveToken() {

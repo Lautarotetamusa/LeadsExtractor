@@ -15,7 +15,9 @@ type Deal struct {
 	Person *Person    `json:"person_id"`
 	Status DealStatus `json:"status"`
 
-    StageId int `json:"stage_id"`
+    // If the deal its closed, the stage_id stays in the same as before
+    StageId     int `json:"stage_id"`
+    PipelineId  int `json:"pipeline_id"`
 }
 
 type CreateDeal struct {
