@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import base64
 
+
 def get_pdf_from_html(path):
     webdriver_options = Options()
     webdriver_options.add_argument("--headless")
@@ -24,8 +25,10 @@ def get_pdf_from_html(path):
     driver.quit()
     return pdf_data
 
+
 def formato_miles(valor):
     return "{:,.0f}".format(valor)
+
 
 def renderizar_html(template_name, contexto):
     env = Environment(
@@ -39,14 +42,17 @@ def renderizar_html(template_name, contexto):
     template = env.get_template(template_name)
     return template.render(contexto)
 
+
 def calcular_importe_calidad(pal):
     if(pal == "Premium"):
         return 17500
     return 0
 
+
 def format(num):
     numero_formateado = "{:,.0f}".format(num).replace(",", ".")
     return numero_formateado
+
 
 # 📌 Datos dinámicos que queremos insertar en el HTML
 def translateContext(cin):
@@ -243,6 +249,7 @@ def translateContext(cin):
     print("valor total:",valor_total)
 
     return contexto
+
 
 # 📌 Renderizar HTML con datos dinámicos
 def to_pdf(json) -> str:

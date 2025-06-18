@@ -1,0 +1,283 @@
+body {
+    font-family: "Monotype Garamond", sans-serif;
+    font-size: 16px;
+    font-weight: 350;
+    /* "Neue Helvetica", Sans-serif */
+    margin: 0;
+    padding: 0px;
+    /* color: #333; */
+    /*background-color: #f9f9f9;*/
+    background-color: #2a2a2e;
+}
+
+.page-container {
+    width: 216mm; /* A4 width */
+    min-height: 280mm; /* A4 height */
+    margin: 10mm auto; /* Top/bottom margin 20mm, center horizontally */
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 10mm; /* Internal padding */
+    box-sizing: border-box; /* Include padding in the width/height */
+    position:relative;
+}
+
+.img-page {
+    padding: 0;
+}
+
+.page-container::after {
+    content: "";
+    background-image: url('./logo.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 70% auto; /* Ajusta el tamaño según necesites */
+    opacity: 0.1; /* Ajusta la transparencia */
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    /* z-index: -1; */
+    pointer-events: none;
+}
+
+.img-page::after {
+    opacity: 0;
+}
+
+/* Header Styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.logo img {
+    max-width: 130px;
+    height: auto;
+}
+
+.header-text {
+    text-align: center;
+    line-height: 1.8;
+    color: #555;
+    font-size: 1em;
+}
+
+.header-text p:first-child {
+    /* font-weight: bold; */
+    color: #273d97;
+    font-size: 1.1em;
+}
+
+.header-text p {
+    margin: 0;
+}
+
+.document-number {
+    font-size: 1em;
+    color: #555;
+    white-space: nowrap;
+}
+
+/* page-1 image banner */
+.banner img {
+	width: 100%;
+	margin-bottom: 50px;
+}
+/**/
+
+/* Image Gallery */
+.image-gallery {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr); /* 5 columns */
+    gap: 5px;
+    margin-bottom: 20px;
+}
+
+.image-gallery img {
+    width: 100%;
+    height: 120px; /* Fixed height for consistency, adjust as needed */
+    object-fit: cover; /* Cover the area, cropping if necessary */
+    border-radius: 5px;
+}
+/**/
+
+.budget-header {
+	background-color: #949fc9;
+	background-image: linear-gradient(to right, #949fc9, #f7f8fb);
+	color: black;
+	border-radius: 8px 8px 0 0;
+	padding: 15px 20px;
+	/* font-family: Helvetica, sans-serif; */
+	font-size: 1.1em;
+	font-weight: bold;
+	font-family: Inter, sans-serif;
+	letter-spacing: 0.7px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 60px;
+}
+table thead th {
+    background: #dedfe0;
+    border-right: 1px solid #aaa;
+    border-bottom: 1px solid #aaa;
+}
+table thead th:last-child {
+    border-right: 0px solid #aaa;
+}
+table th,
+table td {
+    padding: 12px 10px;
+    text-align: left;
+    border-bottom: 2px solid #aaa;
+}
+table th {
+    background-color: #f0f2f7; /* Light grey from the image */
+    font-weight: normal;
+    color: #555;
+}
+
+.total-row {
+    background-color: #ffffff; /* White background for the total row */
+    font-weight: bold;
+    color: #333;
+    font-family: Inter, sans-serif;
+}
+.total-row td {
+    border-top: 2px solid #aaa; /* Separator for total */
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+.total-row .total-amount {
+    color: #273e93; /* Blue color for the total amount */
+    font-size: 1em;
+}
+.highlighted-cell {
+    color: #273e93; 
+}
+
+/*
+ * Tabla con bordes completos
+ * */
+.bordered-table th {
+    background: white;
+    border: 1px solid #aaa;
+    text-align: center;
+}
+.bordered-table td {
+    border: 1px solid #aaa;
+    text-align: center;
+}
+.bordered-table tr:last-child td {
+    border-bottom: 1px solid #aaa;
+}
+.bordered-table th:last-child {
+    border-right: 1px solid #aaa;
+}
+/* */
+
+/* Monto */
+.monto {
+    background-image: linear-gradient(to right, #bec5de, #f9f9fc);
+    padding: 0.8em 0.7em 0.8em 0.7em; 
+    font-size: 0.8em;
+    color: #575756;
+    border-radius: 5px;
+    line-height: 1.6;
+}
+
+.monto span {
+    font-weight: bold;
+    color: #575756;
+}
+
+.monto p {
+    margin: 0;
+}
+/* */
+
+#monto-total-de-inversion td.amount {
+	padding-right: 5em;
+	padding-left: 10em;
+}
+#monto-total-de-inversion td.total-amount {
+	padding-right: 5em;
+	padding-left: 10em;
+}
+
+
+/* Print Specific Styles */
+@media print {
+    @page {
+        padding: 0 !important;
+        margin: 0 !important;
+        /* size: A4 portrait; */
+        size: letter;
+    }
+
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact; /* Ensures background colors are printed */
+        print-color-adjust: exact;
+    }
+
+    .page-container {
+        width: 216mm;
+        height: 280mm;
+        /* margin: 10mm auto; */
+        /* padding: 0 !important; */
+        box-shadow: none;
+
+        page-break-inside: avoid;
+        /* page-break-after: always; */
+        page-break-after: avoid;
+        break-inside: avoid;
+    }
+
+    .img-page {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Adjust image heights for print if needed to fit on one page better */
+    .image-gallery img {
+        height: 100px;
+    }
+
+    /* Ensure tables don't break across pages awkwardly */
+    table {
+        page-break-inside: avoid;
+        border-collapse: collapse !important;
+    }
+    
+    /* th, td { */
+    /*     border: 1px solid #000 !important; /* Usar color negro sólido */ */
+    /* } */
+    
+    /* Específicamente para bordered-table */
+    /* .bordered-table, */
+    /* .bordered-table th, */
+    .bordered-table td {
+        border: 1px solid #000 !important; /* Grosor mayor para impresión */
+    }
+    
+    .bordered-table th {
+        background: #fff !important; /* Fondo blanco sólido */
+        -webkit-print-color-adjust: exact; /* Forzar color de fondo */
+        print-color-adjust: exact;
+    }
+    
+    /* Asegurar que los bordes se impriman */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide anything not needed in print */
+    /* .some-element-not-for-print { display: none; } */
+}
