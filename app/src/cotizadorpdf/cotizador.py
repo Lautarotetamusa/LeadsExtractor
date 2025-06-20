@@ -1,8 +1,9 @@
 from jinja2 import Environment, FileSystemLoader
-import os
 from datetime import date, datetime
+import json
+import os
 
-from src.cotizadorpdf.time_line import grafico_pagos 
+from src.cotizadorpdf.time_line import grafico_pagos
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -32,8 +33,9 @@ def formato_miles(valor):
 
 def renderizar_html(template_name, contexto):
     env = Environment(
-        loader=FileSystemLoader(os.getcwd()),  # Busca en el directorio actual
-        comment_start_string='{=', # Porque el template tiene css embebido que usa simbolos iguales que a los comentarios de jinja
+        loader=FileSystemLoader(os.getcwd()),   # Busca en el directorio actual
+        # Porque el template tiene css embebido que usa simbolos iguales que a los comentarios de jinja
+        comment_start_string='{=',
         comment_end_string='=}'
     )
     env.filters["formato_miles"] = formato_miles
@@ -44,7 +46,7 @@ def renderizar_html(template_name, contexto):
 
 
 def calcular_importe_calidad(pal):
-    if(pal == "Premium"):
+    if (pal == "Premium"):
         return 17500
     return 0
 
@@ -61,13 +63,13 @@ def translateContext(cin):
     email = cin['elaborado_por']['mail']
     etelefono = cin['elaborado_por']['telefono']
     nombre = cin['datos']['nombre']
-    fecha = date.today().strftime("%d/%m/%Y")
+    fecha = date.today().strftime("%ed/%m/%Y")
     print("amenidades", "amenidades" in cin)
     banios = cin['areas_interiores']['banos']
-    recamaras = cin['areas_interiores']['cuartos'] 
+    recamaras = cin['areas_interiores']['cuartos']
     calidad = cin['pagos']['tipo']
     importe_inicial = calcular_importe_calidad(calidad)
-    coeficiente_ganancia = (1- (porcentaje_administracion/100))
+    coeficiente_ganancia = (1 - (porcentaje_administracion/100))
     importe_calidad = int((importe_inicial + 2000) / coeficiente_ganancia)
     area_sotano = cin['areas_interiores']['sotano']
     area_planta_baja = cin['areas_interiores']['planta_baja']
@@ -75,9 +77,9 @@ def translateContext(cin):
     area_roof = cin['areas_interiores']['roof']
     area_interior = area_sotano+area_planta_baja+area_planta_alta+area_roof
     valor_interior = area_interior*importe_calidad
-    area_rampa = cin['areas_exteriores']['rampa'] 
+    area_rampa = cin['areas_exteriores']['rampa']
     area_jardin = cin['areas_exteriores']['jardin']
-    area_alberca = cin['areas_exteriores']['alberca'] 
+    area_alberca = cin['areas_exteriores']['alberca']
     area_muro_perimetral = cin['areas_exteriores']['muro_perimetral']
 
     # Niveles
@@ -130,11 +132,11 @@ def translateContext(cin):
     valor_previo = int((valor_total-anticipo)*porcentaje_previo/100)
     meses = cin['pagos']['meses']
     pagos_mensuales = int((valor_total - valor_previo - anticipo)/meses)
-    valor_terreno= cin['elaborado_por']['valor_terreno']
-    area_terreno= cin['elaborado_por']['area_terreno']
-    plusvalia_terreno_rebora= valor_terreno*0.24
-    plusvalia_terreno_otro_despacho= valor_terreno*0.20
-    plusvalia_terreno_casa_construida= valor_terreno*0.20
+    valor_terreno = cin['elaborado_por']['valor_terreno']
+    area_terreno = cin['elaborado_por']['area_terreno']
+    plusvalia_terreno_rebora = valor_terreno*0.24
+    plusvalia_terreno_otro_despacho = valor_terreno*0.20
+    plusvalia_terreno_casa_construida = valor_terreno*0.20
     valor_otro_despacho = int(valor_total * 1.12)
     valor_casa_construida = int(valor_total * 1.18)
     plusvalia = int(valor_total * 0.26)
@@ -245,8 +247,8 @@ def translateContext(cin):
     print("area interio", area_interior)
     print("importe calidad:", importe_calidad)
     print("valor interior:", valor_interior)
-    print("valor permisos:",valor_permisos)
-    print("valor total:",valor_total)
+    print("valor permisos:", valor_permisos)
+    print("valor total:", valor_total)
 
     return contexto
 
@@ -254,16 +256,21 @@ def translateContext(cin):
 # 📌 Renderizar HTML con datos dinámicos
 def to_pdf(json) -> str:
     """returns timestamp to the file"""
-    try:
-        contexto = translateContext(json)
-        contexto['nombre_grafico_pagos'] = grafico_pagos(contexto)
-        contexto['nombre_grafico_pagos'] = "./grafico_pagos.png" ##XD
-        # contexto['nombre_grafico_etapas'] = grafico_etapas(contexto)
-        template = "/src/cotizadorpdf/cotizacion3.html"
-        html_content = renderizar_html(template, contexto)
-        timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
+    base_path = os.getcwd()     # Root of the project
+    print(base_path)
+    #
+    # current_file_path = os.path.abspath(__file__)
+    # current_file_directory = os.path.dirname(current_file_path)
+    # print(f"Current file directory: {current_file_directory}")
 
-        base_path = os.getcwd()
+    try:
+        context = translateContext(json)
+        context['nombre_grafico_pagos'] = grafico_pagos(context)
+        context['nombre_grafico_pagos'] = os.path.join(base_path, "grafico_pagos.png")
+
+        template_path = "src/cotizadorpdf/template.html"
+        html_content = renderizar_html(template_path, context)
+        timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
 
         html_path = os.path.join(base_path, "pdfs", "cotizacion" + timestamp_str +".html")
         with open(html_path, "w") as f:
@@ -279,3 +286,10 @@ def to_pdf(json) -> str:
     except Exception as e:
         print(e)
         return "error"
+
+
+if __name__ == "__main__":
+    with open("./example.json") as f:
+        context = json.load(f)
+
+    timestamp = to_pdf(context)

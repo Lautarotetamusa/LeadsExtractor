@@ -25,7 +25,7 @@ from src.lamudi.scraper import LamudiScraper
 from src.propiedades_com.scraper import PropiedadesScraper
 from src.casasyterrenos.scraper import CasasyterrenosScraper
 
-#cotizador
+# cotizador
 from src.cotizadorpdf.cotizador import to_pdf
 
 app = Flask(__name__, static_folder='static')
@@ -57,10 +57,11 @@ PORTALS: dict[str, Portal] = {
 }
 
 with open("internal_zones.json", "r") as f:
-    internal_zones: dict[str, dict[str, Internal]]= json.load(f)
+    internal_zones: dict[str, dict[str, Internal]] = json.load(f)
 
 thread = threading.Thread(target=tasks.init_task_scheduler)
 thread.start()
+
 
 @app.route('/infobip-ivr', methods=['GET'])
 def recive_ivr_call():
@@ -102,6 +103,7 @@ def recive_ivr_call():
     print(lead.asesor)
     return lead.asesor, 200
 
+
 @app.route('/generar_cotizacion', methods=['POST'])
 def generate_cotization_pdf():
     data = request.get_json()
@@ -110,6 +112,7 @@ def generate_cotization_pdf():
     if (ret == "error"):
         return Response(ret, status=400)
     return Response(ret, status=200)
+
 
 @app.route('/execute', methods=['POST'])
 def ejecutar_script_route():
@@ -131,8 +134,9 @@ def ejecutar_script_route():
 
     return "Proceso en segundo plano iniciado."
 
+
 def publish(portal: str, property: Property):
-    logger.debug("plan: " +str(property.plan))
+    logger.debug("plan: " + str(property.plan))
     # json.dumps(property.__dict__, indent=4)
     err, publication_id = PORTALS[portal].publish(property)
     if err is not None or publication_id is None:
@@ -149,12 +153,14 @@ def publish(portal: str, property: Property):
 
     update_publication(property.id, portal, "published", publication_id)
 
+
 def get_internal(portal: str, zone: str) -> Internal | None:
     return internal_zones.get(portal, {}).get(zone)
 
+
 @app.route('/publish/<portal>', methods=['POST'])
 def publish_route(portal: str):
-    if portal not in PORTALS: 
+    if portal not in PORTALS:
         logger.warning(f"Portal f{portal} is not valid")
         return jsonify({"error": f"Portal f{portal} is not valid"}), 400
 
@@ -173,9 +179,10 @@ def publish_route(portal: str):
     thread.start()
 
     return jsonify({
-        "success": True, 
+        "success": True,
         "message": "publishing process has started"
     }), 201
+
 
 def execute_scraper(portal: str, params: str | dict, spin_msg: str):
     assert portal in SCRAPERS, f"El portal {portal} no existe"
@@ -207,6 +214,7 @@ def check_task(task_id):
 
     return jsonify(current_task)
 
+
 def parse_number(logger: Logger, phone: str, code=None) -> str | None:
     logger.debug(f"Parseando numero: {phone}. code: {code}")
     try:
@@ -217,6 +225,7 @@ def parse_number(logger: Logger, phone: str, code=None) -> str | None:
     except phonenumbers.NumberParseException:
         logger.error("Error parseando el numero: " + phone)
         return None
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
