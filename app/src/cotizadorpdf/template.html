@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RBA Residences - Property Details</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="static/style.css">
     <!-- Font  -->
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
                 <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
             </div>
             <div class="document-number">
-                00/00/000
+                {{fecha}}
             </div>
         </header>
 
@@ -43,7 +43,7 @@
 
         <div class="budget-section">
             <div class="budget-header">
-                Detalles del presupuesto | Calidad: {{calidad}} | Obra por administración 21%
+                Detalles del presupuesto | Calidad: {{calidad}} | Obra por administración {{porcentaje_administracion}}%
             </div>
             <table>
                 <thead>
@@ -150,7 +150,7 @@
                 <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
             </div>
             <div class="document-number">
-                00/000/000
+                {{fecha}}
             </div>
         </header>
         <div class="table-container">
@@ -257,7 +257,7 @@
                 <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
             </div>
             <div class="document-number">
-                00/000/000
+                {{fecha}}
             </div>
         </header>
         <div class="budget-header">
@@ -345,7 +345,7 @@
         </table>
     </div>
     <div class="page-container" id="page4">
-        <div class="grafico">
+        <div class="grafico-pagos">
             <div class="budget-header">
                 Esquema de pagos
             </div>
@@ -359,7 +359,9 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th>RBA</th>
+                        <th class="rba-column">
+                            <img src="static/logo-192x192.png">
+                        </th>
                         <th>Otro Despacho o constructora</th>
                         <th>Casa Construída</th>
                     </tr>
@@ -422,7 +424,7 @@
                 <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
             </div>
             <div class="document-number">
-                00/000/000
+                {{fecha}}
             </div>
         </header>
         <div id="ROI">
@@ -433,7 +435,9 @@
                 <thead>
                     <tr>
                         <th></th>
-                        <th>RBA</th>
+                        <th class="rba-column">
+                            <img src="static/logo-192x192.png">
+                        </th>
                         <th>Otro Despacho o constructora</th>
                         <th>Casa Construída</th>
                     </tr>
@@ -473,8 +477,62 @@
             </table>
         </div>
     </div>
-    <div class="page-container img-page" id="page1">
-        <img src="static/page-10.png" style="width:100%">
+    <div class="page-container img-page" id="page10">
+        <img src="static/page-10.png">
+        <a href="https://qrco.de/bfrKLI">
+            <div class="video-container" style="cursor: pointer;"></div>
+        </a>
+        <div class="col-2">
+            <div class="audio-container">
+                <div class="audio-cards">
+                    <a href="https://qrco.de/bfrKKB">
+                        <div class="card">
+                            <!-- 🎵 101 ¿Cómo transforma tu hogar tu vida? -->
+                        </div>
+                    </a>
+                    <a href="https://qrco.de/bfrKKB">
+                        <div class="card">
+                            <!-- 🎵 102 Rentabilidad Real: La plusvalía de tu inversión -->
+                        </div>
+                    </a>
+                    <a href="https://qrco.de/bfrKKB">
+                    <div class="card">
+                        <!-- 🎵 103 Plusvalía Anual: Casas Construidas -->
+                    </div>
+                    </a>
+                </div>
+                <!-- <div class="qr-section"> -->
+                <!--     <img src="8d1de908-47a5-44bc-8733-8e5cc79133b9.png" alt="QR"> -->
+                <!--     <p>Escanea el QR<br>para más información</p> -->
+                <!-- </div> -->
+            </div>
+        </div>
+        <a href="https://qrco.de/bfsgNo">
+            <div class="hablan-de-nosotros">
+            </div>
+        </a>
+        <div class="footer">
+            <span>¿Tienes dudas? ¡Contáctanos!</span>
+
+            <div class="contact-info">
+                <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+                    {{enombre}}
+                </div>
+                <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.6 3.6 4.8 6.2 6.2l2.1-2.1c.2-.2.6-.3.9-.2 1 .3 2 .5 3 .5.5 0 .9.4.9.9v3c0 .5-.4.9-.9.9-9.4 0-17-7.6-17-17 0-.5.4-.9.9-.9h3c.5 0 .9.4.9.9 0 1 .2 2 .5 3 .1.3 0 .7-.2.9l-2.1 2.1z"/></svg>
+                    {{etelefono}}
+                </div>
+                <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    <a href="mailto:{{email}}">{{email}}</a>
+                </div>
+            </div>
+
+            <small>
+                Esta pre cotización tiene una vigencia de 15 días después de su fecha de emisión. Los precios mostrados son montos estimados basados en nuestros históricos de construcción y análisis de catálogos de costos de la región. El valor puede modificarse de acuerdo a alza de precios en materiales y/o mano de obra. Esta cotización es de uso informativo y no implica obligación alguna por parte de RBA Residences. El costo es aproximado y pueden existir variaciones de acuerdo al precio final de construcción.
+            </small>
+        </div>
     </div>
 </body>
 </html>

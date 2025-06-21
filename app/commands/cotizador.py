@@ -1,18 +1,9 @@
 import os
+import sys
+sys.path[0] = os.getcwd()
+
 import webbrowser
-
 from src.cotizadorpdf.cotizador import to_pdf
-
-def cotizador(args: list[str]):
-    timestamp = to_pdf(test_data)
-
-    if (timestamp == "error"):
-        print("error creating the cotizacion")
-        exit(1)
-
-    base_path = os.getcwd()
-    html_path = os.path.join(base_path, "pdfs", f"cotizacion{timestamp}.html")
-    webbrowser.open(f"file://{html_path}")
 
 test_data = {
     "elaborado_por": {
@@ -61,3 +52,20 @@ test_data = {
         "calculo": 59
     },
 }
+
+
+def cotizador(args: list[str]):
+    timestamp = to_pdf(test_data)
+
+    if (timestamp == "error"):
+        print("error creating the cotizacion")
+        exit(1)
+
+    base_path = os.getcwd()
+    html_path = os.path.join(base_path, "pdfs", f"cotizacion{timestamp}.html")
+    webbrowser.open(f"file://{html_path}")
+
+
+if __name__ == "__main__":
+    cotizador(test_data)
+
