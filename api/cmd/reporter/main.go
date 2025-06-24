@@ -35,7 +35,8 @@ func main() {
     reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), ";")
     fmt.Println(reportNumbers)
     
-    if err := reportService.SendDailyReport(reportNumbers); err != nil {
+	// Send 99 days before for testing porpouses
+    if err := reportService.SendReport(reportNumbers, 99); err != nil {
         log.Fatalf("Error enviando reporte: %v", err)
     }
     
