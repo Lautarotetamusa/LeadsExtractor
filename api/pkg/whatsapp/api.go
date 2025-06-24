@@ -180,10 +180,15 @@ func (w *Whatsapp) Send(payload *Payload) (*Response, error) {
 	var data Response
 	err = json.Unmarshal(bodyBytes, &data)
 	if len(data.Messages) == 0 {
+		// Debugging the payload
+		j, _ := json.MarshalIndent(payload, " ", "\t")
+		fmt.Println(string(j))
+
+		// Debugging the response
 		var debug interface{}
 		_ = json.Unmarshal(bodyBytes, &debug)
 		w.logger.Error(fmt.Sprintf("response: %v", debug))
-		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %s", err)
+		return nil, fmt.Errorf("no se pudo obtener el json de la peticion: %w", err)
 	}
 
 	w.logger.Info("Mensaje enviando correctamente", "to", payload.To, "type", payload.Type, "id", data.Messages[0].Id)
