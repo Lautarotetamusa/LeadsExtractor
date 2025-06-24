@@ -139,6 +139,49 @@
             </table>
         </div>
     </div>
+    {% if extras|length > 0 %}
+    <div class="page-container" id="extras">
+        <header class="header">
+            <div class="logo">
+                <img src="static/logo.png" alt="RBA Residences Logo">
+            </div>
+            <div class="header-text">
+                <p>{{nombre}}, bienvenido a tu nueva casa.</p>
+                <p>• Seguridad • Confort • Placer</p>
+                <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
+            </div>
+            <div class="document-number">
+                {{fecha}}
+            </div>
+        </header>
+        <table>
+            <thead>
+                <tr>
+                    <th>Extras</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>PU</th>
+                    <th>Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for extra in extras %}
+                <tr>
+                    <td>{{ extra.nombre }}</td>
+                    <td>{{ extra.unidad }}</td>
+                    <td>{{ extra.cantidad }}</td>
+                    <td>{{ extra.pu | calcular_importe(coeficiente_ganancia) }}</td>
+                    <td>{{ ((extra.pu | calcular_importe(coeficiente_ganancia)) * extra.cantidad) | formato_miles }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tr class="total-row">
+                <td colspan="4">Total</td>
+                <td class="total-amount">${{ total_extras|formato_miles }}</td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
     <div class="page-container" id="page2">
         <header class="header">
             <div class="logo">
@@ -153,7 +196,7 @@
                 {{fecha}}
             </div>
         </header>
-        <div class="table-container">
+        <div>
             <table>
                 <thead>
                     <tr>
@@ -230,6 +273,12 @@
                             <td>Permisos y Preliminares</td>
                             <td class="amount">${{ valor_permisos|formato_miles }}</td>
                         </tr>
+                        {% if extras | length > 0 %}
+                            <tr>
+                                <td>Extras</td>
+                                <td class="amount">${{ total_extras|formato_miles }}</td>
+                            </tr>
+                        {% endif %}
                         <tr class="total-row">
                             <td>Total</td>
                             <td class="total-amount">${{ valor_total|formato_miles }}</td>

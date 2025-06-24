@@ -31,16 +31,16 @@ def formato_miles(valor):
     return "{:,.0f}".format(valor)
 
 
+def calcular_importe(precio_unitario, coeficiente_ganancia) -> int:
+    return int(precio_unitario/coeficiente_ganancia)
+
+
 def renderizar_html(template_name, contexto):
     env = Environment(
         loader=FileSystemLoader(os.getcwd()),   # Busca en el directorio actual
-        # Porque el template tiene css embebido que usa simbolos iguales que a los comentarios de jinja
-        comment_start_string='{=',
-        comment_end_string='=}'
     )
     env.filters["formato_miles"] = formato_miles
-    # styles = url_for('static', filename='styles.css')
-    # env.globals['url_for'] = styles
+    env.filters["calcular_importe"] = calcular_importe
     template = env.get_template(template_name)
     return template.render(contexto)
 
@@ -57,13 +57,13 @@ def format(num):
 
 
 # 📌 Datos dinámicos que queremos insertar en el HTML
-def translateContext(cin):
+def translateContext(cin) -> dict:
     porcentaje_administracion = cin["elaborado_por"]["porcentaje_administracion"]
     enombre = cin['elaborado_por']['nombre']
     email = cin['elaborado_por']['mail']
     etelefono = cin['elaborado_por']['telefono']
     nombre = cin['datos']['nombre']
-    fecha = date.today().strftime("%ed/%m/%Y")
+    fecha = date.today().strftime("%d/%m/%Y")
     print("amenidades", "amenidades" in cin)
     banios = cin['areas_interiores']['banos']
     recamaras = cin['areas_interiores']['cuartos']
@@ -93,7 +93,11 @@ def translateContext(cin):
     if area_roof != "" and int(area_roof) > 0:
         niveles += 1
 
-    valor_rampa = int(cin['valor_exteriores']['rampa']/coeficiente_ganancia) 
+    total_extras = 0
+    for extra in cin["extras"]:
+        total_extras += int(calcular_importe(extra["pu"], coeficiente_ganancia) * extra["cantidad"])
+
+    valor_rampa = int(cin['valor_exteriores']['rampa']/coeficiente_ganancia)
     valor_jardin = int(cin['valor_exteriores']['jardin']/coeficiente_ganancia)
     valor_alberca = int(cin['valor_exteriores']['alberca']/coeficiente_ganancia)
     valor_muro_perimetral = int(cin['valor_exteriores']['muro_perimetral']/coeficiente_ganancia)
@@ -116,7 +120,7 @@ def translateContext(cin):
     valor_subtotal_m2 = int((valor_interior_m2+valor_exterior_m2+valor_permisos_m2*is_valor_permisos))
     valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
     valor_administracion = int(valor_administracion_m2 * area_interior)
-    valor_total = valor_exterior+valor_interior+valor_permisos
+    valor_total = valor_exterior+valor_interior+valor_permisos+total_extras+total_extras
     valor_total_min = valor_total * 0.95
     valor_total_max = valor_total * 1.05
     valor_total_min_m2 = importe_calidad * 0.95
@@ -193,6 +197,7 @@ def translateContext(cin):
         "valor_subtotal_m2": valor_subtotal_m2,
         "valor_administracion": valor_administracion,
         "porcentaje_administracion": porcentaje_administracion,
+        "coeficiente_ganancia": coeficiente_ganancia,
         "is_valor_permisos": is_valor_permisos,
         "valor_preconstruccion": valor_preconstruccion,
         "valor_construccion": valor_construccion,
@@ -233,22 +238,25 @@ def translateContext(cin):
         "precio_venta_rebora": precio_venta_rebora,
         "banios": banios,
         "recamaras": recamaras,
-        "niveles": niveles
+        "niveles": niveles,
+        "extras": cin["extras"],
+        "total_extras": total_extras
     }
-
-    print(area_rampa*valor_rampa)
-    print("valor alberca", valor_alberca)
-    print(area_alberca*valor_alberca)
-    print(area_jardin*valor_jardin)
-    print(area_muro_perimetral*valor_muro_perimetral)
-
-    print("---")
-    print("valor exterior:", valor_exterior)
-    print("area interio", area_interior)
-    print("importe calidad:", importe_calidad)
-    print("valor interior:", valor_interior)
-    print("valor permisos:", valor_permisos)
-    print("valor total:", valor_total)
+    print(json.dumps(contexto, indent=4))
+    #
+    # print(area_rampa*valor_rampa)
+    # print("valor alberca", valor_alberca)
+    # print(area_alberca*valor_alberca)
+    # print(area_jardin*valor_jardin)
+    # print(area_muro_perimetral*valor_muro_perimetral)
+    #
+    # print("---")
+    # print("valor exterior:", valor_exterior)
+    # print("area interio", area_interior)
+    # print("importe calidad:", importe_calidad)
+    # print("valor interior:", valor_interior)
+    # print("valor permisos:", valor_permisos)
+    # print("valor total:", valor_total)
 
     return contexto
 
@@ -286,10 +294,3 @@ def to_pdf(json) -> str:
     except Exception as e:
         print(e)
         return "error"
-
-
-if __name__ == "__main__":
-    with open("./example.json") as f:
-        context = json.load(f)
-
-    timestamp = to_pdf(context)
