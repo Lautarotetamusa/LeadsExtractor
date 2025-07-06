@@ -85,7 +85,7 @@ def grafico_pagos(c: dict):
     plt.tight_layout()
 
     # Guardar el gráfico en un archivo de alta resolución
-    path = f"{out_path}/grafico_pagos.png"
+    path = f"/app/pdfs/static/grafico_pagos.png"
     plt.savefig(path, dpi=300, bbox_inches="tight")
 
     # Cerrar la figura para liberar recursos
