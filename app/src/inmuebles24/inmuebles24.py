@@ -332,9 +332,9 @@ class Inmuebles24(Portal):
             return None
 
         return posts[0]["postingId"]
-    
+
     def get_properties_page(self, page=1) -> list[dict]:
-        self.logger.debug("getting properties") 
+        self.logger.debug("getting properties")
         list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?"
         params = {
             "page": page,
@@ -350,22 +350,22 @@ class Inmuebles24(Portal):
         if res is None or not res.ok:
             return []
 
-        return res.json().get("postings", []) 
+        return res.json().get("postings", [])
 
-    def get_properties(self, status="DRAFT", featured=False, query={}) -> Iterator[dict]:
-        self.logger.debug("getting properties") 
+    def get_properties(self, status="ONLINE", featured=False, query={}) -> Iterator[dict]:
+        self.logger.debug("getting properties")
         list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?"
         # "page={page}&limit=20&searchParameters=status:{status};sort:createdNewer&onlineFirst=true"
         params = {
             "page": 1,
             "limit": 20,
-            # "searchParameters": "sort:createdNewer;onlineFirst=true;status:ONLINE"
+            "searchParameters": f"status:{status}"
         }
         if "page" in query:
             params["page"] = query["page"]
 
         if "internal" in query:
-            params["searchParameters"] = f"searchCode:{query['internal']['colony']};status:ONLINE"
+            params["searchParameters"] += f";searchCode:{query['internal']['colony']}"
 
         posts = [1]
         while len(posts) > 0:
@@ -382,10 +382,10 @@ class Inmuebles24(Portal):
             if not "page" in query:
                 params["page"] += 1
 
-            posts = res.json().get("postings", []) 
+            posts = res.json().get("postings", [])
             if posts is None:
                 break
-            for post in posts: 
+            for post in posts:
                 yield post
 
     def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
@@ -481,8 +481,6 @@ class Inmuebles24(Portal):
             "idGeoloc": id_geoloc,
         }
 
-        print(json.dumps(payload, indent=4))
-
         cookies = {
             "allowCookies": "true",
             "changeInbox": "true",
@@ -509,8 +507,6 @@ class Inmuebles24(Portal):
             "usuarioIdCompany": "50796870",
             "usuarioLogeado": "control.general@rebora.com.mx",
         }
-
-        # print(json.dumps(payload, indent=4))
 
         first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
         res = self.api_req.make(first_step_url, "POST", data=payload, cookies=cookies)
@@ -569,7 +565,6 @@ class Inmuebles24(Portal):
             "geoloc.lng": prop.ubication.location.lng,
             "direccionOriginal": prop.ubication.address + ", " + internal_name
         }
-        print(json.dumps(payload, indent=4))
 
         headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
         res = self.api_req.make(save_url, "POST", headers=headers, data=payload)
@@ -589,13 +584,11 @@ class Inmuebles24(Portal):
             "idSubZona": "",
             "idCodigoPostal": ""
         }
-        print(payload)
         res = self.api_req.make(url_obtener_loc, "POST", data=payload)
         if res is None or not res.ok:
             return Exception("error getting geolocation"), None
 
         data = res.json()
-        print(json.dumps(data, indent=4))
         # ej: Fraccionamiento Las Lomas Club Golf,Zapopan,Jalisco,Mexico
         internal_name = data.get("contenido")
         if internal_name is None:
@@ -603,7 +596,6 @@ class Inmuebles24(Portal):
         payload = {
             "direccionOriginal": prop.ubication.address + ", " + internal_name
         }
-        print(payload)
 
         res = self.api_req.make(url_geolicalizar, "POST", data=payload)
         if res is None or not res.ok:
@@ -612,7 +604,6 @@ class Inmuebles24(Portal):
         data = res.json()
         geo_id: str | None = data.get("contenido", {}).get("geolocdefault", {}).get("idgeolocalizacion")
         if geo_id is None:
-            print(json.dumps(data, indent=4))
             self.logger.warning("cannot find geolocation, saving a new one")
 
             err, data = self.save_geolocation(prop, internal_name)
@@ -649,23 +640,27 @@ class Inmuebles24(Portal):
             self.logger.debug("uploading the image")
             params = PARAMS.copy()
             params["url"] = upload_url
-            res = requests.post(
-                ZENROWS_API_URL,
+            self.request.cookies = cookies
+            res = self.request.make(ZENROWS_API_URL, "POST",
                 params=params,
-                files=files,
-                cookies=cookies,
-                headers={
-                    "sessionId": self.request.headers["sessionId"],
-                    "idUsuario": self.request.headers["idUsuario"],
-                }
+                files=files
             )
-            if res is None or not res.ok:
-                self.logger.error("error uploading the image")
+            if res is None:
+                self.logger.error("unknonw error uploading the image", image["url"])
+                return None
+            if not res.ok:
+                self.logger.error("error uploading the image: ", image["url"], "error: ", res.text)
                 return None
 
             file_url = res.text.replace("FILEID:", "")
             self.logger.success(f"image uploaded successfully, url: {file_url}")
             return file_url
+
+
+        # Necessary for the upload image request, otherwise will fail
+        if "content-type" in self.request.headers:
+            ct = self.request.headers["content-type"]
+            del self.request.headers["content-type"]
 
         uploaded_images = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -676,7 +671,17 @@ class Inmuebles24(Portal):
                 if result is not None:
                     uploaded_images.append(result)
 
-        # print(json.dumps(uploaded_images, indent=4))
+        if len(uploaded_images) < len(prop.images):
+            self.logger.error("not all the images are successfully added, publication failed")
+            return Exception("not all the images are successfully added")
+
+        if "content-type" in self.request.headers:
+            self.request.headers["content-type"] = ct
+
+        # Plano. TODO: que el plano no sea la 4ta foto.
+        plano_img_parts = uploaded_images[4].split("/")
+        plano_img_id = plano_img_parts[len(plano_img_parts)-1]
+
         payload: dict[str, Any] = {
             "multimediaaviso.idMultimediaAviso[]": [],
             "idAviso": prop_id,
@@ -686,13 +691,19 @@ class Inmuebles24(Portal):
             "mutimediaaviso.keyRecorrido360": prop.virtual_route if prop.virtual_route is not None else "",
             "mutimediaaviso.idRecorrido360": "-1",
             "mutimediaaviso.idRecorrido360Multimedia--1": prop.virtual_route if prop.virtual_route is not None else "",
-            "mutimediaaviso.idRecorrido360Orden[-1]": "2"
+            "mutimediaaviso.idRecorrido360Orden[-1]": "2",
+
+            # Plano. TODO: que el plano no sea la 4ta foto.
+            "multimediaaviso.idPlanosMultimedia[]":	"nueva_0",
+            "multimediaaviso.orden[nueva_0_plano]":	"1",
+            "multimediaaviso.rotacion[nueva_0_plano]": "0",
+            "multimediaaviso.urlTempPlano[nueva_0]": plano_img_id
         }
 
         # add the video url
         if prop.video_url is not None:
             # https://youtu.be/H9RlIXuS1is. key => H9RlIXuS1is
-            parts = prop.video_url.split("/") 
+            parts = prop.video_url.split("/")
             video_key = parts[len(parts) - 1]
 
             payload = {
@@ -718,8 +729,6 @@ class Inmuebles24(Portal):
             payload["multimediaaviso.idMultimediaAviso[]"].append(id)
 
             i += 1 
-
-        # print(json.dumps(payload, indent=4))
 
         params = PARAMS.copy()
         params["js_render"] = "true"
