@@ -82,7 +82,7 @@ func (rs *ReportService) SendReport(numbers []string, daysBefore int) error {
     }
 
 	// Same order than the template
-	sendedSources := []string{"inmuebles24", "lamudi", "whatsapp"}
+	sendedSources := []string{"inmuebles24", "casasyterrenos", "lamudi", "propiedades", "whatsapp"}
 	p := []whatsapp.Parameter{whatsapp.Parameter{
 		Type: "text",
 		Text: date.Format("2006-01-02"),
