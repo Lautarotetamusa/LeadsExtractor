@@ -274,7 +274,7 @@ def to_pdf(json) -> str:
     try:
         context = translateContext(json)
         context['nombre_grafico_pagos'] = grafico_pagos(context)
-        context['nombre_grafico_pagos'] = os.path.join(base_path, "grafico_pagos.png")
+        context['nombre_grafico_pagos'] = os.path.join(base_path, "pdfs", "static", "grafico_pagos.png")
 
         template_path = "src/cotizadorpdf/template.html"
         html_content = renderizar_html(template_path, context)

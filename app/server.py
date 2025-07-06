@@ -201,6 +201,17 @@ def download_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     return jsonify({'error': 'Archivo no encontrado'}), 404
 
+@app.route('/download/static/<filename>', methods=['GET'])
+def download_static_file(filename):
+    # Verificar si el archivo existe en el directorio de carga
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    static_dir_path = os.path.join(app.config['UPLOAD_FOLDER'], "static")
+
+    if os.path.exists(file_path):
+        return send_from_directory(static_dir_path, filename)
+    return jsonify({'error': 'Archivo statico no encontrado'}), 404
+
 
 @app.route('/check-task/<task_id>', methods=['GET'])
 def check_task(task_id):

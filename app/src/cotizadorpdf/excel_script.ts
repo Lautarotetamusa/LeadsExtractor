@@ -5,6 +5,27 @@ async function main(workbook: ExcelScript.Workbook) {
         const datosVendedor = workbook.getWorksheet("DatosVendedor");
         const datosFijos = workbook.getWorksheet("DatosFijos");
 
+        const datosExtraSheet = workbook.getWorksheet("DatosExtra");
+        const datosExtra = datosExtraSheet.getRange("A1:D" + datosExtraSheet.getUsedRange().getRowCount()).getValues();
+
+        type Extra = {
+            nombre: string,
+            cantidad: number,
+            pu: number,
+            unidad: string
+        }
+        const extras: Extra[] = []
+        datosExtra.slice(1).map(fila => {
+            if (fila[1] > 0) {
+                extras.push({
+                    nombre: fila[0] as string,
+                    cantidad: Number(fila[1]) as number,
+                    pu: Number(fila[2]) as number,
+                    unidad: fila[3] as string
+                });
+            }
+        });
+
         datosVenta.getRange("C1").setValue("Generando...");
         datosVenta.getRange("C2").clear();
         
@@ -59,8 +80,11 @@ async function main(workbook: ExcelScript.Workbook) {
                 topografia: datosFijos.getRange("B9").getValue() as number,
                 mecanica: datosFijos.getRange("B10").getValue() as number,
                 calculo: datosFijos.getRange("B11").getValue() as number
-            }
+            },
+            extras: extras
         };
+
+        console.log(payload);
 
         const host = "https://reboraautomatizaciones.com/app"
         const apiUrl = `${host}/generar_cotizacion`;
