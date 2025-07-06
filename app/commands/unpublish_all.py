@@ -20,6 +20,7 @@ if __name__ == "__main__":
         "inmuebles24": "postingId",
         "casasyterrenos": "id",
         "lamudi": "id",
+        "propiedades": "property_id"
     }
 
     args = sys.argv

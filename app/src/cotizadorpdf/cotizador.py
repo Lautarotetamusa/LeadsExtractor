@@ -1,12 +1,14 @@
 from jinja2 import Environment, FileSystemLoader
-import os
 from datetime import date, datetime
+import json
+import os
 
-from src.cotizadorpdf.time_line import grafico_pagos 
+from src.cotizadorpdf.time_line import grafico_pagos
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import base64
+
 
 def get_pdf_from_html(path):
     webdriver_options = Options()
@@ -24,32 +26,38 @@ def get_pdf_from_html(path):
     driver.quit()
     return pdf_data
 
+
 def formato_miles(valor):
     return "{:,.0f}".format(valor)
 
+
+def calcular_importe(precio_unitario, coeficiente_ganancia) -> int:
+    return int(precio_unitario/coeficiente_ganancia)
+
+
 def renderizar_html(template_name, contexto):
     env = Environment(
-        loader=FileSystemLoader(os.getcwd()),  # Busca en el directorio actual
-        comment_start_string='{=', # Porque el template tiene css embebido que usa simbolos iguales que a los comentarios de jinja
-        comment_end_string='=}'
+        loader=FileSystemLoader(os.getcwd()),   # Busca en el directorio actual
     )
     env.filters["formato_miles"] = formato_miles
-    # styles = url_for('static', filename='styles.css')
-    # env.globals['url_for'] = styles
+    env.filters["calcular_importe"] = calcular_importe
     template = env.get_template(template_name)
     return template.render(contexto)
 
+
 def calcular_importe_calidad(pal):
-    if(pal == "Premium"):
+    if (pal == "Premium"):
         return 17500
     return 0
+
 
 def format(num):
     numero_formateado = "{:,.0f}".format(num).replace(",", ".")
     return numero_formateado
 
+
 # 📌 Datos dinámicos que queremos insertar en el HTML
-def translateContext(cin):
+def translateContext(cin) -> dict:
     porcentaje_administracion = cin["elaborado_por"]["porcentaje_administracion"]
     enombre = cin['elaborado_por']['nombre']
     email = cin['elaborado_por']['mail']
@@ -58,10 +66,10 @@ def translateContext(cin):
     fecha = date.today().strftime("%d/%m/%Y")
     print("amenidades", "amenidades" in cin)
     banios = cin['areas_interiores']['banos']
-    recamaras = cin['areas_interiores']['cuartos'] 
+    recamaras = cin['areas_interiores']['cuartos']
     calidad = cin['pagos']['tipo']
     importe_inicial = calcular_importe_calidad(calidad)
-    coeficiente_ganancia = (1- (porcentaje_administracion/100))
+    coeficiente_ganancia = (1 - (porcentaje_administracion/100))
     importe_calidad = int((importe_inicial + 2000) / coeficiente_ganancia)
     area_sotano = cin['areas_interiores']['sotano']
     area_planta_baja = cin['areas_interiores']['planta_baja']
@@ -69,9 +77,9 @@ def translateContext(cin):
     area_roof = cin['areas_interiores']['roof']
     area_interior = area_sotano+area_planta_baja+area_planta_alta+area_roof
     valor_interior = area_interior*importe_calidad
-    area_rampa = cin['areas_exteriores']['rampa'] 
+    area_rampa = cin['areas_exteriores']['rampa']
     area_jardin = cin['areas_exteriores']['jardin']
-    area_alberca = cin['areas_exteriores']['alberca'] 
+    area_alberca = cin['areas_exteriores']['alberca']
     area_muro_perimetral = cin['areas_exteriores']['muro_perimetral']
 
     # Niveles
@@ -85,7 +93,11 @@ def translateContext(cin):
     if area_roof != "" and int(area_roof) > 0:
         niveles += 1
 
-    valor_rampa = int(cin['valor_exteriores']['rampa']/coeficiente_ganancia) 
+    total_extras = 0
+    for extra in cin["extras"]:
+        total_extras += int(calcular_importe(extra["pu"], coeficiente_ganancia) * extra["cantidad"])
+
+    valor_rampa = int(cin['valor_exteriores']['rampa']/coeficiente_ganancia)
     valor_jardin = int(cin['valor_exteriores']['jardin']/coeficiente_ganancia)
     valor_alberca = int(cin['valor_exteriores']['alberca']/coeficiente_ganancia)
     valor_muro_perimetral = int(cin['valor_exteriores']['muro_perimetral']/coeficiente_ganancia)
@@ -108,7 +120,7 @@ def translateContext(cin):
     valor_subtotal_m2 = int((valor_interior_m2+valor_exterior_m2+valor_permisos_m2*is_valor_permisos))
     valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
     valor_administracion = int(valor_administracion_m2 * area_interior)
-    valor_total = valor_exterior+valor_interior+valor_permisos
+    valor_total = valor_exterior+valor_interior+valor_permisos+total_extras+total_extras
     valor_total_min = valor_total * 0.95
     valor_total_max = valor_total * 1.05
     valor_total_min_m2 = importe_calidad * 0.95
@@ -124,11 +136,11 @@ def translateContext(cin):
     valor_previo = int((valor_total-anticipo)*porcentaje_previo/100)
     meses = cin['pagos']['meses']
     pagos_mensuales = int((valor_total - valor_previo - anticipo)/meses)
-    valor_terreno= cin['elaborado_por']['valor_terreno']
-    area_terreno= cin['elaborado_por']['area_terreno']
-    plusvalia_terreno_rebora= valor_terreno*0.24
-    plusvalia_terreno_otro_despacho= valor_terreno*0.20
-    plusvalia_terreno_casa_construida= valor_terreno*0.20
+    valor_terreno = cin['elaborado_por']['valor_terreno']
+    area_terreno = cin['elaborado_por']['area_terreno']
+    plusvalia_terreno_rebora = valor_terreno*0.24
+    plusvalia_terreno_otro_despacho = valor_terreno*0.20
+    plusvalia_terreno_casa_construida = valor_terreno*0.20
     valor_otro_despacho = int(valor_total * 1.12)
     valor_casa_construida = int(valor_total * 1.18)
     plusvalia = int(valor_total * 0.26)
@@ -185,6 +197,7 @@ def translateContext(cin):
         "valor_subtotal_m2": valor_subtotal_m2,
         "valor_administracion": valor_administracion,
         "porcentaje_administracion": porcentaje_administracion,
+        "coeficiente_ganancia": coeficiente_ganancia,
         "is_valor_permisos": is_valor_permisos,
         "valor_preconstruccion": valor_preconstruccion,
         "valor_construccion": valor_construccion,
@@ -225,38 +238,47 @@ def translateContext(cin):
         "precio_venta_rebora": precio_venta_rebora,
         "banios": banios,
         "recamaras": recamaras,
-        "niveles": niveles
+        "niveles": niveles,
+        "extras": cin["extras"],
+        "total_extras": total_extras
     }
-
-    print(area_rampa*valor_rampa)
-    print("valor alberca", valor_alberca)
-    print(area_alberca*valor_alberca)
-    print(area_jardin*valor_jardin)
-    print(area_muro_perimetral*valor_muro_perimetral)
-
-    print("---")
-    print("valor exterior:", valor_exterior)
-    print("area interio", area_interior)
-    print("importe calidad:", importe_calidad)
-    print("valor interior:", valor_interior)
-    print("valor permisos:",valor_permisos)
-    print("valor total:",valor_total)
+    print(json.dumps(contexto, indent=4))
+    #
+    # print(area_rampa*valor_rampa)
+    # print("valor alberca", valor_alberca)
+    # print(area_alberca*valor_alberca)
+    # print(area_jardin*valor_jardin)
+    # print(area_muro_perimetral*valor_muro_perimetral)
+    #
+    # print("---")
+    # print("valor exterior:", valor_exterior)
+    # print("area interio", area_interior)
+    # print("importe calidad:", importe_calidad)
+    # print("valor interior:", valor_interior)
+    # print("valor permisos:", valor_permisos)
+    # print("valor total:", valor_total)
 
     return contexto
+
 
 # 📌 Renderizar HTML con datos dinámicos
 def to_pdf(json) -> str:
     """returns timestamp to the file"""
-    try:
-        contexto = translateContext(json)
-        contexto['nombre_grafico_pagos'] = grafico_pagos(contexto)
-        contexto['nombre_grafico_pagos'] = "./grafico_pagos.png" ##XD
-        # contexto['nombre_grafico_etapas'] = grafico_etapas(contexto)
-        template = "/src/cotizadorpdf/cotizacion3.html"
-        html_content = renderizar_html(template, contexto)
-        timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
+    base_path = os.getcwd()     # Root of the project
+    print(base_path)
+    #
+    # current_file_path = os.path.abspath(__file__)
+    # current_file_directory = os.path.dirname(current_file_path)
+    # print(f"Current file directory: {current_file_directory}")
 
-        base_path = os.getcwd()
+    try:
+        context = translateContext(json)
+        context['nombre_grafico_pagos'] = grafico_pagos(context)
+        context['nombre_grafico_pagos'] = os.path.join(base_path, "grafico_pagos.png")
+
+        template_path = "src/cotizadorpdf/template.html"
+        html_content = renderizar_html(template_path, context)
+        timestamp_str = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
 
         html_path = os.path.join(base_path, "pdfs", "cotizacion" + timestamp_str +".html")
         with open(html_path, "w") as f:

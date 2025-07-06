@@ -15,7 +15,7 @@ from src.property import Internal
 from commands.zones import ZONES
 
 if __name__ == "__main__":
-    PORTALS: dict[str, Portal ]= {
+    PORTALS: dict[str, Portal ] = {
         "casasyterrenos": CasasYTerrenos(),
         "propiedades": Propiedades(),
         "inmuebles24": Inmuebles24(),

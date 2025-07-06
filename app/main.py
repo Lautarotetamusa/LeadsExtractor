@@ -10,6 +10,7 @@ TASKS = {
     "cotizador": cotizador
 }
 
+
 def USAGE():
     print("""
         python main.py <TASK> <...TASK ARGS>
@@ -19,6 +20,7 @@ def USAGE():
             - scraper
             - cotizador
     """)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -32,5 +34,6 @@ if __name__ == "__main__":
         print(f"Task {task} doesnt exists")
         USAGE()
         exit(1)
-    
-    TASKS[task](sys.argv[2:]) 
+
+
+    TASKS[task](sys.argv[2:])

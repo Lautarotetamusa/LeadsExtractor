@@ -43,5 +43,67 @@
         "topografia": 9500,
         "mecanica": 4,
         "calculo": 59
-    }
+    },
+    "extras": [
+        {
+            "nombre": "Muros de contención",
+            "cantidad": 1,
+            "pu": 60,
+            "unidad": "m2"
+        },
+        {
+            "nombre": "Domótica",
+            "cantidad": 1,
+            "pu": 100,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "Planta de tratamiento",
+            "cantidad": 1,
+            "pu": 10000,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "Fosa séptica",
+            "cantidad": 1,
+            "pu": 8000,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "Sistema de riego",
+            "cantidad": 1,
+            "pu": 19000,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "Sonido",
+            "cantidad": 1,
+            "pu": 20000,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "CCTV",
+            "cantidad": 1,
+            "pu": 1500,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "Cargador carro eléctrico",
+            "cantidad": 1,
+            "pu": 18000,
+            "unidad": "unidad"
+        },
+        {
+            "nombre": "Interiorismo",
+            "cantidad": 1,
+            "pu": 3000,
+            "unidad": "m2"
+        },
+        {
+            "nombre": "Paneles solares",
+            "cantidad": 1,
+            "pu": 1800,
+            "unidad": "m2"
+        }
+    ]
 }

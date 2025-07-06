@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RBA Residences - Property Details</title>
+    <link rel="stylesheet" href="static/style.css">
+    <!-- Font  -->
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="page-container img-page" id="page1">
+        <img src="static/page-1.png" style="width:100%">
+    </div>
+    <div class="page-container img-page" id="page1">
+        <img src="static/page-2.png" style="width:100%">
+    </div>
+    <div class="page-container img-page" id="page1">
+        <img src="static/page-3.png" style="width:100%">
+    </div>
+    <div class="page-container img-page" id="page1">
+        <img src="static/page-4.png" style="width:100%">
+    </div>
+    <div class="page-container" id="page1">
+        <header class="header">
+            <div class="logo">
+                <img src="static/logo.png" alt="RBA Residences Logo">
+            </div>
+            <div class="header-text">
+                <p>{{nombre}}, bienvenido a tu nueva casa.</p>
+                <p>• Seguridad • Confort • Placer</p>
+                <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
+            </div>
+            <div class="document-number">
+                {{fecha}}
+            </div>
+        </header>
+
+        <div class="banner">
+            <img src="static/banner_1.png">
+        </div>
+
+        <div class="budget-section">
+            <div class="budget-header">
+                Detalles del presupuesto | Calidad: {{calidad}} | Obra por administración {{porcentaje_administracion}}%
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Áreas construibles techadas</th>
+                        <th>Unidad</th>
+                        <th>Cantidad</th>
+                        <th>PU</th>
+                        <th>Importe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sótano</td>
+                        <td>M2</td>
+                        <td>{{ area_sotano }}</td>
+                        <td>${{ importe_calidad |formato_miles}}</td>
+                        <td>${{ (area_sotano * importe_calidad)|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Planta baja</td>
+                        <td>M2</td>
+                        <td>{{ area_planta_baja }}</td>
+                        <td>${{ importe_calidad |formato_miles}}</td>
+                        <td>${{ (area_planta_baja * importe_calidad) |formato_miles}}</td>
+                    </tr>
+                    <tr>
+                        <td>Planta alta</td>
+                        <td>M2</td>
+                        <td>{{ area_planta_alta }}</td>
+                        <td>${{ importe_calidad|formato_miles }}</td>
+                        <td>${{ (area_planta_alta * importe_calidad)|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Roof Garden (área techada)</td>
+                        <td>M2</td>
+                        <td>{{ area_roof }}</td>
+                        <td>${{ importe_calidad|formato_miles }}</td>
+                        <td>${{ (area_roof * importe_calidad)|formato_miles }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="4">Total</td>
+                        <td class="total-amount">${{ valor_interior|formato_miles }}</td>
+                    </tr>
+                </tbody>
+            </table>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Areas Exteriores</th>
+                        <th>Unidad</th>
+                        <th>Cantidad</th>
+                        <th>PU</th>
+                        <th>Importe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Rampa, estacionamiento vehículos</td>
+                        <td>M2</td>
+                        <td>{{ area_rampa }}</td>
+                        <td>${{ valor_rampa|formato_miles }}</td>
+                        <td>${{ (area_rampa * valor_rampa)|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Jardín Exterior</td>
+                        <td>M2</td>
+                        <td>{{ area_jardin }}</td>
+                        <td>${{ valor_jardin|formato_miles }}</td>
+                        <td>${{ (area_jardin * valor_jardin)|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Alberca</td>
+                        <td>M2</td>
+                        <td>{{ area_alberca }}</td>
+                        <td>${{ valor_alberca|formato_miles }}</td>
+                        <td>${{ (area_rampa * valor_alberca)|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Muro perimetral</td>
+                        <td>M2</td>
+                        <td>{{ area_muro_perimetral }}</td>
+                        <td>${{ valor_muro_perimetral |formato_miles}}</td>
+                        <td>${{ (area_muro_perimetral * valor_muro_perimetral)|formato_miles }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="4">Total</td>
+                        <td class="total-amount">${{ valor_exterior |formato_miles}}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    {% if extras|length > 0 %}
+    <div class="page-container" id="extras">
+        <header class="header">
+            <div class="logo">
+                <img src="static/logo.png" alt="RBA Residences Logo">
+            </div>
+            <div class="header-text">
+                <p>{{nombre}}, bienvenido a tu nueva casa.</p>
+                <p>• Seguridad • Confort • Placer</p>
+                <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
+            </div>
+            <div class="document-number">
+                {{fecha}}
+            </div>
+        </header>
+        <table>
+            <thead>
+                <tr>
+                    <th>Extras</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>PU</th>
+                    <th>Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for extra in extras %}
+                <tr>
+                    <td>{{ extra.nombre }}</td>
+                    <td>{{ extra.unidad }}</td>
+                    <td>{{ extra.cantidad }}</td>
+                    <td>{{ extra.pu | calcular_importe(coeficiente_ganancia) }}</td>
+                    <td>{{ ((extra.pu | calcular_importe(coeficiente_ganancia)) * extra.cantidad) | formato_miles }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tr class="total-row">
+                <td colspan="4">Total</td>
+                <td class="total-amount">${{ total_extras|formato_miles }}</td>
+            </tr>
+        </table>
+    </div>
+    {% endif %}
+    <div class="page-container" id="page2">
+        <header class="header">
+            <div class="logo">
+                <img src="static/logo.png" alt="RBA Residences Logo">
+            </div>
+            <div class="header-text">
+                <p>{{nombre}}, bienvenido a tu nueva casa.</p>
+                <p>• Seguridad • Confort • Placer</p>
+                <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
+            </div>
+            <div class="document-number">
+                {{fecha}}
+            </div>
+        </header>
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Permisos y Preliminares</th>
+                        <th>Unidad</th>
+                        <th>Cantidad</th>
+                        <th>PU</th>
+                        <th>Importe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Licencia municipal (precio por m2)</td>
+                        <td>M2</td>
+                        <td>{{ area_interior }}</td>
+                        <td>${{ valor_licencia|formato_miles }}</td>
+                        <td>${{ (area_interior * valor_licencia)|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td>Gestorias y peritaje</td>
+                        <td>M2</td>
+                        <td>{{area_interior}}</td>
+                        <td>${{valor_gestorias|formato_miles}}</td>
+                        <td>${{(area_interior * valor_gestorias)|formato_miles}}</td>
+                    </tr>
+                    <tr>
+                        <td>Topografia inicial</td>
+                        <td>Unidad</td>
+                        <td>1</td>
+                        <td>${{valor_topografia|formato_miles}}</td>
+                        <td>${{valor_topografia|formato_miles}}</td>
+                    </tr>
+                    <tr>
+                        <td>Mecanica del suelo</td>
+                        <td>Perforacion</td>
+                        <td>5800</td>
+                        <td>${{valor_mecanica|formato_miles}}</td>
+                        <td>${{(5800 * valor_mecanica)|formato_miles}}</td>
+                    </tr>
+                    <tr>
+                        <td>Calculo estructural</td>
+                        <td>M2</td>
+                        <td>{{area_interior}}</td>
+                        <td>${{valor_calculo|formato_miles}}</td>
+                        <td>${{(area_interior * valor_calculo)|formato_miles}}</td>
+                    </tr>
+                    </tbody>
+                    <tr class="total-row">
+                        <td colspan="4">Total</td>
+                        <td class="total-amount">${{valor_permisos|formato_miles}}</td>
+                    </tr>
+            </table>
+            <div id="monto-total-de-inversion">
+                <div class="budget-header">
+                    Monto total de inversión
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Monto total de inversión</th>
+                            <th colspan="2" style="text-align:center">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Áreas construibles techadas</td>
+                            <td class="amount">${{ valor_interior|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Áreas exteriores</td>
+                            <td class="amount">${{ valor_exterior|formato_miles }}</td>
+                        </tr>
+                        <tr>
+                            <td>Permisos y Preliminares</td>
+                            <td class="amount">${{ valor_permisos|formato_miles }}</td>
+                        </tr>
+                        {% if extras | length > 0 %}
+                            <tr>
+                                <td>Extras</td>
+                                <td class="amount">${{ total_extras|formato_miles }}</td>
+                            </tr>
+                        {% endif %}
+                        <tr class="total-row">
+                            <td>Total</td>
+                            <td class="total-amount">${{ valor_total|formato_miles }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="monto">
+            <span>Este monto incluye</span>
+            <p>Costo directo: materiales, mano de obra, fasar(impuesto de obra)<br>
+            Porcentaje de administacion: 23%<br>
+            Diseño y direccion de obra ($2000 por m2 construibles techado(500m2))
+            </p>
+        </div>
+    </div>
+    <div class="page-container" id="page3">
+        <header class="header">
+            <div class="logo">
+                <img src="static/logo.png" alt="RBA Residences Logo">
+            </div>
+            <div class="header-text">
+                <p>{{nombre}}, bienvenido a tu nueva casa.</p>
+                <p>• Seguridad • Confort • Placer</p>
+                <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
+            </div>
+            <div class="document-number">
+                {{fecha}}
+            </div>
+        </header>
+        <div class="budget-header">
+            Ahorros
+        </div>
+        <table>
+            <tbody>
+                <tr>
+                    <td>Materiales 8%</td>
+                    <td>${{ ahorro_materiales|formato_miles }}</td>
+                </tr>
+                <tr>
+                    <td>Robos, conceptos inventados y retrabajos 10%</td>
+                    <td>{{ahorro_contratista|formato_miles }}</td>
+                </tr>
+                <tr>
+                    <td>Costo sin ahorro</td>
+                    <td>${{ costo_sin_ahorro|formato_miles }}</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Costo con ahorro</td>
+                    <td class="total-amount">${{ valor_total|formato_miles }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <table class="bordered-table">
+            <div class="budget-header">
+                Rango de precios
+            </div>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Minimo</th>
+                    <th>Estimado</th>
+                    <th>Máximo</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Rango por m²</td>
+                    <td> ${{valor_total_min_m2|formato_miles}} </td>
+                    <td class="highlighted-cell"> ${{valor_total_m2|formato_miles}} </td>
+                    <td>${{valor_total_max_m2|formato_miles}}</td>                    
+                </tr>
+                <tr>
+                    <td>Rango total</td>
+                    <td> ${{valor_total_min|formato_miles}}</td>
+                    <td class="highlighted-cell"> ${{valor_total|formato_miles}}</td>
+                    <td>${{valor_total_max|formato_miles}}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="budget-header">
+            Esquema de pagos
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Monto total de inversión</th>
+                    <th colspan="2" style="text-align:center">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Anticipo</td>
+                    <td></td>
+                    <td>${{ anticipo|formato_miles }}</td>                    
+                </tr>
+                <tr>
+                    <td>Porcentaje previo a inicio de obra</td>
+                    <td>{{porcentaje_previo}}%</td>
+                    <td>${{ valor_previo|formato_miles }}</td>                    
+                </tr>
+                <tr>
+                    <td>Pagos mensuales</td>
+                    <td>{{meses}} meses</td>
+                    <td>${{ pagos_mensuales|formato_miles }}</td>                    
+                </tr>
+                <tr class="total-row">
+                    <td>Total</td>
+                    <td></td>
+                    <td class="total-amount">${{ valor_total|formato_miles }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="page-container" id="page4">
+        <div class="grafico-pagos">
+            <div class="budget-header">
+                Esquema de pagos
+            </div>
+            <img src="static/grafico_pagos.png">
+        </div>
+        <div id="plusvalia">
+            <div class="budget-header">
+                Tabla comparativa plusvalía
+            </div>
+            <table class="bordered-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th class="rba-column">
+                            <img src="static/logo-192x192.png">
+                        </th>
+                        <th>Otro Despacho o constructora</th>
+                        <th>Casa Construída</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:left">Terreno</td>
+                        <td class="highlighted-cell">${{ valor_terreno|formato_miles }}</td>
+                        <td>${{ valor_terreno|formato_miles }}</td>
+                        <td>${{ valor_terreno|formato_miles }}</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">% Plusvalía Terreno<br>(a la entrega)</td>
+                        <td class="highlighted-cell">24%</td>
+                        <td>20%</td>
+                        <td>20%</td>                        
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Plusvalía terreno</td>
+                        <td class="highlighted-cell">${{ plusvalia_terreno_rebora|formato_miles }}</td>
+                        <td>${{ plusvalia_terreno_otro_despacho|formato_miles }}</td>
+                        <td>${{ plusvalia_terreno_casa_construida|formato_miles }}</td> 
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Precio construcción</td>
+                        <td class="highlighted-cell">${{ valor_total|formato_miles }}</td>
+                        <td>${{ valor_otro_despacho|formato_miles }}</td>
+                        <td>${{ valor_casa_construida|formato_miles }}</td>                        
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">% Plusvalía construcción</td>
+                        <td class="highlighted-cell">26%</td>
+                        <td>12%</td>
+                        <td>6%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Plusvalía construcción</td>
+                        <td class="highlighted-cell">${{ plusvalia|formato_miles }}</td>
+                        <td>${{ plusvalia_otro_despacho |formato_miles}}</td>
+                        <td>${{ plusvalia_casa_construida|formato_miles }}</td>                        
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">% Plusvalía total</td>
+                        <td class="highlighted-cell">${{ plusvalia_total_rebora|formato_miles }}</td>
+                        <td>${{ plusvalia_total_otro_despacho |formato_miles}}</td>
+                        <td>${{ plusvalia_total_casa_construida|formato_miles }}</td>                   
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="page-container" id="page5">
+        <header class="header">
+            <div class="logo">
+                <img src="static/logo.png" alt="RBA Residences Logo">
+            </div>
+            <div class="header-text">
+                <p>{{nombre}}, bienvenido a tu nueva casa.</p>
+                <p>• Seguridad • Confort • Placer</p>
+                <p>{{area_terreno}}² | {{recamaras}} Rec | {{banios}} Ban | {{niveles}} niveles</p>
+            </div>
+            <div class="document-number">
+                {{fecha}}
+            </div>
+        </header>
+        <div id="ROI">
+            <div class="budget-header">
+                Retorno de inversión
+            </div>
+            <table class="bordered-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th class="rba-column">
+                            <img src="static/logo-192x192.png">
+                        </th>
+                        <th>Otro Despacho o constructora</th>
+                        <th>Casa Construída</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align:left">Terreno</td>
+                        <td class="highlighted-cell">${{ valor_terreno|formato_miles }}</td>
+                        <td>${{ valor_terreno|formato_miles }}</td>
+                        <td>${{ valor_terreno|formato_miles }}</td>                        
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Precio Compra</td>
+                        <td class="highlighted-cell">${{ valor_total|formato_miles }}</td>
+                        <td>${{ valor_otro_despacho|formato_miles }}</td>
+                        <td>${{ valor_casa_construida|formato_miles }}</td>                        
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Precio venta</td>
+                        <td class="highlighted-cell">${{ precio_venta_rebora |formato_miles}}</td>
+                        <td>${{ precio_venta_otro_despacho|formato_miles}}</td>
+                        <td>${{ precio_venta_casa_construida|formato_miles }}</td> 
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Retorno porcentual</td>
+                        <td class="highlighted-cell">25%-30%</td>
+                        <td>16%</td>
+                        <td>13%</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align:left">Retorno total</td>
+                        <td class="highlighted-cell">${{ roi_rebora|formato_miles }}</td>
+                        <td>${{ roi_otro_despacho|formato_miles }}</td>
+                        <td>${{ roi_casa_construida|formato_miles }}</td>                        
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="page-container img-page" id="page10">
+        <img src="static/page-10.png">
+        <a href="https://qrco.de/bfrKLI">
+            <div class="video-container" style="cursor: pointer;"></div>
+        </a>
+        <div class="col-2">
+            <div class="audio-container">
+                <div class="audio-cards">
+                    <a href="https://qrco.de/bfrKKB">
+                        <div class="card">
+                            <!-- 🎵 101 ¿Cómo transforma tu hogar tu vida? -->
+                        </div>
+                    </a>
+                    <a href="https://qrco.de/bfrKKB">
+                        <div class="card">
+                            <!-- 🎵 102 Rentabilidad Real: La plusvalía de tu inversión -->
+                        </div>
+                    </a>
+                    <a href="https://qrco.de/bfrKKB">
+                    <div class="card">
+                        <!-- 🎵 103 Plusvalía Anual: Casas Construidas -->
+                    </div>
+                    </a>
+                </div>
+                <!-- <div class="qr-section"> -->
+                <!--     <img src="8d1de908-47a5-44bc-8733-8e5cc79133b9.png" alt="QR"> -->
+                <!--     <p>Escanea el QR<br>para más información</p> -->
+                <!-- </div> -->
+            </div>
+        </div>
+        <a href="https://qrco.de/bfsgNo">
+            <div class="hablan-de-nosotros">
+            </div>
+        </a>
+        <div class="footer">
+            <span>¿Tienes dudas? ¡Contáctanos!</span>
+
+            <div class="contact-info">
+                <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
+                    {{enombre}}
+                </div>
+                <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.6 3.6 4.8 6.2 6.2l2.1-2.1c.2-.2.6-.3.9-.2 1 .3 2 .5 3 .5.5 0 .9.4.9.9v3c0 .5-.4.9-.9.9-9.4 0-17-7.6-17-17 0-.5.4-.9.9-.9h3c.5 0 .9.4.9.9 0 1 .2 2 .5 3 .1.3 0 .7-.2.9l-2.1 2.1z"/></svg>
+                    {{etelefono}}
+                </div>
+                <div class="contact-item">
+                    <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                    <a href="mailto:{{email}}">{{email}}</a>
+                </div>
+            </div>
+
+            <small>
+                Esta pre cotización tiene una vigencia de 15 días después de su fecha de emisión. Los precios mostrados son montos estimados basados en nuestros históricos de construcción y análisis de catálogos de costos de la región. El valor puede modificarse de acuerdo a alza de precios en materiales y/o mano de obra. Esta cotización es de uso informativo y no implica obligación alguna por parte de RBA Residences. El costo es aproximado y pueden existir variaciones de acuerdo al precio final de construcción.
+            </small>
+        </div>
+    </div>
+</body>
+</html>
