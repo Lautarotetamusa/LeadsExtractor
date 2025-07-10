@@ -95,6 +95,7 @@ class Propiedades(Portal):
             if mode == Mode.NEW:
                 leads = []
                 for lead in data["properties"]:
+                    print(lead["id"], lead["status"])
                     if lead["status"] == Status.CERRADA:
                         self.logger.debug("Se encontro un lead ya contactado, paramos")
                         end = True
@@ -118,13 +119,13 @@ class Propiedades(Portal):
         prop = self.get_lead_property(str(raw_lead["property_id"]))
 
         # Si no tiene propiedad lo marcamos como cerrado
-        if prop is None:
-            self.make_contacted(raw_lead)
-            return lead
-
-        prop["address"] = raw_lead["address"]
-        if prop["titulo"] == "":
-            prop["titulo"] = prop["address"]
+        # if prop is None:
+        #     self.make_contacted(raw_lead)
+        #     return lead
+        #
+        # prop["address"] = raw_lead["address"]
+        # if prop["titulo"] == "":
+        #     prop["titulo"] = prop["address"]
         lead.propiedad = prop
 
         return lead
@@ -132,7 +133,7 @@ class Propiedades(Portal):
     def get_lead_property(self, property_id: str) -> dict | None:
         if property_id not in PROPS:
             self.logger.error(f"No se encontro la propiedad con id {property_id}")
-            return None
+            return {"id": property_id} # Devolvemos solamente el property_id
         data = PROPS[property_id]
 
         return {
@@ -170,18 +171,17 @@ class Propiedades(Portal):
     def make_contacted(self, lead: dict):
         self._change_status(lead, Status.CERRADA)
 
-
     def get_location(self, ubication: Ubication) -> dict | None: 
         prediction_url = f"{MAIN_API}/property/sepomexid?address={ubication.address}&lat={ubication.location.lat}&lon={ubication.location.lng}"
 
         cookies = {
             "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
         }
-        
+
         params = ZENROWS_PARAMS.copy()
         params["url"] = prediction_url
 
-        res = requests.get("https://api.zenrows.com/v1/", 
+        res = requests.get("https://api.zenrows.com/v1/",
             params=params, 
             cookies=cookies,
             headers=self.request.headers

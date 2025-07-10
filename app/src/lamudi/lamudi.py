@@ -160,7 +160,7 @@ class Lamudi(Portal):
             return None
 
         predictions = res.json().get("predictions", [])
-        if len(predictions) == 0: 
+        if len(predictions) == 0:
             self.logger.error("cannot get address predictions: " + str(res.json()))
             return None
         place_id = predictions[0].get("place_id")

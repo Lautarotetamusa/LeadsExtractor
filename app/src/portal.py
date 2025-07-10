@@ -111,6 +111,7 @@ class Portal():
         else:
             self.logger.warning("No se encontro campo para enviar mensaje")
 
+
 def main(portal: Portal):
     for page in portal.get_leads(Mode.NEW):
         for lead_res in page:
@@ -138,6 +139,7 @@ def main(portal: Portal):
                 portal_msg = format_msg(lead, response_msg)
 
             portal.default_action(lead_res, portal_msg)
+
 
 def first_run(portal: Portal):
     pool = ThreadPool(processes=20)
