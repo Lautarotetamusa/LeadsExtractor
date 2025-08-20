@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 import os
 import json
+import uuid
 from typing import Any, Iterator
 import requests
 import concurrent.futures
@@ -34,9 +35,11 @@ PARAMS = {
 }
 
 publication_plan_map: dict[str, int] = {
+    PlanType.SIMPLE.value: 103,
     PlanType.HIGHLIGHTED.value: 102,
     PlanType.SUPER.value: 101
 }
+
 
 def extract_busqueda_info(data: dict | None) -> dict:
     if data is None:
@@ -69,10 +72,12 @@ def extract_busqueda_info(data: dict | None) -> dict:
 
     return busqueda
 
+
 class Status(Enum):
     pending = 1
     contacted = 2
     phone_error = 4
+
 
 class Inmuebles24(Portal):
     def __init__(self):
@@ -86,8 +91,7 @@ class Inmuebles24(Portal):
                 unauthorized_codes=[401],
                 filename=__file__
                 )
-        self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
-        self.request.cookies = {
+        cookies = {
             "allowCookies": "true",
             "changeInbox": "true",
             "crto_is_user_optout": "false",
@@ -114,6 +118,8 @@ class Inmuebles24(Portal):
             "usuarioIdCompany": "50796870",
             "usuarioLogeado": "control.general@rebora.com.mx",
         }
+        self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
+        self.request.cookies = cookies
 
     def login(self):
         self.logger.debug("Iniciando sesion")
@@ -388,26 +394,7 @@ class Inmuebles24(Portal):
             for post in posts:
                 yield post
 
-    def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
-        self.logger.debug("highlighting property plan: " + str(plan))
-        url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/publish"
-
-        payload = {
-            # "postingAndPublisherId": {
-            #     "146374728": 50322706
-            # },
-            "postingIds": [
-                publication_id
-            ],
-            "publicationPlan": publication_plan_map[str(plan)]
-        }
-
-        params = PARAMS.copy()
-        params["url"] = url
-        res = self.request.make(ZENROWS_API_URL, "PUT", params=params, json=payload)
-        if res is None or not res.ok:
-            return Exception(f"cannot highlight the property {res.text if res is not None else ''}")
-
+    # --DEPRECATED
     def unpublish(self, publication_ids: list[str]) -> Exception | None:
         unpublish_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/suspend"
         archive_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/archive"
@@ -429,114 +416,129 @@ class Inmuebles24(Portal):
         if res is None or not res.ok:
             return Exception("cannot archive the properties")
 
+    def _run_step(self, step: str, payload: dict) -> Exception | dict:
+        self.logger.debug(f"running step {step}")
+        base_url = "https://www.inmuebles24.com/reppro-api/publication/api/v1/posting"
+
+        params = PARAMS.copy()
+        params["url"] = f"{base_url}/{step}"
+        res = self.request.make(ZENROWS_API_URL, "POST", json=payload, params=params)
+        if res is None or not res.ok:
+            return Exception(f"error in step {step}"), None
+        self.logger.success(f"step {step} has success")
+        return res.json()
+
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
-        tipo_propiedad_map = {
-            "house": "1",
-        }
-        currency_map = {
-            "MXN": "10"
+        step_op = "STEP_OPERATION"
+        step_loc = "STEP_LOCATION"
+        step_main = "STEP_MAIN"
+        step_extra = "STEP_EXTRA"
+        step_desc = "STEP_DESCRIPTION"
+        step_price = "STEP_PRICE"
+        step_plan = "STEP_PLAN_SELECTION"
+
+        property_type_map = {
+            "house": "1"
         }
 
         payload = {
-            "aviso.titulo": property.title,
-            "aviso.descripcion": property.description,
-            "isDesarrollo-control": "false",
-            "aviso.idTipoDePropiedad": tipo_propiedad_map[str(property.type)],
-            "aviso.antiguedad": property.antiquity,
-            "aviso.habitaciones": property.rooms,
-            "aviso.garages": property.parking_lots,
-            "aviso.banos": property.bathrooms,
-            "aviso.mediosBanos": property.half_bathrooms,
-            "monedaVenta": currency_map[property.currency],
-            "precioVenta": property.price,
-            "aviso.valorCondominio": "",
-            "aviso.metrosCubiertos": property.m2_covered,
-            "aviso.metrosTotales": property.m2_total,
-            "lat": property.ubication.location.lat,
-            "lng": property.ubication.location.lng,
-
-            "southwest": "",
-            "zoom": "13",
-            "aviso.email": "",
-            "aviso.idAviso": "",
-            "checkContentEnhancerHidden": "",
-            "guardarComoBorrador": "1",
-            "irAlPaso": ""
+            "postingId": None,
+            "price_operation_type": [{
+                "operation_type": "1"
+            }],
+            "real_estate_type_id": property_type_map[str(property.type)]
         }
 
-        err, id_geoloc = self.get_geolocation(property)
-        if err is not None:
-            return err, None
+        res = self._run_step(step_op, payload)
+        if res is Exception: return res
+        prop_id = res.get("postingId")
+        self.logger.success("prop id", prop_id)
 
         payload = {
-            **payload,
-            "aviso.idProvincia": property.internal["state_id"],
-            "aviso.idCiudad": property.internal["city_id"],
-            "aviso.idZona": str(property.internal["colony_id"]),
-            # "aviso.idSubZonaCiudad": "",
-            "aviso.direccion": extract_street_from_address(property.ubication.address),
-            "aviso.codigoPostal": "",
-            "direccion.mapa": "exacta", # exacta | zona | mapa
-            "aviso.claveInterna": "",
-            "idGeoloc": id_geoloc,
+            "address": property.ubication.address,
+            "coordinates": [
+                property.ubication.location.lng,
+                property.ubication.location.lat
+            ],
+            "geolocation_visibility": "EXACT",
+            "location_id": property.internal["colony_id"],
+            "postingId": prop_id
+        }
+        self._run_step(step_loc, payload)
+        if res is Exception: return res
+
+        self.upload_images(prop_id, property)
+
+        feature_map = {
+            "CFT5": property.antiquity,
+            "CFT101": property.m2_covered,
+            "CFT100": property.m2_total,
+            "CFT2": property.rooms,
+            "CFT3": property.bathrooms,
+            "CFT4": property.half_bathrooms,
+            "CFT7": property.parking_lots
+        }
+        features = []
+        for k, v in feature_map.items():
+            feat = {
+                "feature_id": k,
+                "value": v
+            }
+            if k in ["CFT101", "CFT100"]:
+                feat["value_unit"] = "1"
+            features.append(feat)
+
+        payload = {
+            "features": features,
+            "postingId": prop_id
         }
 
-        cookies = {
-            "allowCookies": "true",
-            "changeInbox": "true",
-            "crto_is_user_optout": "false",
-            "G_ENABLED_IDPS": "google",
-            "hashKey": self.request.headers["hashKey"],
-            "hideWelcomeBanner": "true",
-            "IDusuario": self.request.headers["idUsuario"],
-            "pasoExitoso": "{'trigger':'Continuar'&'stepId':1&'stepName':'Datos principales-Profesional'}",
-            "reputationModalLevelSeen": "true",
-            "reputationModalLevelSeen2": "true",
-            "reputationTourLevelSeen": "true",
-            "sessionId": self.request.headers["sessionId"],
-            "showWelcomePanelStatus": "true",
-            "tableCreditsOpen": "true",
-            "usuarioPublisher": "true",
-            "usuarioFormId": self.request.headers["idUsuario"],
+        self._run_step(step_main, payload)
+        if res is Exception: return res
 
-            # TODO: dont hardcode this fields
-            "usuarioFormApellido": "Residences",
-            "usuarioFormEmail": "control.general@rebora.com.mx",
-            "usuarioFormNombre": "RBA",
-            "usuarioFormTelefono": "523341690109",
-            "usuarioIdCompany": "50796870",
-            "usuarioLogeado": "control.general@rebora.com.mx",
+        # default amenities
+        payload = {
+            "features": amenities,
+            "postingId": prop_id
         }
+        self._run_step(step_extra, payload)
+        if res is Exception: return res
 
-        first_step_url = "https://www.inmuebles24.com/publicarPasoDatosPrincipales.bum"
-        res = self.api_req.make(first_step_url, "POST", data=payload, cookies=cookies)
-        if res is None or not res.ok:
-            return Exception("error in creation of the property"), None
-        self.logger.success("property succesfully publicated")
+        payload = {
+            "description": property.description,
+            "internal_code": None,
+            "postingId": prop_id,
+            "title": property.title
+        }
+        self._run_step(step_desc, payload)
+        if res is Exception: return res
 
-        # The request dont give us the id of the property created, then we save the last prop id and updated
-        self.last_prop_id = self.get_last_prop_id()
+        payload = {
+            "features": [{
+                # Mantenimiento
+                "feature_id": "CFT6",
+                "value": 0
+            }],
+            "price_operation_type": [{
+                "operation_type": "1",
+                "prices": [{
+                        "amount": int(property.price),
+                        "currency": property.currency
+                    }]
+            }],
+            "postingId": prop_id
+        }
+        self._run_step(step_price, payload)
+        if res is Exception: return res
 
-        self.logger.debug("adding amenities")
-        amenities_url = f"https://www.inmuebles24.com/publicarPasoCaracteristicas.bum?idaviso={self.last_prop_id}&checkContentEnhancerUrl=true"
-        res = self.api_req.make(amenities_url, "POST", data=amenities, cookies=cookies)
-        if res is None or not res.ok:
-            return Exception("error adding the amenities"), None
-        self.logger.success("amenities succesfully added")
+        payload = {
+            "postingId": prop_id,
+            "publication_plan": publication_plan_map[property.plan]
+        }
+        self._run_step(step_plan, payload)
+        if res is Exception: return res
 
-        err = self.upload_images(str(self.last_prop_id), property, cookies)
-        if err is not None:
-            self.logger.error("error uploading images")
-            return err, None
-
-        # Publish
-        self.logger.debug("publishing property")
-        publish_url = f"{SITE_URL}publicarPasoPublicacion.bum?idaviso={self.last_prop_id}&idProducto=101491&idPlanDePublicacion=103"
-        res = self.api_req.make(publish_url, "GET", cookies=cookies)
-        if res is None or not res.ok:
-            return Exception("error publishing the property"), None
-
-        return None, str(self.last_prop_id)
+        return None, prop_id
 
     def save_geolocation(self, prop: Property, internal_name: str) -> tuple[Exception, None] | tuple[None, dict]:
         save_url = "https://www.inmuebles24.com/publicar_guardarGeoloc.ajax"
@@ -573,55 +575,27 @@ class Inmuebles24(Portal):
 
         return None, res.json()
 
+    # returns internal city and province ids from lat and lng
     def get_geolocation(self, prop: Property) -> tuple[Exception, None] | tuple[None, str]:
         self.logger.debug("getting geolocation", prop.internal["colony"])
-        url_obtener_loc = "https://www.inmuebles24.com/publicar_obtenerLocalidadAGeoloc.ajax"
-        url_geolicalizar = "https://www.inmuebles24.com/publicar_geolocalizar.ajax"
+        base_url = "https://www.inmuebles24.com/reppro-api/publication/api/v1/location"
+        url_geoloc = f"{base_url}/geopoint?lat={prop.ubication.location.lat}&lng={prop.ubication.location.lng}"
 
-        payload = {
-            "idCiudad": str(prop.internal["city_id"]),
-            "idZona": str(prop.internal["colony_id"]),
-            "idSubZona": "",
-            "idCodigoPostal": ""
-        }
-        res = self.api_req.make(url_obtener_loc, "POST", data=payload)
+        res = self.api_req.make(url_geoloc, "GET")
         if res is None or not res.ok:
             return Exception("error getting geolocation"), None
 
         data = res.json()
-        # ej: Fraccionamiento Las Lomas Club Golf,Zapopan,Jalisco,Mexico
-        internal_name = data.get("contenido")
-        if internal_name is None:
-            return Exception("cannot get geolocation content"), None
-        payload = {
-            "direccionOriginal": prop.ubication.address + ", " + internal_name
-        }
-
-        res = self.api_req.make(url_geolicalizar, "POST", data=payload)
-        if res is None or not res.ok:
-            return Exception("error getting geolocation"), None
-
-        data = res.json()
-        geo_id: str | None = data.get("contenido", {}).get("geolocdefault", {}).get("idgeolocalizacion")
-        if geo_id is None:
-            self.logger.warning("cannot find geolocation, saving a new one")
-
-            err, data = self.save_geolocation(prop, internal_name)
-            if err is not None or data is None:
-                return Exception("cannot save geolocation"), None
-
-            geo_id: str | None = data.get("contenido", {}).get("geolocdefault", {}).get("idgeolocalizacion")
-            if geo_id is None:
-                return Exception("cannot get geo_id from saved geolocation"), None
-
-        return None, geo_id
+        return None, data
 
     # upload each image multipart/form-data to upload_url
     # add image to the property with add_image_url
     # add the video and virtual route too
-    def upload_images(self, prop_id: str, prop: Property, cookies):
-        upload_url = f"https://www.inmuebles24.com/avisoImageUploader.bum?idAviso={prop_id}"
-        add_image_url = f"https://www.inmuebles24.com/publicarPasoMultimedia.bum?idaviso={prop_id}"
+    def upload_images(self, prop_id: str, prop: Property):
+        # upload_url = f"https://www.inmuebles24.com/avisoImageUploader.bum?idAviso={prop_id}"
+        base_url = "https://www.inmuebles24.com/reppro-api/publication/api/v1"
+        upload_url = f"{base_url}/multimedia/preview?postingId={prop_id}"
+        step_multimedia = "STEP_MULTIMEDIA"
 
         def process_image(image):
             self.logger.debug(f"downloading {image['url']}")
@@ -633,14 +607,12 @@ class Inmuebles24(Portal):
             img_type = "png" if "png" in image["url"] else "jpeg"
             file_name = f"image.{img_type}"
             files = [
-                ('name', (file_name)),
                 ('file', (file_name, img_data, f"image/{img_type}")),
             ]
 
             self.logger.debug("uploading the image")
             params = PARAMS.copy()
             params["url"] = upload_url
-            self.request.cookies = cookies
             res = self.request.make(ZENROWS_API_URL, "POST",
                 params=params,
                 files=files
@@ -652,10 +624,10 @@ class Inmuebles24(Portal):
                 self.logger.error("error uploading the image: ", image["url"], "error: ", res.text)
                 return None
 
-            file_url = res.text.replace("FILEID:", "")
-            self.logger.success(f"image uploaded successfully, url: {file_url}")
-            return file_url
-
+            # file_url = res.text.replace("FILEID:", "")
+            data = res.json()
+            self.logger.success(f"image uploaded successfully, url: {data['temporalUrl']}")
+            return data
 
         # Necessary for the upload image request, otherwise will fail
         if "content-type" in self.request.headers:
@@ -678,94 +650,53 @@ class Inmuebles24(Portal):
         if "content-type" in self.request.headers:
             self.request.headers["content-type"] = ct
 
-        # Plano. TODO: que el plano no sea la 4ta foto.
-        plano_img_parts = uploaded_images[4].split("/")
-        plano_img_id = plano_img_parts[len(plano_img_parts)-1]
-
-        payload: dict[str, Any] = {
-            "multimediaaviso.idMultimediaAviso[]": [],
-            "idAviso": prop_id,
-            "irAlPaso": "",
-            "checkContentEnhancerHidden": "",
-            "guardarComoBorrador": "1",
-            "mutimediaaviso.keyRecorrido360": prop.virtual_route if prop.virtual_route is not None else "",
-            "mutimediaaviso.idRecorrido360": "-1",
-            "mutimediaaviso.idRecorrido360Multimedia--1": prop.virtual_route if prop.virtual_route is not None else "",
-            "mutimediaaviso.idRecorrido360Orden[-1]": "2",
-
-            # Plano. TODO: que el plano no sea la 4ta foto.
-            "multimediaaviso.idPlanosMultimedia[]":	"nueva_0",
-            "multimediaaviso.orden[nueva_0_plano]":	"1",
-            "multimediaaviso.rotacion[nueva_0_plano]": "0",
-            "multimediaaviso.urlTempPlano[nueva_0]": plano_img_id
-        }
-
         # add the video url
+        videos = []
         if prop.video_url is not None:
             # https://youtu.be/H9RlIXuS1is. key => H9RlIXuS1is
             parts = prop.video_url.split("/")
             video_key = parts[len(parts) - 1]
 
-            payload = {
-                **payload,
-                "mutimediaaviso.keyvideo": video_key,
-                f"mutimediaaviso.idVideoMultimediaOrden[{video_key}]": "1",
-            }
+            videos.append({
+                "key_video": video_key,
+                "id": str(uuid.uuid4()),
+                "multimediaTypeEnum": "VIDEO",
+                "order": 1
+            })
 
-        i = 0
-        for img_url in uploaded_images:
-            # Obtain the file name. ej:
-            # file_url: https://storage.googleapis.com/rp-tmp-images/avisos/18/01/46/26/66/66/180x140/temp_aviso_146266666_656c6604-52ef-4b20-8ba5-21b0b9d3cbd6.jpg
-            # the file id its: temp_aviso_146266666_656c6604-52ef-4b20-8ba5-21b0b9d3cbd6.jpg
-            # split by / and get the last part
-            parts = img_url.split("/")
-            img_id = parts[len(parts)-1]
+        # add the 360 virtual video
+        if prop.virtual_route is not None:
+            videos.append({
+                "key_video": prop.virtual_route,
+                "id": str(uuid.uuid4()),
+                "multimediaTypeEnum": "TOUR360",
+                "order": 1
+            })
 
-            id = f"nueva_{i}"
-            payload[f"multimediaaviso.orden[{id}]"] = str(i+1)
-            payload[f"multimediaaviso.rotacion[{id}]"] = "0"
-            payload[f"multimediaaviso.urlTempImage[{id}]"] = img_id
-            payload[f"multimediaaviso.titulo[{id}]"] = ""
-            payload["multimediaaviso.idMultimediaAviso[]"].append(id)
+        pictures = []
+        order = 1
+        for img in uploaded_images:
+            typ = "IMAGE"
+            # el plano es la 4ta foto xD
+            if order == 4:
+                typ = "PLAN"
 
-            i += 1 
+            pictures.append({
+                 **img,
+                 "order": order,
+                 "id": str(uuid.uuid4()),
+                 "multimediaTypeEnum": typ,
+             })
+            order += 1
 
-        params = PARAMS.copy()
-        params["js_render"] = "true"
-        params["antibot"] = "true"
-        params["url"] = add_image_url
+        payload = {
+            "pictures": pictures,
+            "postingId": prop_id,
+            "videos": videos
+        }
 
-        max_tries = 3
-        t = 1
-        error = True
-
-        while error and t <= max_tries:
-            res = requests.post(
-                ZENROWS_API_URL,
-                # "POST",
-                params=params, 
-                data=payload, 
-                cookies=cookies, 
-                headers={
-                    "sessionId": self.request.headers["sessionId"],
-                    "idUsuario": self.request.headers["idUsuario"],
-                }
-            )
-            if res is None or not res.ok:
-                self.logger.error("error adding the image to the publication")
-                t += 1
-                continue
-
-            if "CAPTCHA" in res.text:
-                self.logger.error("CAPTCHA found on the image publication response")
-                t += 1
-                continue
-            
-            t += 1
-            error = False
-
-        if error:
-            return Exception("cannot add the images to the publication")
+        res = self._run_step(step_multimedia, payload)
+        if res is Exception: return res
 
         self.logger.success("images added successfully to the publication")
 

@@ -10,6 +10,7 @@ METHODS = {
     'DELETE': requests.delete
 }
 
+
 class ApiRequest():
     def __init__(self, logger, api_url, api_params):
 
@@ -46,6 +47,7 @@ class ApiRequest():
 
         self.logger.error(f"Se intento una peticion mas de {max_tries} veces")
         return None
+
 
 class Request():
     def __init__(self, cookies, headers, logger, login_method, codes: list[int]):
