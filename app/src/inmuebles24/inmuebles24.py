@@ -677,8 +677,10 @@ class Inmuebles24(Portal):
         order = 1
         for img in uploaded_images:
             typ = "IMAGE"
-            # el plano es la 4ta foto xD
-            if order == 4:
+            # el plano es la 5ta foto xD
+            # En el PropertyCreation está así, entonces esas van a estar bien
+            # Pero obviamente no funciona bien para cualquier tipo de publicación
+            if order == 5:
                 typ = "PLAN"
 
             pictures.append({
