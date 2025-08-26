@@ -218,7 +218,7 @@ def translateContext(cin) -> dict:
         "meses": meses,
         "pagos_mensuales": pagos_mensuales,
         "valor_terreno": valor_terreno,
-        "area_terreno": area_terreno,
+        "area_terreno": area_interior,
         "valor_otro_despacho": valor_otro_despacho,
         "valor_casa_construida": valor_casa_construida,
         "plusvalia_terreno_rebora": plusvalia_terreno_rebora,
@@ -243,20 +243,6 @@ def translateContext(cin) -> dict:
         "total_extras": total_extras
     }
     print(json.dumps(contexto, indent=4))
-    #
-    # print(area_rampa*valor_rampa)
-    # print("valor alberca", valor_alberca)
-    # print(area_alberca*valor_alberca)
-    # print(area_jardin*valor_jardin)
-    # print(area_muro_perimetral*valor_muro_perimetral)
-    #
-    # print("---")
-    # print("valor exterior:", valor_exterior)
-    # print("area interio", area_interior)
-    # print("importe calidad:", importe_calidad)
-    # print("valor interior:", valor_interior)
-    # print("valor permisos:", valor_permisos)
-    # print("valor total:", valor_total)
 
     return contexto
 
