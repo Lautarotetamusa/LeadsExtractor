@@ -10,17 +10,17 @@ import urllib.parse
 
 from src.address import extract_street_from_address
 from src.api import download_file
-from src.property import Internal, PlanType, Property
+from src.property import Internal, PlanType, Property, PropertyType
 from src.make_requests import ApiRequest
+from src.zenrows import ZenRowsClient
 from src.portal import Mode, Portal
 from src.lead import Lead
 from src.inmuebles24.amenities import amenities
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
-SITE_URL = "https://www.inmuebles24.com/"
-ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 ZENROWS_API_KEY = os.getenv("ZENROWS_APIKEY")
+ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 PARAMS = {
     "apikey": ZENROWS_API_KEY,
     "url": "",
@@ -39,6 +39,42 @@ publication_plan_map: dict[str, int] = {
     PlanType.HIGHLIGHTED.value: 102,
     PlanType.SUPER.value: 101
 }
+
+property_type_map = {
+    PropertyType.HOUSE.value: "1",
+}
+
+
+class PublicationStep(Enum):
+    operation = "STEP_OPERATION"
+    location = "STEP_LOCATION"
+    main = "STEP_MAIN"
+    extra = "STEP_EXTRA"
+    description = "STEP_DESCRIPTION"
+    price = "STEP_PRICE"
+    plan_selection = "STEP_PLAN_SELECTION"
+    multimedia = "STEP_MULTIMEDIA"
+
+
+# Urls
+SITE_URL = "https://www.inmuebles24.com/"
+leads_api = f"{SITE_URL}leads-api"
+avisos_api = f"{SITE_URL}avisos-api/panel/api/v2"
+
+unpublish_url = f"{avisos_api}/posting/suspend"
+archive_url = f"{avisos_api}/posting/archive"
+list_url = f"{avisos_api}/postings?"
+upload_image_url = f"{SITE_URL}reipro-api/preview?postingId="+"{prop_id}"
+step_url = f"{SITE_URL}reppro-api/publication/api/v1/posting"
+
+login_url = f"{SITE_URL}login_login.ajax"
+
+leads_url = f"{leads_api}/publisher/leads?"+"offset={offset}&limit={limit}&spam=false&status={status}&sort={sort}"
+msg_url = f"{leads_api}/leads/{id}/messages"
+busqueda_url = f"{leads_api}/publisher/contact/"+"{lead_id}/user-profile"
+status_url = f"{leads_api}/publisher/contact/status/"+"{contact_id}"
+
+###
 
 
 def extract_busqueda_info(data: dict | None) -> dict:
@@ -118,12 +154,18 @@ class Inmuebles24(Portal):
             "usuarioIdCompany": "50796870",
             "usuarioLogeado": "control.general@rebora.com.mx",
         }
+        self.zenrows = ZenRowsClient(
+            ZENROWS_API_KEY,
+            login_method=self.login,
+            default_params=PARAMS,
+            default_cookies=cookies,
+            default_headers=self.request.headers
+        )
         self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
         self.request.cookies = cookies
 
     def login(self):
         self.logger.debug("Iniciando sesion")
-        login_url = f"{SITE_URL}login_login.ajax"
 
         data = {
             "email": self.username,
@@ -132,8 +174,6 @@ class Inmuebles24(Portal):
             "homeSeeker": "true",
             "urlActual": SITE_URL
         }
-        # self.request.headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8"
-        self.request.headers["Content-Type"] = "application/json; charset=UTF-8"
 
         res = self.api_req.make(login_url, "POST", data=data)
         if res is None:
@@ -141,21 +181,25 @@ class Inmuebles24(Portal):
             return
 
         data = res.json()
-        contenido = data.get("contenido", {}) 
+        contenido = data.get("contenido", {})
         if not contenido.get("result", False):
             self.logger.error(str(contenido.get("validation", {}).get("errores")))
             return
 
-        self.request.headers = {
+        headers = {
             "sessionId": data["contenido"]["sessionID"],
             "idUsuario": str(data["contenido"]["idUsuario"]),
             "hashKey": data["contenido"]["cookieHash"],
             "x-panel-portal": "24MX",
             "content-type": "application/json;charset=UTF-8",
+            "Content-Type": "application/json; charset=UTF-8"
         }
 
+        self.request.headers = headers
+        self.zenrows.default_headers = headers
+
         with open(self.params_file, "w") as f:
-            json.dump(self.request.headers, f, indent=4)
+            json.dump(headers, f, indent=4)
         self.logger.success("Sesion iniciada con exito")
 
     def get_leads(self, mode=Mode.NEW):
@@ -168,16 +212,21 @@ class Inmuebles24(Portal):
         finish = False
 
         while first or (not finish and offset < total):
-            leads_url = f"{SITE_URL}leads-api/publisher/leads?offset={offset}&limit={limit}&spam=false&status={status}&sort={sort}"
-            self.logger.debug(f"GET {leads_url}")
-            PARAMS["url"] = leads_url
-            res = self.request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
+            url = leads_url.format(
+                offset=offset,
+                limit=limit,
+                status=status,
+                sort=sort
+            )
+
+            self.logger.debug(f"GET {url}")
+            res = self.zenrows.get(url)
             if res is None:
                 break
             offset += limit
 
             data = res.json()
-            self.logger.debug("Response type:" + str(type(data)))
+            self.logger.debug("Response type:", str(type(data)))
             if isinstance(data, list):
                 data = data[0]
             if not isinstance(data, dict):
@@ -196,7 +245,7 @@ class Inmuebles24(Portal):
                     status = lead.get("statuses", [{}])[0]
                     if status == "UNREAD" or response_status == "Pendiente":
                         leads.append(lead)
-                if len(leads) == 0: 
+                if len(leads) == 0:
                     self.logger.debug("No se encontro ningun lead 'Pendiente' o 'UNREAD', paramos")
                     finish = True
                     break
@@ -247,7 +296,7 @@ class Inmuebles24(Portal):
         lead.set_propiedad({
             "id": posting.get("id", None),
             "titulo": posting.get("title", ""),
-            "link": f"https://www.inmuebles24.com/propiedades/-{posting_id}.html",
+            "link": f"{SITE_URL}/propiedades/-{posting_id}.html",
             "precio": str(posting.get("price", {}).get("amount", "")),
             "ubicacion": posting.get("address", ""),
             "tipo": posting.get("real_estate_type", {}).get("name"),
@@ -262,11 +311,10 @@ class Inmuebles24(Portal):
     #  Get the information about the searchers of the lead
     def get_busqueda_info(self, lead_id) -> dict | None:
         self.logger.debug("Extrayendo la informacion de busqueda del lead: "+lead_id)
-        busqueda_url = f"{SITE_URL}leads-api/publisher/contact/{lead_id}/user-profile"
+        url = busqueda_url.format(lead_id=lead_id)
 
-        self.logger.debug(f"GET {busqueda_url}")
-        PARAMS["url"] = busqueda_url
-        res = self.request.make(ZENROWS_API_URL, 'GET', params=PARAMS)
+        self.logger.debug(f"GET {url}")
+        res = self.zenrows.get(url)
 
         if res is None:
             self.logger.error("No se pudo obtener la informacion de busqueda para el lead: "+lead_id)
@@ -288,7 +336,6 @@ class Inmuebles24(Portal):
     # Usa el lead_id
     def send_message(self, id: str,  message: str):
         self.logger.debug(f"Enviando mensaje a lead {id}")
-        msg_url = f"{SITE_URL}leads-api/leads/{id}/messages"
 
         data = {
             "is_comment": False,
@@ -296,11 +343,7 @@ class Inmuebles24(Portal):
             "message_attachments": []
         }
 
-        params = PARAMS.copy()
-        params["url"] = msg_url
-        #res = requests.post(ZENROWS_API_URL, params=params, json=data, headers=self.request.headers)
-        self.logger.debug(f"POST {msg_url}")
-        res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
+        res = self.zenrows.post(msg_url, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Mensaje enviado correctamente a lead {id}")
@@ -309,18 +352,16 @@ class Inmuebles24(Portal):
 
     def _change_status(self, lead: dict, status: Status):
         contact_id = lead[self.contact_id_field]
-        status_url = f"{SITE_URL}leads-api/publisher/contact/status/{contact_id}"
+        url = status_url.format(contact_id=contact_id)
 
-        id = lead["id"]
-        params = PARAMS.copy()
-        params["url"] = status_url
-        params["autoparse"] = False
         data = {
-            "lead_id": id,
+            "lead_id": lead["id"],
             "lead_status_id": status.value
         }
-        self.logger.debug(f"POST {status_url}")
-        res = self.request.make(ZENROWS_API_URL, 'POST', params=params, json=data)
+        self.logger.debug(f"POST {url}")
+        res = self.zenrows.post(url, json=data, params={
+            'autoparse': False
+        })
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Se marco a lead {contact_id} como {status}")
@@ -329,39 +370,9 @@ class Inmuebles24(Portal):
                 self.logger.error(res.content)
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {contact_id} como {status}")
-        PARAMS["autoparse"] = True
-
-    def get_last_prop_id(self) -> None | int: 
-        posts = self.get_properties_page(1)
-        if len(posts) == 0:
-            self.logger.error("cannot get the properties")
-            return None
-
-        return posts[0]["postingId"]
-
-    def get_properties_page(self, page=1) -> list[dict]:
-        self.logger.debug("getting properties")
-        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?"
-        params = {
-            "page": page,
-            "limit": 20,
-            "searchParameters": "sort:createdNewer&onlineFirst=true"
-        }
-
-        list_url += urllib.parse.urlencode(params)
-
-        p = PARAMS.copy()
-        p["url"] = list_url
-        res = self.request.make(ZENROWS_API_URL, "GET", params=p)
-        if res is None or not res.ok:
-            return []
-
-        return res.json().get("postings", [])
 
     def get_properties(self, status="ONLINE", featured=False, query={}) -> Iterator[dict]:
         self.logger.debug("getting properties")
-        list_url = f"https://www.inmuebles24.com/avisos-api/panel/api/v2/postings?"
-        # "page={page}&limit=20&searchParameters=status:{status};sort:createdNewer&onlineFirst=true"
         params = {
             "page": 1,
             "limit": 20,
@@ -377,15 +388,13 @@ class Inmuebles24(Portal):
         while len(posts) > 0:
             url = list_url + urllib.parse.urlencode(params)
 
-            p = PARAMS.copy()
-            p["url"] = url
-            self.logger.debug("GET " + str(url))
-            res = self.request.make(ZENROWS_API_URL, "GET", params=p)
+            self.logger.debug("GET ", str(url))
+            res = self.zenrows.get(url)
             if res is None or not res.ok:
                 self.logger.error("cannot get the properties")
                 break
 
-            if not "page" in query:
+            if "page" not in query:
                 params["page"] += 1
 
             posts = res.json().get("postings", [])
@@ -396,61 +405,43 @@ class Inmuebles24(Portal):
 
     # --DEPRECATED
     def unpublish(self, publication_ids: list[str]) -> Exception | None:
-        unpublish_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/suspend"
-        archive_url = "https://www.inmuebles24.com/avisos-api/panel/api/v2/posting/archive"
-
+        self.logger.debug("unpublishing properties")
         payload = {
-            "finishReasonId": "6", # Operation canceledstr
+            "finishReasonId": "6",  # Operation canceledstr
             "finishReasonText":	None,
             "postings": [id for id in publication_ids]
         }
 
-        params = PARAMS.copy()
-        params["url"] = unpublish_url
-        res = self.request.make(ZENROWS_API_URL, "PUT", params=params, json=payload)
+        res = self.zenrows.put(unpublish_url, json=payload)
         if res is None or not res.ok:
             return Exception("cannot unpublish the properties")
 
-        params["url"] = archive_url
-        res = self.request.make(ZENROWS_API_URL, "PUT", params=params, json=payload)
+        res = self.zenrows.put(archive_url, json=payload)
         if res is None or not res.ok:
             return Exception("cannot archive the properties")
 
-    def _run_step(self, step: str, payload: dict) -> Exception | dict:
+    def _run_step(self, step: PublicationStep, payload: dict) -> tuple[Exception, None] | tuple[None, dict]:
         self.logger.debug(f"running step {step}")
-        base_url = "https://www.inmuebles24.com/reppro-api/publication/api/v1/posting"
 
-        params = PARAMS.copy()
-        params["url"] = f"{base_url}/{step}"
-        res = self.request.make(ZENROWS_API_URL, "POST", json=payload, params=params)
+        res = self.zenrows.post(f"{step_url}/{step.value}", json=payload)
         if res is None or not res.ok:
             return Exception(f"error in step {step}"), None
         self.logger.success(f"step {step} has success")
-        return res.json()
+        return None, res.json()
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
-        step_op = "STEP_OPERATION"
-        step_loc = "STEP_LOCATION"
-        step_main = "STEP_MAIN"
-        step_extra = "STEP_EXTRA"
-        step_desc = "STEP_DESCRIPTION"
-        step_price = "STEP_PRICE"
-        step_plan = "STEP_PLAN_SELECTION"
-
-        property_type_map = {
-            "house": "1"
-        }
-
         payload = {
             "postingId": None,
             "price_operation_type": [{
                 "operation_type": "1"
             }],
-            "real_estate_type_id": property_type_map[str(property.type)]
+            "real_estate_type_id": property_type_map[property.type]
         }
 
-        res = self._run_step(step_op, payload)
-        if res is Exception: return res
+        err, res = self._run_step(PublicationStep.operation, payload)
+        if err is not None:
+            print("exception", err)
+            return err, None
         prop_id = res.get("postingId")
         self.logger.success("prop id", prop_id)
 
@@ -464,8 +455,10 @@ class Inmuebles24(Portal):
             "location_id": property.internal["colony_id"],
             "postingId": prop_id
         }
-        self._run_step(step_loc, payload)
-        if res is Exception: return res
+
+        err, _ = self._run_step(PublicationStep.location, payload)
+        if err is not None:
+            return err, None
 
         self.upload_images(prop_id, property)
 
@@ -493,16 +486,18 @@ class Inmuebles24(Portal):
             "postingId": prop_id
         }
 
-        self._run_step(step_main, payload)
-        if res is Exception: return res
+        err, _ = self._run_step(PublicationStep.main, payload)
+        if err is not None:
+            return err, None
 
         # default amenities
         payload = {
             "features": amenities,
             "postingId": prop_id
         }
-        self._run_step(step_extra, payload)
-        if res is Exception: return res
+        err, _ = self._run_step(PublicationStep.extra, payload)
+        if err is not None:
+            return err, None
 
         payload = {
             "description": property.description,
@@ -510,8 +505,9 @@ class Inmuebles24(Portal):
             "postingId": prop_id,
             "title": property.title
         }
-        self._run_step(step_desc, payload)
-        if res is Exception: return res
+        err, _ = self._run_step(PublicationStep.description, payload)
+        if err is not None:
+            return err, None
 
         payload = {
             "features": [{
@@ -528,74 +524,26 @@ class Inmuebles24(Portal):
             }],
             "postingId": prop_id
         }
-        self._run_step(step_price, payload)
-        if res is Exception: return res
+        err, _ = self._run_step(PublicationStep.price, payload)
+        if err is not None:
+            return err, None
 
         payload = {
             "postingId": prop_id,
             "publication_plan": publication_plan_map[property.plan]
         }
-        self._run_step(step_plan, payload)
-        if res is Exception: return res
+        err, _ = self._run_step(PublicationStep.plan_selection, payload)
+        if err is not None:
+            return err, None
 
         return None, prop_id
 
-    def save_geolocation(self, prop: Property, internal_name: str) -> tuple[Exception, None] | tuple[None, dict]:
-        save_url = "https://www.inmuebles24.com/publicar_guardarGeoloc.ajax"
-
-        payload = {
-            "idGeolocXX": "",
-            "geoloc.type": "street_address",
-            "geoloc.location_type": "RANGE_INTERPOLATED",
-            "geoloc.streetaddress": prop.ubication.address,
-            # "geoloc.street_number": "",
-            # "geoloc.route": "Avenida+Juan+Palomar+y+Arias",
-            "geoloc.country": "Mexico",
-            "geoloc.administrative_area_level_1": prop.internal["state"],
-            "geoloc.administrative_area_level_2": "",
-            "geoloc.administrative_area_level_3": "",
-            "geoloc.locality": prop.internal["city"],
-            "geoloc.sublocality": "",
-            "geoloc.neighborhood": "",
-            "geoloc.premise": "",
-            "geoloc.subpremise": "",
-            "geoloc.point_of_interest": "",
-            # "geoloc.postal_code": "45110",
-            # "geoloc.southwest": "(20.68462221970849,+-103.4283811302915)",
-            # "geoloc.northEast": "(20.6873201802915,+-103.4256831697085)",
-            "geoloc.lat": prop.ubication.location.lat,
-            "geoloc.lng": prop.ubication.location.lng,
-            "direccionOriginal": prop.ubication.address + ", " + internal_name
-        }
-
-        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"}
-        res = self.api_req.make(save_url, "POST", headers=headers, data=payload)
-        if res is None or not res.ok:
-            return Exception("error saving geolocation"), None
-
-        return None, res.json()
-
-    # returns internal city and province ids from lat and lng
-    def get_geolocation(self, prop: Property) -> tuple[Exception, None] | tuple[None, str]:
-        self.logger.debug("getting geolocation", prop.internal["colony"])
-        base_url = "https://www.inmuebles24.com/reppro-api/publication/api/v1/location"
-        url_geoloc = f"{base_url}/geopoint?lat={prop.ubication.location.lat}&lng={prop.ubication.location.lng}"
-
-        res = self.api_req.make(url_geoloc, "GET")
-        if res is None or not res.ok:
-            return Exception("error getting geolocation"), None
-
-        data = res.json()
-        return None, data
-
-    # upload each image multipart/form-data to upload_url
-    # add image to the property with add_image_url
-    # add the video and virtual route too
     def upload_images(self, prop_id: str, prop: Property):
-        # upload_url = f"https://www.inmuebles24.com/avisoImageUploader.bum?idAviso={prop_id}"
-        base_url = "https://www.inmuebles24.com/reppro-api/publication/api/v1"
-        upload_url = f"{base_url}/multimedia/preview?postingId={prop_id}"
-        step_multimedia = "STEP_MULTIMEDIA"
+        """
+        upload each image multipart/form-data to upload_url
+        add image to the property with add_image_url
+        add the video and virtual route too
+        """
 
         def process_image(image):
             self.logger.debug(f"downloading {image['url']}")
@@ -611,12 +559,12 @@ class Inmuebles24(Portal):
             ]
 
             self.logger.debug("uploading the image")
-            params = PARAMS.copy()
-            params["url"] = upload_url
-            res = self.request.make(ZENROWS_API_URL, "POST",
-                params=params,
-                files=files
-            )
+            url = upload_image_url.format(prop_id=prop_id)
+            res = self.zenrows.post(url, files=files, headers={
+                # Necessary for the upload image request, otherwise will fail
+                "content-type": None
+            })
+
             if res is None:
                 self.logger.error("unknonw error uploading the image", image["url"])
                 return None
@@ -628,11 +576,6 @@ class Inmuebles24(Portal):
             data = res.json()
             self.logger.success(f"image uploaded successfully, url: {data['temporalUrl']}")
             return data
-
-        # Necessary for the upload image request, otherwise will fail
-        if "content-type" in self.request.headers:
-            ct = self.request.headers["content-type"]
-            del self.request.headers["content-type"]
 
         uploaded_images = []
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -646,9 +589,6 @@ class Inmuebles24(Portal):
         if len(uploaded_images) < len(prop.images):
             self.logger.error("not all the images are successfully added, publication failed")
             return Exception("not all the images are successfully added")
-
-        if "content-type" in self.request.headers:
-            self.request.headers["content-type"] = ct
 
         # add the video url
         videos = []
@@ -697,8 +637,9 @@ class Inmuebles24(Portal):
             "videos": videos
         }
 
-        res = self._run_step(step_multimedia, payload)
-        if res is Exception: return res
+        res = self._run_step(PublicationStep.multimedia, payload)
+        if res is Exception:
+            return res
 
         self.logger.success("images added successfully to the publication")
 

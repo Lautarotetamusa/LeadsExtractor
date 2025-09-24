@@ -44,6 +44,18 @@ ZENROWS_PARAMS = {
     "autoparse": "true"
 }
 
+
+operation_type_map = {
+    OperationType.SALE.value: "1",
+    OperationType.RENT.value: "2"
+}
+
+property_type_map = {
+    PropertyType.APARTMENT.value: "1",
+    PropertyType.HOUSE.value: "2",
+}
+
+
 # Lista de estados posibles de un lead
 class Status(IntEnum):
     NUEVO = 1
@@ -53,10 +65,12 @@ class Status(IntEnum):
     CONVERTIDO = 5
     CERRADA = 6
 
+
 class PropertyStatus(IntEnum):
     PAUSADO = 1
     ARCHIVADO = 9
     VENDIDO = 12
+
 
 class Propiedades(Portal):
     def __init__(self):
@@ -118,14 +132,6 @@ class Propiedades(Portal):
 
         prop = self.get_lead_property(str(raw_lead["property_id"]))
 
-        # Si no tiene propiedad lo marcamos como cerrado
-        # if prop is None:
-        #     self.make_contacted(raw_lead)
-        #     return lead
-        #
-        # prop["address"] = raw_lead["address"]
-        # if prop["titulo"] == "":
-        #     prop["titulo"] = prop["address"]
         lead.propiedad = prop
 
         return lead
@@ -196,7 +202,7 @@ class Propiedades(Portal):
 
     def get_properties(self, status="", featured=False, query={}) -> Iterator[dict]:
         url = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod/get_properties_admin?"
-        api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS" 
+        api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS"
 
         params = {
             "page": 1,
@@ -215,7 +221,7 @@ class Propiedades(Portal):
             next = url + urllib.parse.urlencode(params, doseq=True)
             self.request.headers["x-api-key"] = api_key
             res = self.request.make(next, "GET")
-            if res is None or not res.ok: 
+            if res is None or not res.ok:
                 self.request.headers["x-api-key"] = prev_api_key
                 break
 
@@ -243,14 +249,14 @@ class Propiedades(Portal):
             ('status', (None, status.value)),
             ('properties_id[0]', (None, publication_id))
         ]
-        res = requests.post("https://api.zenrows.com/v1/", 
+        res = requests.post("https://api.zenrows.com/v1/",
             params=params, 
             files=files,
             cookies=cookies, 
             headers=self.request.headers
         )
 
-        if res is None or not res.ok: 
+        if res is None or not res.ok:
             return Exception("error updating status"+res.text)
         print(res.json())
 
@@ -258,20 +264,11 @@ class Propiedades(Portal):
         return self.change_prop_status(publication_id, PropertyStatus.VENDIDO)
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
-        operation_type_map = {
-            OperationType.SALE.value: "1",
-            OperationType.RENT.value: "2"
-        }
-
-        property_type_map = {
-            PropertyType.APARTMENT.value: "1",
-            PropertyType.HOUSE.value: "2",
-        }
 
         # TODO: If the prop doesnt have itnernal zone, searche it
         # else: # Otherwise get the address via API
         #     self.logger.debug("getting the location data")
-        #     location_data = self.get_location(property.ubication)
+        #     location_data = selfcasasyterrenos.get_location(property.ubication)
         #     if location_data is None:
         #         return Exception("cannot get location data"), None
         #     self.logger.success("location data obtained successfully")
@@ -332,10 +329,10 @@ class Propiedades(Portal):
         cookies = {
             "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
         }
-        
+
         params = ZENROWS_PARAMS.copy()
         params["url"] = f"{MAIN_API}/property/property"
-        res = requests.post("https://api.zenrows.com/v1/", 
+        res = requests.post("https://api.zenrows.com/v1/",
             params=params, 
             cookies=cookies,
             headers={
@@ -344,11 +341,12 @@ class Propiedades(Portal):
             },
             data=payload
         )
+        print(res)
 
-        if res is None or not res.ok: 
+        if res is None or not res.ok:
             return Exception("error creating the property: "+res.text), None
         response = res.json()
-        success = response.get("success") 
+        success = response.get("success")
         if not success: 
             error = response.get("errors", {}).get("message", "")
             return Exception(f"error creating the property: {error}"), None
@@ -585,7 +583,6 @@ class Propiedades(Portal):
                 return Exception(f"cannot confirm the image {placeholder['image_id']}")
 
             self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
-
 
     def login(self, session="session"):
         login_url = "https://propiedades.com/login"

@@ -10,7 +10,6 @@ METHODS = {
     'DELETE': requests.delete
 }
 
-
 class ApiRequest():
     def __init__(self, logger, api_url, api_params):
 
@@ -68,9 +67,12 @@ class Request():
         tries = 0
 
         while (tries <= max_tries) and not ok:
-            res: Response = METHODS[method](url, cookies=self.cookies, headers=self.headers, **kwargs)
-            ok = res.ok
-            self.logger.debug(f"{method} {url}")
+            try:
+                res: Response = METHODS[method](url, cookies=self.cookies, headers=self.headers, **kwargs)
+                ok = res.ok
+                self.logger.debug(f"{method} {url}")
+            except:
+                ok = False
 
             if ok:
                 return res
@@ -88,3 +90,22 @@ class Request():
             tries += 1
 
         return None
+
+# from requests.adapters import HTTPAdapter, Retry
+#
+#
+# class ZenRowReq(requests.Session):
+#     def __init__(self, forcelist_statuses: list[int]):
+#         assert len(forcelist_statuses) > 0, "Must provide a code list"
+#
+#         super().__init__()
+#         retries = Retry(
+#             total=5,
+#             backoff_factor=0.1,
+#             status_forcelist=forcelist_statuses
+#         )
+#         self.mount('http://', HTTPAdapter(max_retries=retries))
+#
+# req = ZenRowReq([404])
+# res = req.get("http://inmuebles24.com")
+# print(res)

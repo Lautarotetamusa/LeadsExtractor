@@ -9,7 +9,7 @@ from src.inmuebles24.inmuebles24 import Inmuebles24
 from src.portal import Portal
 
 if __name__ == "__main__":
-    PORTALS: dict[str, Portal ]= {
+    PORTALS: dict[str, Portal] = {
         "casasyterrenos": CasasYTerrenos(),
         "propiedades": Propiedades(),
         "inmuebles24": Inmuebles24(),

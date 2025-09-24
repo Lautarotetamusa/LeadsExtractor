@@ -15,7 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from src.address import extract_street_from_address
 from src.api import download_file
-from src.property import Property, OperationType
+from src.property import Property, OperationType, PropertyType
 from src.portal import Mode, Portal
 from src.lead import Lead
 
@@ -27,6 +27,16 @@ PROPERTY_URL = "https://www.casasyterrenos.com/propiedad"
 API_URL = "https://cytpanel.casasyterrenos.com/api/v1"
 MEDIA_URL = "https://cyt-media.s3.amazonaws.com/"
 CLIENT_ID = "4je1v2kfou9e9plpv6vf0vmnll"
+
+operation_type_map = {
+    OperationType.SALE.value: 1,
+    OperationType.RENT.value: 2,
+}
+property_type_map = {
+    PropertyType.HOUSE.value: "18",
+    PropertyType.APARTMENT.value: "19"
+}
+
 
 class CasasYTerrenos(Portal):
     def __init__(self):
@@ -158,8 +168,7 @@ class CasasYTerrenos(Portal):
             for result in data.get("results"):
                 yield result
 
-            if not "page" in query:
-                next = data.get("next")
+            next = data.get("next")
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         prop_id = self.publish_first_step(property)
@@ -177,15 +186,6 @@ class CasasYTerrenos(Portal):
 
     # The property its pending, returns the property id,
     def publish_first_step(self, property: Property) -> int | None:
-        operation_type_map = {
-            "sell": 1,
-            "rent": 2
-        }
-        property_type_map = {
-            "house": "18",
-            "department": "19"
-        }
-
         # casasyterrenos uses html description, its necessary to do this to see correctly the enters 
         description = property.description.replace("\n", "<br>")
 

@@ -33,7 +33,7 @@ CORS(app)
 
 logger = Logger("Server")
 # Configuración del directorio para archivos estáticos
-app.config['UPLOAD_FOLDER'] = 'pdfs'
+app.config['UPLOAD_FOLDER'] = '/app/pdfs'
 
 # Asegúrate de que el directorio existe
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -201,12 +201,13 @@ def download_file(filename):
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     return jsonify({'error': 'Archivo no encontrado'}), 404
 
-@app.route('/download/static/<filename>', methods=['GET'])
+
+@app.route('/download/static/<path:filename>', methods=['GET'])
 def download_static_file(filename):
     # Verificar si el archivo existe en el directorio de carga
-    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
     static_dir_path = os.path.join(app.config['UPLOAD_FOLDER'], "static")
+    file_path = os.path.join(static_dir_path, filename)
 
     if os.path.exists(file_path):
         return send_from_directory(static_dir_path, filename)
