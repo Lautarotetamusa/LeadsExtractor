@@ -33,7 +33,7 @@ CORS(app)
 
 logger = Logger("Server")
 # Configuración del directorio para archivos estáticos
-app.config['UPLOAD_FOLDER'] = '/app/pdfs'
+app.config['UPLOAD_FOLDER'] = 'pdfs/'
 
 # Asegúrate de que el directorio existe
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)

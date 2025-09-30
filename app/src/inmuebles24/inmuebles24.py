@@ -64,16 +64,17 @@ avisos_api = f"{SITE_URL}avisos-api/panel/api/v2"
 unpublish_url = f"{avisos_api}/posting/suspend"
 archive_url = f"{avisos_api}/posting/archive"
 list_url = f"{avisos_api}/postings?"
+quality_url = f"{avisos_api}/performance/getpostingquality?postingId="+"{prop_id}"
 upload_image_url = f"{SITE_URL}reipro-api/preview?postingId="+"{prop_id}"
 step_url = f"{SITE_URL}reppro-api/publication/api/v1/posting"
 
 login_url = f"{SITE_URL}login_login.ajax"
 
 leads_url = f"{leads_api}/publisher/leads?"+"offset={offset}&limit={limit}&spam=false&status={status}&sort={sort}"
-msg_url = f"{leads_api}/leads/{id}/messages"
+msg_url = f"{leads_api}/leads/"+"{id}"+"/messages"
 busqueda_url = f"{leads_api}/publisher/contact/"+"{lead_id}/user-profile"
 status_url = f"{leads_api}/publisher/contact/status/"+"{contact_id}"
-
+read_url = f"{leads_api}/leads/status/READ?contact_publisher_user_id="+"{contact_id}"
 ###
 
 
@@ -334,21 +335,24 @@ class Inmuebles24(Portal):
         return not is_last_message or is_user
 
     # Usa el lead_id
-    def send_message(self, id: str,  message: str):
-        self.logger.debug(f"Enviando mensaje a lead {id}")
+    def send_message(self, lead_id: str,  message: str):
+        self.logger.debug(f"Enviando mensaje a lead {lead_id}")
+        url = msg_url.format(id=lead_id)
 
         data = {
             "is_comment": False,
             "message": message,
             "message_attachments": []
         }
+        print(url)
 
-        res = self.zenrows.post(msg_url, json=data)
+        res = self.zenrows.post(url, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Mensaje enviado correctamente a lead {id}")
         else:
             self.logger.error(f"Error enviando mensaje al lead {id}")
+            self.logger.error(res.text)
 
     def _change_status(self, lead: dict, status: Status):
         contact_id = lead[self.contact_id_field]
@@ -370,6 +374,17 @@ class Inmuebles24(Portal):
                 self.logger.error(res.content)
                 self.logger.error(res.status_code)
             self.logger.error(f"Error marcando al lead {contact_id} como {status}")
+
+    def _make_read(self, contact_id):
+        url = read_url.format(contact_id=contact_id)
+        res = self.zenrows.post(url)
+        if res is not None and res.status_code >= 200 and res.status_code < 300:
+            self.logger.success(f"Se marco a lead {contact_id} como READ")
+        else:
+            if res is not None:
+                self.logger.error(res.content)
+                self.logger.error(res.status_code)
+            self.logger.error(f"Error marcando al lead {contact_id} como READ")
 
     def get_properties(self, status="ONLINE", featured=False, query={}) -> Iterator[dict]:
         self.logger.debug("getting properties")
@@ -428,6 +443,15 @@ class Inmuebles24(Portal):
             return Exception(f"error in step {step}"), None
         self.logger.success(f"step {step} has success")
         return None, res.json()
+
+    def get_quality(self, prop_id):
+        url = quality_url.format(prop_id=prop_id)
+        print(url)
+        res = self.zenrows.get(url)
+        if res is None or not res.ok:
+            return res
+
+        return res.json()
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
         payload = {
@@ -644,6 +668,7 @@ class Inmuebles24(Portal):
         self.logger.success("images added successfully to the publication")
 
     def make_contacted(self, lead: dict):
+        # self._make_read(lead[self.contact_id_field])
         self._change_status(lead, Status.contacted)
 
     def make_failed(self, lead: dict):
