@@ -586,7 +586,8 @@ class Inmuebles24(Portal):
             url = upload_image_url.format(prop_id=prop_id)
             res = self.zenrows.post(url, files=files, headers={
                 # Necessary for the upload image request, otherwise will fail
-                "content-type": None
+                "content-type": None,
+                "Content-Type": None
             })
 
             if res is None:

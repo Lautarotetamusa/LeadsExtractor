@@ -77,6 +77,7 @@ def translateContext(cin) -> dict:
     area_roof = cin['areas_interiores']['roof']
     area_interior = area_sotano+area_planta_baja+area_planta_alta+area_roof
     valor_interior = area_interior*importe_calidad
+
     area_rampa = cin['areas_exteriores']['rampa']
     area_jardin = cin['areas_exteriores']['jardin']
     area_alberca = cin['areas_exteriores']['alberca']
@@ -101,8 +102,15 @@ def translateContext(cin) -> dict:
     valor_jardin = int(cin['valor_exteriores']['jardin']/coeficiente_ganancia)
     valor_alberca = int(cin['valor_exteriores']['alberca']/coeficiente_ganancia)
     valor_muro_perimetral = int(cin['valor_exteriores']['muro_perimetral']/coeficiente_ganancia)
+
     area_exterior = area_rampa + area_alberca + area_jardin + area_muro_perimetral
-    valor_exterior = area_rampa*valor_rampa + area_alberca*valor_alberca + area_jardin*valor_jardin + area_muro_perimetral*valor_muro_perimetral
+
+    valor_exterior =
+        area_rampa*valor_rampa +
+        area_jardin*valor_jardin +
+        area_alberca*valor_alberca +
+        area_muro_perimetral*valor_muro_perimetral
+
     valor_licencia = int(cin['valor_permisos']['licencia'] / coeficiente_ganancia)
     valor_gestorias = int(cin['valor_permisos']['gestorias'] /coeficiente_ganancia)
     valor_topografia = int(cin['valor_permisos']['topografia'] /coeficiente_ganancia)
