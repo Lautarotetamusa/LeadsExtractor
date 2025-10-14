@@ -94,16 +94,3 @@ CREATE TABLE IF NOT EXISTS PublishedProperty (
     FOREIGN KEY (property_id) REFERENCES PortalProp(id) ON DELETE CASCADE
 );
 SET FOREIGN_KEY_CHECKS=1; -- to re-enable them
-
-insert into PublishedProperty (property_id, url, status, portal) VALUES
-(1, "https://inmuebles24/property/1", "in_progress", "inmuebles24");
-        
-/* Get the property publications */
-SELECT 
-    name as portal, 
-    ifnull(status, "not_published") as status,
-    property_id, PP.url, updated_at, created_at
-FROM Portal P
-LEFT JOIN PublishedProperty PP
-    ON P.name = PP.portal
-    AND property_id = 30;

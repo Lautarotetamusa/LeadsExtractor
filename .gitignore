@@ -27,3 +27,4 @@ api/*.json
 
 #Debug
 debug/grafana/*
+db/queries.sql

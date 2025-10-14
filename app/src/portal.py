@@ -16,12 +16,10 @@ from enum import IntEnum
 dirpath = os.path.dirname(__file__)
 msgpath = os.path.join(dirpath, '../../messages')
 
-with open(os.path.join(msgpath, "bienvenida_1.txt")) as f:
-    bienvenida_1 = f.read()
-with open(os.path.join(msgpath, 'bienvenida_2.txt')) as f:
-    bienvenida_2 = f.read()
 with open(os.path.join(msgpath, 'response_message.txt')) as f:
-    response_msg = f.read()
+    RESPONSE_MSG = f.read()
+
+NOT_VALID_MSG = """Verificamos tu número de teléfono, y no es válido, para llamar o para enviarte un WhatsApp, por favor envíanos un mensaje a nuestro WhatsApp oficial, o si prefieres llamarnos, te comparto el número de nuestro departamento comercial que está listo, para ayudarte en todo el proceso, bienvenido a tu nueva casa con Residencias RBA"""
 
 
 class Mode(IntEnum):
@@ -66,7 +64,7 @@ class Portal():
             else:
                 self.logger.error("Incorrect params_type, must be 'cookies' or 'headers'")
                 exit(1)
-    
+
     def send_message_condition(self, lead: dict) -> bool:
         return True
     def get_leads(self, mode: Mode) -> Iterator[list[dict]]:
@@ -126,18 +124,11 @@ def main(portal: Portal):
             lead.print()
             is_new, lead = api.new_communication(portal.logger, lead)
             if lead is None:
-                # TODO: No hardcodear esto
-                not_valid_msg = """Verificamos tu número de teléfono, y no es válido, para llamar o para enviarte un WhatsApp, por favor envíanos un mensaje a nuestro WhatsApp oficial, o si prefieres llamarnos, te comparto el número de nuestro departamento comercial que está listo, para ayudarte en todo el proceso, bienvenido a tu nueva casa con Rebora"""
-                txt = bienvenida_1 + not_valid_msg 
-                portal.default_action(lead_res, txt)
+                portal.default_action(lead_res, NOT_VALID_MSG)
                 portal.make_failed(lead_res)
                 continue
 
-            if is_new:
-                portal_msg = bienvenida_1 + ' ' + format_msg(lead, bienvenida_2)
-            else:
-                portal_msg = format_msg(lead, response_msg)
-
+            portal_msg = format_msg(lead, RESPONSE_MSG)
             portal.default_action(lead_res, portal_msg)
 
 

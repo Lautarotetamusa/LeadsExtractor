@@ -105,11 +105,7 @@ def translateContext(cin) -> dict:
 
     area_exterior = area_rampa + area_alberca + area_jardin + area_muro_perimetral
 
-    valor_exterior =
-        area_rampa*valor_rampa +
-        area_jardin*valor_jardin +
-        area_alberca*valor_alberca +
-        area_muro_perimetral*valor_muro_perimetral
+    valor_exterior = area_rampa*valor_rampa + area_jardin*valor_jardin + area_alberca*valor_alberca + area_muro_perimetral*valor_muro_perimetral
 
     valor_licencia = int(cin['valor_permisos']['licencia'] / coeficiente_ganancia)
     valor_gestorias = int(cin['valor_permisos']['gestorias'] /coeficiente_ganancia)
