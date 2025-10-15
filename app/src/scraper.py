@@ -24,7 +24,6 @@ class Scraper():
         }
 
         self.logger = Logger(name)
-        self.sheet = Sheet(self.logger, 'scraper_mapping.json')
         self.headers = self.sheet.get("Extracciones!A1:Z1")[0]
 
     def get_posts(self, param: str | dict) -> Iterator[list[dict]]:
@@ -50,7 +49,7 @@ class Scraper():
         else:
             ad["message"] = ""
 
-        return self.sheet.map_lead(ad, self.headers)
+        return ad
 
     def main(self, spin_msg: str | None, param: str | dict):
         total_posts = 0
@@ -101,8 +100,6 @@ class Scraper():
                         row_ads.append(row)
                     results = []
 
-            # Save the lead in the sheet
-            self.sheet.write(row_ads, "Extracciones!A2")
         self.logger.success(f"Se encontraron un total de {total_posts} en la url especificada")
 
     def test(self, spin_msg: str | None, param: str | dict):

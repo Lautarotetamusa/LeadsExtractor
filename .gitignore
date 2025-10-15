@@ -1,5 +1,6 @@
 .env
 .prod.env
+.env.prod
 
 token*.json
 credentials.json
