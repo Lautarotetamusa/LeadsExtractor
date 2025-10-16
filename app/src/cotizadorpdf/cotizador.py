@@ -47,7 +47,7 @@ def renderizar_html(template_name, contexto):
 
 def calcular_importe_calidad(pal):
     if (pal == "Premium"):
-        return 17500
+        return 18500
     return 0
 
 
