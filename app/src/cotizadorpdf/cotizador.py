@@ -47,7 +47,7 @@ def renderizar_html(template_name, contexto):
 
 def calcular_importe_calidad(pal):
     if (pal == "Premium"):
-        return 18500
+        return 20600
     return 0
 
 
@@ -70,7 +70,7 @@ def translateContext(cin) -> dict:
     calidad = cin['pagos']['tipo']
     importe_inicial = calcular_importe_calidad(calidad)
     coeficiente_ganancia = (1 - (porcentaje_administracion/100))
-    importe_calidad = int((importe_inicial + 2000) / coeficiente_ganancia)
+    importe_calidad = importe_inicial / coeficiente_ganancia
     area_sotano = cin['areas_interiores']['sotano']
     area_planta_baja = cin['areas_interiores']['planta_baja']
     area_planta_alta = cin['areas_interiores']['planta_alta']
