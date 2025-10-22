@@ -12,12 +12,14 @@ class ZenRowsClient:
                  max_retries: int = 3,
                  default_params: Optional[Dict[str, Any]] = None,
                  default_headers: Optional[Dict[str, Any]] = None,
-                 default_cookies: Optional[Dict[str, Any]] = None):
+                 default_cookies: Optional[Dict[str, Any]] = None,
+                 unauthorized_codes=[401, 403]):
 
         self.api_key = api_key
         self.login_method = login_method
         self.max_retries = max_retries
         self.base_url = "https://api.zenrows.com/v1/"
+        self.unauthorized_codes = unauthorized_codes
 
         # Parámetros por defecto para todas las requests
         self.default_params = default_params or {}
@@ -99,12 +101,11 @@ class ZenRowsClient:
             try:
                 response = self.session.request(method, zenrows_url, **final_kwargs)
 
-                # Si la respuesta es exitosa, retornarla
-                if response.status_code < 400:
+                if response.ok:
                     return response
 
                 # Si es un error de autenticación/prohibido y tenemos método de login
-                if response.status_code in [401, 403] and self.login_method:
+                if response.status_code in self.unauthorized_codes and self.login_method:
                     print(f"Request failed with status {response.status_code}, attempt {attempt + 1}/{self.max_retries}")
 
                     if attempt < self.max_retries - 1:

@@ -160,7 +160,8 @@ class Inmuebles24(Portal):
             login_method=self.login,
             default_params=PARAMS,
             default_cookies=cookies,
-            default_headers=self.request.headers
+            default_headers=self.request.headers,
+            unauthorized_codes=[401]
         )
         self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
         self.request.cookies = cookies

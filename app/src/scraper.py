@@ -6,7 +6,6 @@ from typing import Iterator
 
 from src.property import Property
 from src.message import generate_post_message
-from src.sheets import Sheet
 from src.logger import Logger
 
 SENDER_PHONE = os.getenv("SENDER_PHONE")
@@ -24,7 +23,6 @@ class Scraper():
         }
 
         self.logger = Logger(name)
-        self.headers = self.sheet.get("Extracciones!A1:Z1")[0]
 
     def get_posts(self, param: str | dict) -> Iterator[list[dict]]:
         yield []
