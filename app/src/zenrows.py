@@ -103,6 +103,8 @@ class ZenRowsClient:
 
                 if response.ok:
                     return response
+                else:
+                    print(response.text)
 
                 # Si es un error de autenticación/prohibido y tenemos método de login
                 if response.status_code in self.unauthorized_codes and self.login_method:
@@ -114,9 +116,6 @@ class ZenRowsClient:
                             print("Login successful, retrying...")
                             time.sleep(1)
                             continue
-
-                # Para otros errores, retornar la respuesta
-                return response
 
             except requests.exceptions.RequestException as e:
                 print(f"Request exception: {e}, attempt {attempt + 1}/{self.max_retries}")

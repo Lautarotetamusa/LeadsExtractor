@@ -465,7 +465,6 @@ class Inmuebles24(Portal):
 
         err, res = self._run_step(PublicationStep.operation, payload)
         if err is not None:
-            print("exception", err)
             return err, None
         prop_id = res.get("postingId")
         self.logger.success("prop id", prop_id)
@@ -554,8 +553,9 @@ class Inmuebles24(Portal):
             return err, None
 
         payload = {
-            "postingId": prop_id,
-            "publication_plan": publication_plan_map[property.plan]
+            "commission_share": 0,
+            "postingId": str(prop_id),
+            "publication_plan": str(publication_plan_map[property.plan])
         }
         err, _ = self._run_step(PublicationStep.plan_selection, payload)
         if err is not None:
