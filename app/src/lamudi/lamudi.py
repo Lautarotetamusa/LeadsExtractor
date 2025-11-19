@@ -245,7 +245,7 @@ class Lamudi(Portal):
         if location_data is None: 
             return Exception("cannot get the location data"), None
         self.logger.success("geolocation data getted successfully")
-    
+
         ad_payload = {
             "address": property.ubication.address,
             "coordinates": {

@@ -101,7 +101,6 @@ func (h *PublishedPropertyHandler) RePublishAll(w http.ResponseWriter, r *http.R
 	payload := PublishPayload {
 		Properties: properties,
 	}
-	fmt.Printf("%#v\n", payload)
 
 	if err := h.addToQueue(payload); err != nil {
 		return err
