@@ -76,9 +76,39 @@ func (h *PublishedPropertyHandler) RegisterRoutes(router *mux.Router) {
 
     // Property publications
 	router.HandleFunc("/publish", HandleErrors(h.Publish)).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/publish-all", HandleErrors(h.RePublishAll)).Methods(http.MethodPost, http.MethodOptions)
 	r.HandleFunc("", HandleErrors(h.GetPublications)).Methods(http.MethodGet)
 	r.HandleFunc("/{portal}", HandleErrors(h.GetPublication)).Methods(http.MethodGet)
 	r.HandleFunc("/{portal}", HandleErrors(h.Update)).Methods(http.MethodPut)
+}
+
+
+func (h *PublishedPropertyHandler) RePublishAll(w http.ResponseWriter, r *http.Request) error {
+	publications, err := h.storer.GetAll()
+	if err != nil {
+		return err
+	}
+
+	var properties []PropertyPublishPayload
+	for _, pub := range publications {
+		properties = append(properties, PropertyPublishPayload{
+			PropertyID: pub.PropertyID.Int16,
+			Portal: pub.Portal.String,
+			Plan: pub.Plan.String,
+		})
+	}
+
+	payload := PublishPayload {
+		Properties: properties,
+	}
+	fmt.Printf("%#v\n", payload)
+
+	if err := h.addToQueue(payload); err != nil {
+		return err
+	}
+
+    messageResponse(w, "publishing process has started")
+    return nil
 }
 
 // CreateHandler handles property creation
@@ -96,11 +126,19 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
         return ErrBadRequest("must publish at least one property")
     }
 
-    // Create or update all the published property status to "in_queue"
-    // Add all the properties to the queue
-    // Consume the queue, get the first prop, if the status its not 'finished' or 'failed' call the publication app
-    // When the status its 'finished' or 'failed' drop the first prop and go to the next
+	if err := h.addToQueue(payload); err != nil {
+		return err
+	}
 
+    messageResponse(w, "publishing process has started")
+    return nil
+}
+
+// Create or update all the published property status to "in_queue"
+// Add all the properties to the queue
+// Consume the queue, get the first prop, if the status its not 'finished' or 'failed' call the publication app
+// When the status its 'finished' or 'failed' drop the first prop and go to the next
+func (h *PublishedPropertyHandler) addToQueue(payload PublishPayload) error {
     h.mu.Lock()
 	defer h.mu.Unlock()
     for _, pp := range payload.Properties {
@@ -145,8 +183,7 @@ func (h *PublishedPropertyHandler) Publish(w http.ResponseWriter, r *http.Reques
 		go h.processNextItem()
 	}
 
-    messageResponse(w, "publishing process has started")
-    return nil
+	return nil
 }
 
 func (h *PublishedPropertyHandler) Update(w http.ResponseWriter, r *http.Request) error {
@@ -224,6 +261,25 @@ func (h *PublishedPropertyHandler) processNextItem() {
 
 	// Start processing in background
 	go func(){
+		publication, err := h.storer.GetOne(h.current.Portal, int64(h.current.PropertyID))
+		if err != nil {
+			h.logger.Error("error on getting publication", "err", err)
+			return
+		}
+
+		// If publication is already publicated (have publication_id), unpublish first
+		if publication.PublicationID.Valid {
+			h.logger.Info("publication already exists", "publication id", publication.PublicationID.String)
+			if err := h.unpublish(h.current.Portal, publication.PublicationID.String); err != nil {
+				h.logger.Error("error unpublishing", "err", err)
+
+				err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), &store.UpdatePublishedProperty{
+					Status: store.StatusFailed,
+				})
+				return
+			}
+		}
+
         if err := h.publish(h.current); err != nil {
             h.logger.Error("error in publish", "err", err)
             // update status processing the next item
@@ -231,13 +287,6 @@ func (h *PublishedPropertyHandler) processNextItem() {
             err = h.updateStatus(h.current.Portal, int64(h.current.PropertyID), &store.UpdatePublishedProperty{
                 Status: store.StatusFailed,
             })
-            if err != nil {
-                h.logger.Error("error updating the status", 
-                    "portal", h.current.Portal,
-                    "id", h.current.PropertyID,
-                    "err", err,
-                )
-            }
         }     
     }()
 }
@@ -264,6 +313,31 @@ func (h *PublishedPropertyHandler) publish(item *PropertyPublishPayload) error {
             h.queue = make([]*PropertyPublishPayload, 0)
         }         
         return err
+    }
+
+    return nil
+}
+
+func (h *PublishedPropertyHandler) unpublish(portal string, publicationId string) error {
+    url := fmt.Sprintf("%s/unpublish/%s/%s", h.appHost, portal, publicationId)
+
+    client := http.Client{Timeout: 30 * time.Second}
+
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer res.Body.Close()
+    if res.StatusCode != http.StatusCreated {
+        var text []byte
+        res.Body.Read(text)
+        fmt.Println(string(text))
+        return ErrBadRequest("error unpublishing the property")
     }
 
     return nil
@@ -306,6 +380,7 @@ func (h *PublishedPropertyHandler) GetPublications(w http.ResponseWriter, r *htt
 
 func (h *PublishedPropertyHandler) GetPublication(w http.ResponseWriter, r *http.Request) error {
 	portal := mux.Vars(r)["portal"]
+	fmt.Println(portal)
 	propertyIDStr := mux.Vars(r)["propId"]
 	
 	propId, err := strconv.Atoi(propertyIDStr)

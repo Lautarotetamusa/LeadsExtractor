@@ -419,16 +419,16 @@ class Inmuebles24(Portal):
             for post in posts:
                 yield post
 
-    # --DEPRECATED
     def unpublish(self, publication_ids: list[str]) -> Exception | None:
         self.logger.debug("unpublishing properties")
         payload = {
             "finishReasonId": "6",  # Operation canceledstr
             "finishReasonText":	None,
-            "postings": [id for id in publication_ids]
+            "postings": [int(id) for id in publication_ids]
         }
 
         res = self.zenrows.put(unpublish_url, json=payload)
+        print(res, res.ok)
         if res is None or not res.ok:
             return Exception("cannot unpublish the properties")
 
@@ -441,6 +441,7 @@ class Inmuebles24(Portal):
 
         res = self.zenrows.post(f"{step_url}/{step.value}", json=payload)
         if res is None or not res.ok:
+            self.logger.error("payload", payload)
             return Exception(f"error in step {step}"), None
         self.logger.success(f"step {step} has success")
         return None, res.json()

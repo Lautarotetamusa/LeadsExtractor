@@ -56,7 +56,7 @@ class Property:
     ubication: Ubication # Full GOOGLE address
     updated_at: datetime
     created_at: datetime
-    plan: PlanType 
+    plan: PlanType
 
     internal: Internal
 

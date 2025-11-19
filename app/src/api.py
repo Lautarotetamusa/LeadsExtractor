@@ -15,12 +15,14 @@ assert API_PROTOCOL is not None, "Error: 'API_PROTOCOL env variable not set'"
 
 API_BASE_URL = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}" 
 
+
 def download_file(url: str) -> bytes | None:
     res = requests.get(url)
     if not res.ok:
         return None
 
     return res.content
+
 
 def assign_asesor(logger: Logger, lead: Lead) -> tuple[bool, Lead | None]:
     url = f"{API_BASE_URL}/assign"
@@ -74,6 +76,7 @@ def get_communications(logger: Logger, date: str, is_new: bool | None=None) -> l
 
     return leads
 
+
 def update_publication(property_id: int, portal: str, status: str, publication_id: str | None = None):
     url = f"{API_BASE_URL}/property/{property_id}/publications/{portal}"
     payload = {
@@ -84,3 +87,19 @@ def update_publication(property_id: int, portal: str, status: str, publication_i
 
     res = requests.put(url, json=payload)
     print(res.json())
+
+
+def get_property(prop_id: str):
+    url = f"{API_BASE_URL}/property/{prop_id}"
+    res = requests.get(url)
+    if not res.ok:
+        return None
+    return res.json().get("data")
+
+
+def get_publication(portal: str, property_id: str):
+    url = f"{API_BASE_URL}/property/{property_id}/publications/{portal}"
+    res = requests.get(url)
+    if not res.ok:
+        return None
+    return res.json().get("data")

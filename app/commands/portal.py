@@ -76,11 +76,18 @@ def portal(args: list[str]):
         print("PUBLICATION_ID its required")
         USAGE()
         exit(1)
-    
-    portal: Portal = PORTALS[portal_name]() 
+
+    print(task)
+
+    portal: Portal = PORTALS[portal_name]()
     if task == "main":
-        main(portal, *args[2:]) 
+        main(portal, *args[2:])
     if task == "first_run":
-        first_run(portal, *args[2:]) 
+        first_run(portal, *args[2:])
     if task == "test":
-        test(portal, *args[2:]) 
+        test(portal, *args[2:])
+    if task == "unpublish":
+        print(args)
+        portal.unpublish([args[2]])
+    if task == "highlight":
+        portal.highlight(args[2], "simple")

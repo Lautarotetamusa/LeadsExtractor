@@ -43,6 +43,7 @@ type PublishedPropertyStorer interface {
 	GetAllByProp(propertyID int64) ([]*PublishedProperty, error)
 	Update(portal string, propertyID int64, update *UpdatePublishedProperty) error
     GetAllByStatus(status PublishedStatus) ([]*PublishedProperty, error)
+	GetAll() ([]*PublishedProperty, error)
 }
 
 const (
@@ -73,6 +74,17 @@ func (s *publishedPropertyStore) Create(pp *PublishedProperty) error {
         err = SQLDuplicated(err, fmt.Sprintf("property its already publicated in %s", pp.Portal.String))
     }
     return err
+}
+
+func (s *publishedPropertyStore) GetAll() ([]*PublishedProperty, error) {
+	query := `SELECT * FROM PublishedProperty PP`
+	var pp []*PublishedProperty
+    err := s.db.Select(&pp, query)
+    if err != nil {
+        return nil, fmt.Errorf("error obtaining publications %w", err)
+    }
+	
+	return pp, nil
 }
 
 func (s *publishedPropertyStore) GetAllByProp(propertyID int64) ([]*PublishedProperty, error) {

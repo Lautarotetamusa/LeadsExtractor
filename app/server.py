@@ -14,7 +14,7 @@ from src.propiedades_com.propiedades import Propiedades
 from src.casasyterrenos.casasyterrenos import CasasYTerrenos
 from src.lamudi.lamudi import Lamudi
 
-from src.api import new_communication, update_publication
+from src.api import new_communication, update_publication, get_property, get_publication
 from src.property import Internal, Location, PlanType, Property, Ubication
 from src.logger import Logger
 import src.tasks as tasks
@@ -137,7 +137,7 @@ def ejecutar_script_route():
 
 def publish(portal: str, property: Property):
     logger.debug("plan: " + str(property.plan))
-    # json.dumps(property.__dict__, indent=4)
+
     err, publication_id = PORTALS[portal].publish(property)
     if err is not None or publication_id is None:
         update_publication(property.id, portal, "failed")
@@ -152,6 +152,14 @@ def publish(portal: str, property: Property):
             return
 
     update_publication(property.id, portal, "published", publication_id)
+
+
+def unpublish(portal: str, publication_id: str):
+    logger.debug("unpublishing property", portal, publication_id)
+
+    err = PORTALS[portal].unpublish([publication_id])
+    if err is not None:
+        logger.error("error unpublishing" + err.__str__())
 
 
 def get_internal(portal: str, zone: str) -> Internal | None:
@@ -181,6 +189,21 @@ def publish_route(portal: str):
     return jsonify({
         "success": True,
         "message": "publishing process has started"
+    }), 201
+
+
+@app.route('/unpublish/<portal>/<publication_id>', methods=['DELETE'])
+def republish_route(portal: str, publication_id: str):
+    if portal not in PORTALS:
+        logger.warning(f"Portal f{portal} is not valid")
+        return jsonify({"error": f"Portal f{portal} is not valid"}), 400
+
+    thread = threading.Thread(target=unpublish, args=(portal, publication_id))
+    thread.start()
+
+    return jsonify({
+        "success": True,
+        "message": "unpublishng process has started"
     }), 201
 
 
