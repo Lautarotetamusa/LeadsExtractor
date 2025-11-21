@@ -488,7 +488,9 @@ class Inmuebles24(Portal):
         if err is not None:
             return err, None
 
-        self.upload_images(prop_id, property)
+        err = self.upload_images(prop_id, property)
+        if err is not None:
+            return err, None
 
         feature_map = {
             "CFT5": property.antiquity,
@@ -567,7 +569,7 @@ class Inmuebles24(Portal):
 
         return None, prop_id
 
-    def upload_images(self, prop_id: str, prop: Property):
+    def upload_images(self, prop_id: str, prop: Property) -> Exception | None:
         """
         upload each image multipart/form-data to upload_url
         add image to the property with add_image_url
