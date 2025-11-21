@@ -77,8 +77,6 @@ def portal(args: list[str]):
         USAGE()
         exit(1)
 
-    print(task)
-
     portal: Portal = PORTALS[portal_name]()
     if task == "main":
         main(portal, *args[2:])

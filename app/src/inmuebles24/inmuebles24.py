@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 import os
 import json
+import time
 import uuid
 from typing import Any, Iterator
 import requests
@@ -345,7 +346,6 @@ class Inmuebles24(Portal):
             "message": message,
             "message_attachments": []
         }
-        print(url)
 
         res = self.zenrows.post(url, json=data)
 
@@ -431,7 +431,6 @@ class Inmuebles24(Portal):
         }
 
         res = self.zenrows.put(unpublish_url, json=payload)
-        print(res, res.ok)
         if res is None or not res.ok:
             return Exception("cannot unpublish the properties")
 
@@ -451,7 +450,6 @@ class Inmuebles24(Portal):
 
     def get_quality(self, prop_id):
         url = quality_url.format(prop_id=prop_id)
-        print(url)
         res = self.zenrows.get(url)
         if res is None or not res.ok:
             return res
@@ -591,6 +589,9 @@ class Inmuebles24(Portal):
 
             self.logger.debug("uploading the image")
             url = upload_image_url.format(prop_id=prop_id)
+            self.logger.debug(f"POST {url}")
+
+            time.sleep(0.5)
             res = self.zenrows.post(url, files=files, headers={
                 # Necessary for the upload image request, otherwise will fail
                 "content-type": None,
@@ -609,17 +610,19 @@ class Inmuebles24(Portal):
             self.logger.success(f"image uploaded successfully, url: {data['temporalUrl']}")
             return data
 
+        max_workers = 5
         uploaded_images = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(process_image, prop.images)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(process_image, prop.images))
             for result in results:
                 if isinstance(result, Exception):
                     return result
                 if result is not None:
                     uploaded_images.append(result)
 
-        if len(uploaded_images) < len(prop.images):
-            self.logger.error("not all the images are successfully added, publication failed")
+        aceptance_fail = 2
+        if len(uploaded_images) < len(prop.images) - aceptance_fail:
+            self.logger.error(f"more than {aceptance_fail} images failed to publish, publication failed")
             return Exception("not all the images are successfully added")
 
         # add the video url

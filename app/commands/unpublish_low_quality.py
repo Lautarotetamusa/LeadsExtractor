@@ -13,22 +13,25 @@ if __name__ == "__main__":
     i24 = Inmuebles24()
 
     ids = []
+
     query = {
-        "page": 1,
         "searchParameters": "sort:lowerQuality"
     }
 
     for prop in i24.get_properties(query=query):
         id = prop["postingId"]
-        ids.append(id)
 
         quality_info = i24.get_quality(id)
-        print(quality_info)
-        print(json.dumps(quality_info, indent=4))
+        if quality_info is None:
+            print("percentage not found")
+            continue
+        if not "percentage_correctness" in quality_info:
+            print("percentage not found")
+            continue
 
-        if len(ids) == 20:
-            # err = i24.unpublish(ids)
-            # if err is not None:
-            #     print(err)
+        if int(quality_info.get("percentage_correctness", "100")) < 80:
+            print("low quality found")
+            # print(json.dumps(quality_info, indent=4))
+            ids.append(id)
 
-            ids = []
+        print(ids)
