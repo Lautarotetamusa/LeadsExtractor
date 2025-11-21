@@ -20,11 +20,6 @@ from src.property import OperationType, PlanType, Property, PropertyType, Ubicat
 from src.portal import Mode, Portal
 from src.lead import Lead
 
-# mis propiedades: https://propiedades.com/api/v3/property/MyProperties
-# En este archivo tenemos todas las propieades previamente extraidas
-with open("src/propiedades_com/properties.json") as f:
-    PROPS = json.load(f)
-
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
