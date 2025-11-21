@@ -64,7 +64,7 @@ avisos_api = f"{SITE_URL}avisos-api/panel/api/v2"
 unpublish_url = f"{avisos_api}/posting/suspend"
 archive_url = f"{avisos_api}/posting/archive"
 list_url = f"{avisos_api}/postings?"
-quality_url = f"{avisos_api}/performance/getpostingquality?postingId="+"{prop_id}"
+quality_url = f"{SITE_URL}avisos-api/panel/api/v1/performance/getpostingquality?postingId="+"{prop_id}" # uses v1
 upload_image_url = f"{SITE_URL}reipro-api/preview?postingId="+"{prop_id}"
 step_url = f"{SITE_URL}reppro-api/publication/api/v1/posting"
 
@@ -298,7 +298,7 @@ class Inmuebles24(Portal):
         lead.set_propiedad({
             "id": posting.get("id", None),
             "titulo": posting.get("title", ""),
-            "link": f"{SITE_URL}/propiedades/-{posting_id}.html",
+            "link": f"{SITE_URL}propiedades/-{posting_id}.html",
             "precio": str(posting.get("price", {}).get("amount", "")),
             "ubicacion": posting.get("address", ""),
             "tipo": posting.get("real_estate_type", {}).get("name"),
@@ -399,6 +399,9 @@ class Inmuebles24(Portal):
 
         if "internal" in query:
             params["searchParameters"] += f";searchCode:{query['internal']['colony']}"
+
+        if "searchParameters" in query:
+            params["searchParameters"] += ";"+query["searchParameters"]
 
         posts = [1]
         while len(posts) > 0:
