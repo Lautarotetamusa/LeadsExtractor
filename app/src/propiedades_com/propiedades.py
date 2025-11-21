@@ -137,10 +137,21 @@ class Propiedades(Portal):
         return lead
 
     def get_lead_property(self, property_id: str) -> dict | None:
-        if property_id not in PROPS:
+
+        query = {
+            "page": 1,
+            "country": "MX",
+            "identifier": 4,
+            "purpose": 3,
+            "search": property_id,
+            "origin": 1
+        }
+        props = list(self.get_properties(query=query))
+
+        if len(props) == 0:
             self.logger.error(f"No se encontro la propiedad con id {property_id}")
             return {"id": property_id} # Devolvemos solamente el property_id
-        data = PROPS[property_id]
+        data = props[0]
 
         return {
             "id": str(data["id"]),
@@ -212,6 +223,9 @@ class Propiedades(Portal):
             "order": "update_desc",
             "highlighted": featured
         }
+
+        if query != {}:
+            params = query
 
         if "internal" in query:
             params["search"] = query["internal"]["colony"]
