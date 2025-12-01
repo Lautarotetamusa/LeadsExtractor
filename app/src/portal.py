@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from typing import Iterator 
+from typing import Iterator
 from multiprocessing.pool import ThreadPool
 
 from src.property import PlanType, Property

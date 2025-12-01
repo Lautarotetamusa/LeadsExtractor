@@ -166,6 +166,26 @@ def get_internal(portal: str, zone: str) -> Internal | None:
     return internal_zones.get(portal, {}).get(zone)
 
 
+@app.route('/highlight/<portal>/<publication_id>', methods=['POST'])
+def highlight_route(portal: str, publication_id: str):
+    if portal not in PORTALS:
+        logger.warning(f"Portal f{portal} is not valid")
+        return jsonify({"error": f"Portal f{portal} is not valid"}), 400
+
+    err = PORTALS[portal].highlight(publication_id, PlanType.HIGHLIGHTED)
+    if err is not None:
+        return jsonify({
+            "success": False,
+            "message": "highlighted failed",
+            "error": str(err)
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "message": "highlighted successfully"
+    }), 201
+
+
 @app.route('/publish/<portal>', methods=['POST'])
 def publish_route(portal: str):
     if portal not in PORTALS:

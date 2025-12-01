@@ -26,6 +26,9 @@ API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 
 MAIN_API = "https://propiedades.com/api/v3"
 
+cancel_url = "https://propiedades.com/api/checkout/cancel"
+highlight_url = "https://propiedades.com/api/slots/manage"
+
 ZENROWS_PARAMS = {
     "apikey": os.getenv("ZENROWS_APIKEY"),
     "url": "",
@@ -180,10 +183,26 @@ class Propiedades(Portal):
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")
 
+    def get_slots(self) -> Exception | list[object]:
+        get_slots_url = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod/get_packages_slot_user?country=MX"
+        api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS"
+
+        prev_api_key = self.request.headers["x-api-key"]
+        self.request.headers["x-api-key"] = api_key
+        res = self.request.make(get_slots_url, "GET")
+        if res is None or not res.ok:
+            self.request.headers["x-api-key"] = prev_api_key
+            return Exception("cannot get available slots")
+
+        data = res.json()
+        self.request.headers["x-api-key"] = prev_api_key
+
+        return data.get("slots", [])
+
     def make_contacted(self, lead: dict):
         self._change_status(lead, Status.CERRADA)
 
-    def get_location(self, ubication: Ubication) -> dict | None: 
+    def get_location(self, ubication: Ubication) -> dict | None:
         prediction_url = f"{MAIN_API}/property/sepomexid?address={ubication.address}&lat={ubication.location.lat}&lon={ubication.location.lng}"
 
         cookies = {
@@ -243,9 +262,65 @@ class Propiedades(Portal):
 
         self.request.headers["x-api-key"] = prev_api_key
 
-    # For the moment its not necessary 
+    def unhighlight(self, publication_id: str) -> Exception | None:
+        self.logger.debug("unhighlighting", publication_id)
+        params = ZENROWS_PARAMS.copy()
+        params["url"] = cancel_url
+        cookies = {
+            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
+        }
+        data = {
+            "properties_ids[]": str(publication_id)
+        }
+        res = requests.post("https://api.zenrows.com/v1/",
+            params=params,
+            cookies=cookies,
+            data=data,
+            headers=self.request.headers
+        )
+
+        if not res.ok:
+            return Exception("cannot unhighlight the property", res.text)
+
+        if not res.json().get("success", False):
+            return Exception("cannot unhighlight the property: "+res.text)
+
+        self.logger.success("unhighlighted succesffully", publication_id)
+
+    # For the moment its not necessary
     def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
-        return super().highlight(publication_id, plan)
+        self.logger.debug("highlighting publication", publication_id)
+        slots = self.get_slots()
+        if slots is Exception:
+            return slots
+
+        if len(slots) == 0:
+            return Exception("there are not slots left")
+        slot = slots[0]
+
+        cookies = {
+            "userToken": self.request.headers["Authorization"].replace("Bearer ", ""),
+            # TODO: get PHPSESSID
+            "PHPSESSID": "84d3piccm8qrpcfp6nd9js6ov1",
+        }
+        data = [{
+            'property_id': publication_id,
+            'slot_id': slot.get("slot_id")
+        }]
+
+        res = requests.post(
+            url=highlight_url,
+            cookies=cookies,
+            data=json.dumps(data),
+        )
+
+        if res is None or not res.ok:
+            return Exception("cannot highlight the property: "+res.text)
+
+        if not res.json().get("success", False):
+            return Exception("cannot highlight the property: "+res.text)
+
+        return None
 
     def change_prop_status(self, publication_id: str, status: PropertyStatus) -> Exception | None:
         # Update the property status to "active": "1"
@@ -259,7 +334,7 @@ class Propiedades(Portal):
             ('properties_id[0]', (None, publication_id))
         ]
         res = requests.post("https://api.zenrows.com/v1/",
-            params=params, 
+            params=params,
             files=files,
             cookies=cookies, 
             headers=self.request.headers
@@ -267,10 +342,12 @@ class Propiedades(Portal):
 
         if res is None or not res.ok:
             return Exception("error updating status"+res.text)
-        print(res.json())
 
     def unpublish(self, publication_id: str) -> Exception | None:
-        return self.change_prop_status(publication_id, PropertyStatus.VENDIDO)
+        return self.unhighlight(publication_id)
+
+        # Propiedades dont let us change the status of more than 10 properties per day
+        # return self.change_prop_status(publication_id, PropertyStatus.VENDIDO)
 
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
 
@@ -350,13 +427,12 @@ class Propiedades(Portal):
             },
             data=payload
         )
-        print(res)
 
         if res is None or not res.ok:
             return Exception("error creating the property: "+res.text), None
         response = res.json()
         success = response.get("success")
-        if not success: 
+        if not success:
             error = response.get("errors", {}).get("message", "")
             return Exception(f"error creating the property: {error}"), None
 

@@ -50,3 +50,8 @@ if __name__ == "__main__":
                 print(err)
 
             ids = []
+
+    if len(ids) > 0:
+        err = portal.unpublish(ids)
+        if err is not None:
+            print(err)
