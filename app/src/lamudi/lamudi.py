@@ -212,6 +212,7 @@ class Lamudi(Portal):
                 yield prop
 
     def highlight(self, publication_id: str, plan: PlanType) -> Exception | None:
+        self.logger.debug("highlighting publication: ", publication_id)
         highlight_url = f"{API_URL}/properties/{publication_id}/superboost"
 
         payload = {
@@ -223,6 +224,10 @@ class Lamudi(Portal):
             return Exception(f"error highlighting the property with id {publication_id}")
         if not res.ok:
             return Exception(f"error highlighting the property with id {publication_id}. err: {res.text}")
+
+        data = res.json().get("data", {})
+        if not data.get("adWasSuperboosted"):
+            return Exception(f"error highlighting the property with id {publication_id}. err: {data}")
 
     def unpublish(self, publication_ids: list[str]) -> Exception | None:
         for id in publication_ids:

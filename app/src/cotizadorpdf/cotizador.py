@@ -58,6 +58,8 @@ def format(num):
 
 # 📌 Datos dinámicos que queremos insertar en el HTML
 def translateContext(cin) -> dict:
+    valor_metro_rebora = 2300
+
     porcentaje_administracion = cin["elaborado_por"]["porcentaje_administracion"]
     enombre = cin['elaborado_por']['nombre']
     email = cin['elaborado_por']['mail']
@@ -113,7 +115,6 @@ def translateContext(cin) -> dict:
     valor_mecanica = int(cin['valor_permisos']['mecanica'] / coeficiente_ganancia)
     valor_calculo = int(cin['valor_permisos']['calculo'] / coeficiente_ganancia)
     valor_permisos = (valor_licencia + valor_gestorias + valor_calculo) * area_interior + 3 * valor_mecanica + valor_topografia
-    valor_metro_rebora = 2000
     valor_rebora = valor_metro_rebora * area_interior
     valor_preconstruccion = int(valor_rebora*0.3)
     valor_construccion = int(valor_rebora*0.7)
