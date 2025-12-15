@@ -1,10 +1,12 @@
 from datetime import datetime
 import json
 import os
+import re
 from enum import IntEnum
 from typing import Generator, Iterator
 import urllib.parse
 import concurrent.futures
+from src.client import Client
 
 import requests
 from selenium import webdriver
@@ -22,25 +24,40 @@ from src.lead import Lead
 
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
-API_URL = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com"
 
 MAIN_API = "https://propiedades.com/api/v3"
 
 cancel_url = "https://propiedades.com/api/checkout/cancel"
 highlight_url = "https://propiedades.com/api/slots/manage"
+prediction_url = f"{MAIN_API}/property/sepomexid"
+change_status_url = f"{MAIN_API}/property/status"
+create_prop_url = f"{MAIN_API}/property/property"
+upload_url = "https://propiedadescom.s3.amazonaws.com/"
 
-ZENROWS_PARAMS = {
-    "apikey": os.getenv("ZENROWS_APIKEY"),
-    "url": "",
-    # "js_render": "true",
-    "antibot": "true",
-    "premium_proxy": "true",
-    "proxy_country": "mx",
-    # "session_id": 10,
-    "custom_headers": "true",
-    "original_status": "true",
-    "autoparse": "true"
+pattern = r"https://([a-zA-Z0-9]+)\.execute-api"
+url_api_key_mapping = {
+    "ujj28ojnla": "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa",
+    "76nst7dli4": "XpwAO6cXk889DbUOXB2tU7GWwRbyPIWE9ZAWEfL2",
+    "ggcmh0sw5f": "ylbSWNPGu1yvyCclycC23wMA12nuPRy76rMvAto0",
+    "obgd6o986k": "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS"
 }
+
+ujj28ojnla = "https://ujj28ojnla.execute-api.us-east-2.amazonaws.com/prod"
+url_76nst7dli4 = "https://76nst7dli4.execute-api.us-east-2.amazonaws.com/prod"
+ggcmh0sw5f = "https://ggcmh0sw5f.execute-api.us-east-2.amazonaws.com/prod"
+obgd6o986k = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod"
+
+
+sign_url = f"{ujj28ojnla}/property_sign_s3"
+confirm_url = f"{ujj28ojnla}/confirm_upload_s3"
+
+update_placeholder_url = f"{url_76nst7dli4}/upload_placeholders?country=MX"
+
+get_leads_url = f"{ggcmh0sw5f}/get/leads"+"?page={page}&country=MX"
+change_lead_status_url = f"{ggcmh0sw5f}/leads/status"
+
+get_slots_url = f"{obgd6o986k}/get_packages_slot_user?country=MX"
+get_properties_url = f"{obgd6o986k}/get_properties_admin?"
 
 
 operation_type_map = {
@@ -70,6 +87,31 @@ class PropertyStatus(IntEnum):
     VENDIDO = 12
 
 
+class PropiedadesClient(Client):
+    """
+    Cada url del tipo <name>.amazon tiene un 'x-api-key' asociada.
+    Para que la peticion funcione se debe agregar este encabezado dependiente de la url
+    """
+
+    def _make_request(self, method: str, target_url: str, **kwargs) -> requests.Response | None:
+        key = None
+        match = re.search(pattern, target_url)
+        if match:
+            for name, k in url_api_key_mapping.items():
+                if match.group(1) == name:
+                    key = k
+
+        if key is not None:
+            if 'headers' not in kwargs:
+                kwargs['headers'] = {
+                    'x-api-key': key
+                }
+            else:
+                kwargs['headers']['x-api-key'] = key
+
+        return super()._make_request(method, target_url, **kwargs)
+
+
 class Propiedades(Portal):
     def __init__(self):
         super().__init__(
@@ -83,20 +125,28 @@ class Propiedades(Portal):
             filename=__file__
         )
 
+        self.client = PropiedadesClient(self.login,
+            default_headers = self.request.headers,
+            default_cookies = {
+              "userToken": self.request.headers["Authorization"].replace("Bearer ", ""),
+              "PHPSESSID": "84d3piccm8qrpcfp6nd9js6ov1"
+            },
+            unauthorized_codes=[401]
+        )
+
     def get_leads(self, mode=Mode.ALL) -> Generator:
         first = True
         page = 1
         end = False
-        url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
 
         while (not end) and (first or page is not None):
-            res = self.request.make(url)
+            url = get_leads_url.format(page=page)
+            res = self.client.get(url)
             if res is None:
                 break
             data = res.json()["leads"]
 
             page = data["page"]["next_page"]
-            url = f"{API_URL}/prod/get/leads?page={page}&country=MX"
             total = data["page"]["items"]
 
             if first:
@@ -135,7 +185,6 @@ class Propiedades(Portal):
         return lead
 
     def get_lead_property(self, property_id: str) -> dict | None:
-
         query = {
             "page": 1,
             "country": "MX",
@@ -165,11 +214,9 @@ class Propiedades(Portal):
             "covered_area": ""
         }
 
-    def _change_status(self, lead: dict, status=Status.CONTACTADO):
+    def change_lead_status(self, lead: dict, status=Status.CONTACTADO):
         id = lead[self.contact_id_field]
         self.logger.debug(f"Marcando como {status.name} al lead {id}")
-
-        url = f"{API_URL}/prod/leads/status"
 
         req = {
             "lead_id": id,
@@ -177,58 +224,26 @@ class Propiedades(Portal):
             "country": "MX"
         }
 
-        res = self.request.make(url, "PUT", json=req)
+        res = self.client.put(change_lead_status_url, json=req)
         if (res is None):
             self.logger.error(f"No se pudo marcar al lead como {status.name}")
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")
 
     def get_slots(self) -> Exception | list[object]:
-        get_slots_url = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod/get_packages_slot_user?country=MX"
-        api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS"
+        res = self.client.get(get_slots_url)
 
-        prev_api_key = self.request.headers["x-api-key"]
-        self.request.headers["x-api-key"] = api_key
-        res = self.request.make(get_slots_url, "GET")
         if res is None or not res.ok:
-            self.request.headers["x-api-key"] = prev_api_key
             return Exception("cannot get available slots")
 
         data = res.json()
-        self.request.headers["x-api-key"] = prev_api_key
 
         return data.get("slots", [])
 
     def make_contacted(self, lead: dict):
-        self._change_status(lead, Status.CERRADA)
-
-    def get_location(self, ubication: Ubication) -> dict | None:
-        prediction_url = f"{MAIN_API}/property/sepomexid?address={ubication.address}&lat={ubication.location.lat}&lon={ubication.location.lng}"
-
-        cookies = {
-            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
-        }
-
-        params = ZENROWS_PARAMS.copy()
-        params["url"] = prediction_url
-
-        res = requests.get("https://api.zenrows.com/v1/",
-            params=params, 
-            cookies=cookies,
-            headers=self.request.headers
-        )
-
-        data = res.json().get("data")
-        if data is None or not "location" in data: 
-            self.logger.error("cannot get address internal location: " + str(res.json()))
-            return None
-
-        return data["location"]
+        self.change_lead_status(lead, Status.CERRADA)
 
     def get_properties(self, status="", featured=False, query={}) -> Iterator[dict]:
-        url = "https://obgd6o986k.execute-api.us-east-2.amazonaws.com/prod/get_properties_admin?"
-        api_key = "VAryo1IvOF7YMMbBU51SW8LbgBXiMYNS7ssvSyKS"
-
         params = {
             "page": 1,
             "country": "MX",
@@ -244,13 +259,10 @@ class Propiedades(Portal):
         if "internal" in query:
             params["search"] = query["internal"]["colony"]
 
-        prev_api_key = self.request.headers["x-api-key"]
         while params["page"] is not None:
-            next = url + urllib.parse.urlencode(params, doseq=True)
-            self.request.headers["x-api-key"] = api_key
-            res = self.request.make(next, "GET")
+            next = get_properties_url + urllib.parse.urlencode(params, doseq=True)
+            res = self.client.get(next)
             if res is None or not res.ok:
-                self.request.headers["x-api-key"] = prev_api_key
                 break
 
             data = res.json()
@@ -260,24 +272,12 @@ class Propiedades(Portal):
             for property in data.get("properties", []):
                 yield property
 
-        self.request.headers["x-api-key"] = prev_api_key
-
     def unhighlight(self, publication_id: str) -> Exception | None:
         self.logger.debug("unhighlighting", publication_id)
-        params = ZENROWS_PARAMS.copy()
-        params["url"] = cancel_url
-        cookies = {
-            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
-        }
         data = {
             "properties_ids[]": str(publication_id)
         }
-        res = requests.post("https://api.zenrows.com/v1/",
-            params=params,
-            cookies=cookies,
-            data=data,
-            headers=self.request.headers
-        )
+        res = self.client.post(cancel_url, data=data)
 
         if not res.ok:
             return Exception("cannot unhighlight the property", res.text)
@@ -298,21 +298,12 @@ class Propiedades(Portal):
             return Exception("there are not slots left")
         slot = slots[0]
 
-        cookies = {
-            "userToken": self.request.headers["Authorization"].replace("Bearer ", ""),
-            # TODO: get PHPSESSID
-            "PHPSESSID": "84d3piccm8qrpcfp6nd9js6ov1",
-        }
         data = [{
             'property_id': publication_id,
             'slot_id': slot.get("slot_id")
         }]
 
-        res = requests.post(
-            url=highlight_url,
-            cookies=cookies,
-            data=json.dumps(data),
-        )
+        res = self.client.post(highlight_url, data=json.dumps(data))
 
         if res is None or not res.ok:
             return Exception("cannot highlight the property: "+res.text)
@@ -323,34 +314,41 @@ class Propiedades(Portal):
         return None
 
     def change_prop_status(self, publication_id: str, status: PropertyStatus) -> Exception | None:
-        # Update the property status to "active": "1"
-        params = ZENROWS_PARAMS.copy()
-        params["url"] = f"{MAIN_API}/property/status"
-        cookies = {
-            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
-        }
         files = [
             ('status', (None, status.value)),
             ('properties_id[0]', (None, publication_id))
         ]
-        res = requests.post("https://api.zenrows.com/v1/",
-            params=params,
-            files=files,
-            cookies=cookies, 
-            headers=self.request.headers
-        )
+        res = self.client.post(change_status_url, files=files)
 
         if res is None or not res.ok:
             return Exception("error updating status"+res.text)
 
+    # TODO: por qué hay dos funciones xd
+    def update_property_status(self, property_id) -> Exception | None:
+        # Update the property status to "active": "1"
+        update_status_payload = {
+            "properties_id": [property_id],
+            "status": "1",
+            "isNewPublish": True,
+            "source": "token",
+            "requestFromFunnel": True
+        }
+        res = self.client.post(change_status_url, json=update_status_payload)
+
+        if res is None:
+            return Exception("error creating the property")
+        if not res.ok:
+            return Exception("error creating the property: "+res.text)
+        return None
+
     def unpublish(self, publication_id: str) -> Exception | None:
+        """
+        Propiedades dont let us change the status of more than 10 properties per day
+        return self.change_prop_status(publication_id, PropertyStatus.VENDIDO)
+        """
         return self.unhighlight(publication_id)
 
-        # Propiedades dont let us change the status of more than 10 properties per day
-        # return self.change_prop_status(publication_id, PropertyStatus.VENDIDO)
-
     def publish(self, property: Property) -> tuple[Exception, None] | tuple[None, str]:
-
         # TODO: If the prop doesnt have itnernal zone, searche it
         # else: # Otherwise get the address via API
         #     self.logger.debug("getting the location data")
@@ -366,8 +364,8 @@ class Propiedades(Portal):
             "property[address][num_int]": "",
             "property[address][state]": property.internal["state"],
             "property[address][state_id]": property.internal["state_id"],
-            "property[address][city]": property.internal["city"], # Municipality
-            "property[address][city_id]": property.internal["city_id"], # Municipalty
+            "property[address][city]": property.internal["city"],  # Municipality
+            "property[address][city_id]": property.internal["city_id"],  # Municipalty
             "property[address][colony]": property.internal["colony"],
             "property[address][colony_id]": property.internal["colony_id"],
             "property[address][sepomex_id]": property.internal["colony_id"],
@@ -386,7 +384,7 @@ class Propiedades(Portal):
             "property[price][currency]": property.currency.upper(),
             "property[description]": property.description,
 
-            "property[type]": "1", # Its always "1" for house and aparment, type_children indicates that.
+            "property[type]": "1",  # Its always "1" for house and aparment, type_children indicates that.
             "property[type_children]": property_type_map.get(str(property.type), "2"),
             "property[purpose]": operation_type_map.get(str(property.operation_type), "1"),
 
@@ -395,14 +393,16 @@ class Propiedades(Portal):
             "property[features][bathrooms]": str(property.bathrooms) if property.bathrooms is not None else "0",
             "property[features][bathrooms_half]": str(property.half_bathrooms) if property.half_bathrooms is not None else "0",
             "property[features][parking_num]": str(property.parking_lots) if property.parking_lots is not None else "0",
-            "property[features][floor]": "3", # Default 3 floors if the option exists. TODO: dont hardcode this
+            # Default 3 floors if the option exists. TODO: dont hardcode this
+            "property[features][floor]": "3",
             "property[features][size_ground]": str(property.m2_total),
             "property[features][ground_unit]": "1",
             "property[features][size_house]": str(property.m2_covered),
             "property[features][size_house_unit]": "1",
             "property[features][gardens]": "false",
             # Its impossible to set the property_new in only one request, if needed must create the prop and later edit and add the property_new field
-            "property[features][property_old]": str(max(property.antiquity, 1)), # If the antiquity its 0, must send "1" and set property_new=true
+            # If the antiquity its 0, must send "1" and set property_new=true
+            "property[features][property_old]": str(max(property.antiquity, 1)),
             "property[features][know_property_old]": "1",
 
             **amenities,
@@ -412,23 +412,13 @@ class Propiedades(Portal):
             "property[status]": "17", # Borrador
         }
 
-        cookies = {
-            "userToken": self.request.headers["Authorization"].replace("Bearer ", "")
-        }
+        res = self.client.post(create_prop_url, data=payload, headers={
+            'Content-Type': 'application/x-www-form-urlencoded'
+        })
 
-        params = ZENROWS_PARAMS.copy()
-        params["url"] = f"{MAIN_API}/property/property"
-        res = requests.post("https://api.zenrows.com/v1/",
-            params=params, 
-            cookies=cookies,
-            headers={
-                **self.request.headers,
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            data=payload
-        )
-
-        if res is None or not res.ok:
+        if res is None:
+            return Exception("error creating the property: "), None
+        if not res.ok:
             return Exception("error creating the property: "+res.text), None
         response = res.json()
         success = response.get("success")
@@ -437,37 +427,20 @@ class Propiedades(Portal):
             return Exception(f"error creating the property: {error}"), None
 
         property_id = response.get("data", {}).get("id_property")
-        if property_id is None: 
+        if property_id is None:
             return Exception("cannot get the property id"), None
+
         self.logger.success("property published successfully id:" + str(property_id))
 
-        # upload_images changes the x-api-key Header, we need to restore it to the original value
-        prev_api_key = self.request.headers["x-api-key"]
         err = self.upload_images(property_id, property.images)
-        if err != None: return err, None
-        self.request.headers["x-api-key"] = prev_api_key
-    
-        # Update the property status to "active": "1"
-        params["url"] = f"{MAIN_API}/property/status"
-        update_status_payload = {
-            "properties_id": [property_id],
-            "status": "1",
-            "isNewPublish": True,
-            "source": "token",
-            "requestFromFunnel": True
-        }
-        res = requests.post("https://api.zenrows.com/v1/", 
-            params=params, 
-            json=update_status_payload, 
-            cookies=cookies, 
-            headers=self.request.headers
-        )
+        if err is not None:
+            return err, None
 
-        if res is None or not res.ok: 
-            return Exception("error creating the property: "+res.text), None
+        err = self.update_property_status(property_id)
+        if err is not None:
+            return err, None
+
         return None, property_id
-
-
 
     # The upload process of the images its complex, requires multiple steps.
     # 1. Sign the images with amazon s3 bucket
@@ -481,14 +454,9 @@ class Propiedades(Portal):
     # 4. Confirm the upload
     #   one POST request per image to ujj../prod/confirm_upload_s3
     def upload_images(self, property_id: str, images: list[dict[str, str]]) -> Exception | None:
-        sign_url = "https://ujj28ojnla.execute-api.us-east-2.amazonaws.com/prod/property_sign_s3"
-        update_placeholder_url = "https://76nst7dli4.execute-api.us-east-2.amazonaws.com/prod/upload_placeholders?country=MX"
-        upload_url = "https://propiedadescom.s3.amazonaws.com/"
-        confirm_url = "https://ujj28ojnla.execute-api.us-east-2.amazonaws.com/prod/confirm_upload_s3"
+        max_fail_uploads = 4
 
-        max_fail_uploads = 4 
-
-        ## 1. Sign all the images to upload to the s3 bucket
+        # 1. Sign all the images to upload to the s3 bucket
         jpeg_count = len(list(filter(lambda i : "jpg" in i["url"] or "jpeg" in i["url"], images)))
         sign_payload = {
             "jpeg": jpeg_count,
@@ -499,10 +467,11 @@ class Propiedades(Portal):
         }
         self.logger.debug("signing images")
 
-        self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
-        res = self.request.make(sign_url, "POST", json=sign_payload)
-        if res is None: return Exception("cannot sign the image")
-        if not res.ok: return Exception("cannot sign the image: "+res.json())
+        res = self.client.post(sign_url, json=sign_payload)
+        if res is None:
+            return Exception("cannot sign the image")
+        if not res.ok:
+            return Exception("cannot sign the image: "+res.json())
         sign_data = res.json()
 
         # necessary to update the placeholder of the images
@@ -510,14 +479,14 @@ class Propiedades(Portal):
             "images": []
         }
 
-        ## 2. Upload the images
+        # 2. Upload the images
         # Index for each type of image
         index = {
             "png": 0,
             "jpeg": 0,
         }
-        i = 0 # global index
-        fail_uploads = 0 # cant of images that fails the uploading process
+        i = 0  # global index
+        fail_uploads = 0  # cant of images that fails the uploading process
 
         # Configura el número máximo de hilos (ajusta según necesidad)
         MAX_WORKERS = 5
@@ -527,7 +496,7 @@ class Propiedades(Portal):
         index_counter = {'jpeg': 0, 'png': 0}
         for idx, image in enumerate(images):
             img_type = "jpeg" if "jpeg" in image["url"] or "jpg" in image["url"] else "png"
-            
+
             # Verificar suficiencia de firmas
             if index_counter[img_type] >= len(sign_data[img_type]):
                 precomputed.append({
@@ -550,12 +519,12 @@ class Propiedades(Portal):
         def process_image(item):
             if 'error' in item:
                 return False, None, item['error'], False
-            
+
             # Descargar imagen
             img_data = download_file(item["url"])
             if img_data is None:
                 return False, None, f"No se pudo descargar {item['url']}", True
-            
+
             # Preparar datos para subida
             files = [
                 ('Content-Type', (None, f"image/{item['img_type']}")),
@@ -566,12 +535,12 @@ class Propiedades(Portal):
                 ('signature', (None, item['fields']['signature'])),
                 ('file', (item['img_sign']['name_image'], img_data, "multipart/form-data")),
             ]
-            
+
             # Subir imagen
             res = requests.post(upload_url, files=files)
             if not res.ok:
                 return False, None, f"Error subiendo {item['url']}: {res.text}", False
-            
+
             # Éxito: retornar metadatos para el payload
             return True, {
                 "property_id": property_id,
@@ -586,31 +555,30 @@ class Propiedades(Portal):
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {executor.submit(process_image, item): item for item in precomputed}
-            
+
             for future in concurrent.futures.as_completed(futures):
                 # Verificar si debemos detener el procesamiento
                 if critical_failure is not None or fail_uploads > max_fail_uploads:
                     break
-                    
+
                 item = futures[future]
                 try:
                     success, entry, error_msg, is_download_failure = future.result()
-                    
+
                     if success:
                         self.logger.success(f"Imagen subida: {item.get('url', 'N/A')}")
                         placeholder_entries.append(entry)
                     else:
                         self.logger.error(error_msg)
                         fail_uploads += 1
-                        
-                        # Manejar errores críticos
+
                         if is_download_failure:
                             critical_failure = error_msg
-                            
+
                 except Exception as e:
                     fail_uploads += 1
                     self.logger.error(f"Error inesperado: {str(e)}")
-                
+
                 # Verificar límites de errores después de cada tarea
                 if critical_failure is not None or fail_uploads > max_fail_uploads:
                     # Cancelar tareas pendientes
@@ -622,7 +590,7 @@ class Propiedades(Portal):
         # Gestionar resultados finales
         if critical_failure is not None:
             return Exception(critical_failure)
-            
+
         if fail_uploads > max_fail_uploads:
             return Exception(f"{fail_uploads} imágenes fallaron, cancelando publicación")
 
@@ -630,40 +598,24 @@ class Propiedades(Portal):
         placeholder_entries.sort(key=lambda x: x['position'])
         placeholder_payload["images"].extend(placeholder_entries)
 
-        ## 3. Update placeholder
+        # 3. Update placeholder
         self.logger.debug("update placeholders")
-        # This url has another x-api-key
-        self.request.headers["x-api-key"] = "XpwAO6cXk889DbUOXB2tU7GWwRbyPIWE9ZAWEfL2"
-        res = self.request.make(update_placeholder_url, "POST", json=placeholder_payload)
+        res = self.client.post(update_placeholder_url, json=placeholder_payload)
         if res is None or not res.ok:
             return Exception("cannot update the image placeholder")
         self.logger.success("placeholders updated successfully")
 
         placeholders = res.json().get("placeholders", [])
-        if len(placeholders) == 0: return Exception("cannot get the placeholders")
-        #
-        # def sign_image(placeholder):
-        #     placeholder["description"] = ""
-        #     placeholder["country"] = "MX"
-        #
-        #     self.logger.debug(f"confirmed {placeholder['image_id']}")
-        #     # This url has another x-api-key
-        #     self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
-        #     res = self.request.make(confirm_url, "POST", json=placeholder)
-        #     if res is None or not res.ok:
-        #         return Exception(f"cannot confirm the image {placeholder['image_id']}")
-        #
-        #     self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
+        if len(placeholders) == 0:
+            return Exception("cannot get the placeholders")
 
-        ## 4. Confirm the upload
+        # 4. Confirm the upload
         for placeholder in placeholders:
             placeholder["description"] = ""
             placeholder["country"] = "MX"
 
             self.logger.debug(f"confirmed {placeholder['image_id']}")
-            # This url has another x-api-key
-            self.request.headers["x-api-key"] = "caTvsPv5aC7HYeXSraZPRaIzcNguO4sH9w9iUmWa"
-            res = self.request.make(confirm_url, "POST", json=placeholder)
+            res = self.client.post(confirm_url, json=placeholder)
             if res is None or not res.ok:
                 return Exception(f"cannot confirm the image {placeholder['image_id']}")
 
@@ -704,36 +656,3 @@ class Propiedades(Portal):
             self.logger.error(str(e))
         finally:
             driver.quit()
-
-# Función para procesar cada imagen
-def process_image(item):
-    if 'error' in item:
-        return False, None, item['error'], False
-    
-    # Descargar imagen
-    img_data = download_file(item["url"])
-    if img_data is None:
-        return False, None, f"No se pudo descargar {item['url']}", True
-    
-    # Preparar datos para subida
-    files = [
-        ('Content-Type', (None, f"image/{item['img_type']}")),
-        ('Cache-Control', (None, "max-age=2592000")),
-        ('key', (None, item['fields']['key'])),
-        ('AWSAccessKeyId', (None, item['fields']['AWSAccessKeyId'])),
-        ('policy', (None, item['fields']['policy'])),
-        ('signature', (None, item['fields']['signature'])),
-        ('file', (item['img_sign']['name_image'], img_data, "multipart/form-data")),
-    ]
-    
-    # Subir imagen
-    res = requests.post(upload_url, files=files)
-    if not res.ok:
-        return False, None, f"Error subiendo {item['url']}: {res.text}", False
-    
-    # Éxito: retornar metadatos para el payload
-    return True, {
-        "property_id": property_id,
-        "file_name": item['img_sign']['name_image'],
-        "position": item['position']
-    }, None, False

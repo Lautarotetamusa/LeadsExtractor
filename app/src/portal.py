@@ -67,16 +67,22 @@ class Portal():
 
     def send_message_condition(self, lead: dict) -> bool:
         return True
+
     def get_leads(self, mode: Mode) -> Iterator[list[dict]]:
         yield []
+
     def get_lead_info(self, raw_lead: dict) -> Lead:
         return Lead()
+
     def get_properties(self, status="", featured=False, query={}) -> Iterator[dict]:
         yield {}
+
     def send_message(self, id: str,  message: str):
         pass
+
     def make_contacted(self, lead: dict):
         pass
+
     def make_failed(self, lead: dict):
         pass
 
