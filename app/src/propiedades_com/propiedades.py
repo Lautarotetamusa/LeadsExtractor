@@ -9,11 +9,6 @@ import concurrent.futures
 from src.client import Client
 
 import requests
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from src.address import extract_street_from_address
 from src.api import download_file
@@ -32,6 +27,7 @@ highlight_url = "https://propiedades.com/api/slots/manage"
 prediction_url = f"{MAIN_API}/property/sepomexid"
 change_status_url = f"{MAIN_API}/property/status"
 create_prop_url = f"{MAIN_API}/property/property"
+login_url = f"{MAIN_API}/auth/login"
 upload_url = "https://propiedadescom.s3.amazonaws.com/"
 
 pattern = r"https://([a-zA-Z0-9]+)\.execute-api"
@@ -125,14 +121,14 @@ class Propiedades(Portal):
             filename=__file__
         )
 
-        self.client = PropiedadesClient(self.login,
-            default_headers = self.request.headers,
-            default_cookies = {
-              "userToken": self.request.headers["Authorization"].replace("Bearer ", ""),
-              "PHPSESSID": "84d3piccm8qrpcfp6nd9js6ov1"
-            },
-            unauthorized_codes=[401]
-        )
+        self.client = PropiedadesClient(self.login, unauthorized_codes=[401])
+        self.client.session.headers.update({
+            "Authorization": self.request.headers["Authorization"],
+        })
+        self.client.session.cookies.update({
+            "userToken": self.request.headers.get("Authorization", "").replace("Bearer ", ""),
+            "PHPSESSID": self.request.headers.get("PHPSESSID", "")
+        })
 
     def get_leads(self, mode=Mode.ALL) -> Generator:
         first = True
@@ -622,37 +618,43 @@ class Propiedades(Portal):
             self.logger.success(f"image {placeholder['image_id']} confirmed successfully")
 
     def login(self, session="session"):
-        login_url = "https://propiedades.com/login"
-        options = Options()
-        options.add_argument(f"--user-data-dir={session}")
-        options.add_argument("--headless")
-        # Necesario para correrlo como root dentro del container
-        options.add_argument("--no-sandbox")
-
-        driver = webdriver.Chrome(options=options)
-
         self.logger.debug("Iniciando sesion")
-        try:
-            driver.get(login_url)
+        data = {
+            "email": self.username,
+            "password": self.password,
+            "ssr": "1"
+        }
 
-            # Esperar que cargue la pagina
-            WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//input[@data-gtm='text_field_email']")))
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
 
-            username_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_email']")
-            username_input.send_keys(self.username)
-            driver.find_element(By.XPATH, "//button[@data-id='login_correo']").click()
+        res = requests.post(login_url, data=data, headers=headers)
+        if not res.ok:
+            raise Exception("cannot login")
 
-            password_input = driver.find_element(By.XPATH, "//input[@data-gtm='text_field_password']")
-            password_input.send_keys(self.password)
-            driver.find_element(By.XPATH, "//button[@data-id='login_password']").click()
+        js = res.json()
+        if not js.get("success"):
+            raise Exception("error on login")
 
-            WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//img[@data-testid='user-avatar']")))
-            self.logger.success("Sesion iniciada con exito")
+        data = js.get("data")
+        if not data:
+            raise Exception("error on login")
 
-            self.logger.debug("Obteniendo access token")
-            cookies = driver.get_cookies()
-            self.logger.success("Cookies obtenidas con exito:"+str(cookies))
-        except Exception as e:
-            self.logger.error(str(e))
-        finally:
-            driver.quit()
+        self.client.session.headers.update({
+            "Authorization": f"Bearer {data.get('token')}",
+        })
+
+        self.client.session.cookies.update({
+            "userToken": data.get('token'),
+            "PHPSESSID": res.cookies.get("PHPSESSID")
+        })
+
+        self.request.headers = {
+            "Authorization": f"Bearer {data.get('token')}",
+            "PHPSESSID": res.cookies.get("PHPSESSID")
+        }
+
+        with open(self.params_file, "w") as f:
+            json.dump(self.request.headers, f, indent=4)
+

@@ -10,8 +10,6 @@ class Client:
                  login_method: Optional[Callable] = None,
                  max_retries: int = 3,
                  default_params: Optional[Dict[str, Any]] = None,
-                 default_headers: Optional[Dict[str, Any]] = None,
-                 default_cookies: Optional[Dict[str, Any]] = None,
                  unauthorized_codes=[401, 403]):
 
         self.login_method = login_method
@@ -20,8 +18,6 @@ class Client:
 
         # Parámetros por defecto para todas las requests
         self.default_params = default_params or None
-        self.default_headers = default_headers or None
-        self.default_cookies = default_cookies or None
 
         # Configurar la sesión con retries
         self.session = requests.Session()
@@ -42,18 +38,6 @@ class Client:
         merged.update(override)
         return merged
 
-    def _merge_headers(self, default: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-        """Combina headers por defecto con los de override, dando prioridad a override"""
-        merged = default.copy()
-        merged.update(override)
-        return merged
-
-    def _merge_cookies(self, default: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-        """Combina cookies por defecto con los de override, dando prioridad a override"""
-        merged = default.copy()
-        merged.update(override)
-        return merged
-
     def _prepare_request_args(self, **kwargs) -> Dict[str, Any]:
         """Prepara los argumentos para la request, combinando valores por defecto con los específicos"""
 
@@ -63,18 +47,6 @@ class Client:
             final_kwargs['params'] = self._merge_params(self.default_params, kwargs['params'])
         elif self.default_params is not None:
             final_kwargs['params'] = self.default_params
-
-        # Combinar headers si se proporcionan
-        if 'headers' in kwargs:
-            final_kwargs['headers'] = self._merge_headers(self.default_headers, kwargs['headers'])
-        elif self.default_headers is not None:
-            final_kwargs['headers'] = self.default_headers
-
-        # Combinar cookies si se proporcionan
-        if 'cookies' in kwargs:
-            final_kwargs['cookies'] = self._merge_cookies(self.default_cookies, kwargs['cookies'])
-        elif self.default_cookies is not None:
-            final_kwargs['cookies'] = self.default_cookies
 
         return final_kwargs
 
@@ -93,7 +65,6 @@ class Client:
                     return response
                 else:
                     pass
-                    # print(response.text)
 
                 # Si es un error de autenticación/prohibido y tenemos método de login
                 if response.status_code in self.unauthorized_codes and self.login_method:
@@ -149,7 +120,3 @@ class Client:
     def update_default_params(self, **params):
         """Actualizar parámetros por defecto"""
         self.default_params.update(params)
-
-    def update_default_headers(self, **headers):
-        """Actualizar headers por defecto"""
-        self.default_headers.update(headers)
