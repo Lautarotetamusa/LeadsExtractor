@@ -116,19 +116,15 @@ class Propiedades(Portal):
             send_msg_field="",
             username_env="PROPIEDADES_USERNAME",
             password_env="PROPIEDADES_PASSWORD",
-            params_type="headers",
-            unauthorized_codes=[401],
             filename=__file__
         )
 
         self.client = PropiedadesClient(self.login, unauthorized_codes=[401])
-        self.client.session.headers.update({
-            "Authorization": self.request.headers["Authorization"],
-        })
-        self.client.session.cookies.update({
-            "userToken": self.request.headers.get("Authorization", "").replace("Bearer ", ""),
-            "PHPSESSID": self.request.headers.get("PHPSESSID", "")
-        })
+        self.load_session_params()
+
+    def load_session_params(self):
+        self.client.session.headers.update(self.params.get("headers", {}))
+        self.client.session.cookies.update(self.params.get("cookies", {}))
 
     def get_leads(self, mode=Mode.ALL) -> Generator:
         first = True
@@ -221,7 +217,7 @@ class Propiedades(Portal):
         }
 
         res = self.client.put(change_lead_status_url, json=req)
-        if (res is None):
+        if res is None:
             self.logger.error(f"No se pudo marcar al lead como {status.name}")
         else:
             self.logger.success(f"Se marco a lead {id} como {status.name}")
@@ -438,7 +434,7 @@ class Propiedades(Portal):
 
         return None, property_id
 
-    # The upload process of the images its complex, requires multiple steps.
+    # The upload process of the images its complex, requoires multiple steps.
     # 1. Sign the images with amazon s3 bucket
     #   post request to the sign_url with the sign_payload data
     # 2. Upload the images to the s3 bucket
@@ -641,20 +637,13 @@ class Propiedades(Portal):
         if not data:
             raise Exception("error on login")
 
-        self.client.session.headers.update({
-            "Authorization": f"Bearer {data.get('token')}",
+        self.update_params({
+            "headers": {
+                "Authorization": f"Bearer {data.get('token')}",
+            },
+            "cookies": {
+                "userToken": data.get('token'),
+                "PHPSESSID": res.cookies.get("PHPSESSID")
+            }
         })
-
-        self.client.session.cookies.update({
-            "userToken": data.get('token'),
-            "PHPSESSID": res.cookies.get("PHPSESSID")
-        })
-
-        self.request.headers = {
-            "Authorization": f"Bearer {data.get('token')}",
-            "PHPSESSID": res.cookies.get("PHPSESSID")
-        }
-
-        with open(self.params_file, "w") as f:
-            json.dump(self.request.headers, f, indent=4)
-
+        self.load_session_params()
