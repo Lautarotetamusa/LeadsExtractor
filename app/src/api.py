@@ -13,7 +13,7 @@ assert API_PORT is not None, "Error: 'API_PORT env variable not set'"
 assert API_HOST is not None, "Error: 'API_HOST env variable not set'"
 assert API_PROTOCOL is not None, "Error: 'API_PROTOCOL env variable not set'"
 
-API_BASE_URL = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}" 
+API_BASE_URL = f"{API_PROTOCOL}://{API_HOST}:{API_PORT}"
 
 
 def download_file(url: str) -> bytes | None:

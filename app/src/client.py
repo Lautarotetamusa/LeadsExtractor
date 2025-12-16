@@ -44,7 +44,8 @@ class Client:
         final_kwargs = kwargs
 
         if 'params' in kwargs:
-            final_kwargs['params'] = self._merge_params(self.default_params, kwargs['params'])
+            if self.default_params is not None:
+                final_kwargs['params'] = self._merge_params(self.default_params, kwargs['params'])
         elif self.default_params is not None:
             final_kwargs['params'] = self.default_params
 
@@ -55,6 +56,11 @@ class Client:
         Método interno que maneja la lógica de reintentos y login
         """
         # Preparar los argumentos de la request
+        nologin = False
+        if 'nologin' in kwargs and kwargs['nologin']:
+            nologin = True
+            del kwargs['nologin']
+
         final_kwargs = self._prepare_request_args(**kwargs)
 
         for attempt in range(self.max_retries):
@@ -71,6 +77,11 @@ class Client:
                     print(f"Request failed with status {response.status_code}, attempt {attempt + 1}/{self.max_retries}")
 
                     if attempt < self.max_retries - 1:
+                        if nologin:
+                            print('ignoring login method')
+                            time.sleep(1)
+                            continue
+
                         print("Attempting login...")
                         if self.login_method():
                             print("Login successful, retrying...")

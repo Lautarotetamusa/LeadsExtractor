@@ -6,7 +6,6 @@ from multiprocessing.pool import ThreadPool
 
 from src.property import PlanType, Property
 from src.lead import Lead
-from src.make_requests import Request
 from src.logger import Logger
 from src.message import format_msg
 import src.api as api
@@ -34,36 +33,32 @@ class Portal():
                  send_msg_field: str,
                  username_env: str,
                  password_env: str,
-                 params_type: str,  # headers | cookies
-                 unauthorized_codes: list[int],
                  filename: str = __file__
-        ):
+                 ):
 
         self.name = name
         self.logger = Logger(name)
-        self.request = Request(None, None, self.logger, self.login, unauthorized_codes)
 
         self.contact_id_field = contact_id_field
         self.send_msg_field = send_msg_field
         self.logger.debug(f"Inicializando {self.name}")
-
-        self.params_file = os.path.dirname(os.path.realpath(filename)) + "/params.json"
         self.username = os.getenv(username_env)
         self.password = os.getenv(password_env)
 
+        self.params_file = os.path.dirname(os.path.realpath(filename)) + "/params.json"
+
         if (not os.path.exists(self.params_file)):
-            self.logger.debug("Creando el archivo params.json")
+            self.logger.debug("Creating params.json")
             with open(self.params_file, "a") as f:
                 json.dump({}, f)
 
         with open(self.params_file, "r") as f:
-            if params_type == "cookies":
-                self.request.cookies = json.load(f)
-            elif params_type == "headers":
-                self.request.headers = json.load(f)
-            else:
-                self.logger.error("Incorrect params_type, must be 'cookies' or 'headers'")
-                exit(1)
+            self.params = json.load(f)
+
+    def update_params(self, params):
+        self.params = params
+        with open(self.params_file, "w") as f:
+            json.dump(self.params, f, indent=4)
 
     def send_message_condition(self, lead: dict) -> bool:
         return True
@@ -107,13 +102,13 @@ class Portal():
         if self.contact_id_field in lead_res:
             self.make_contacted(lead_res)
         else:
-            self.logger.warning("No se encontro campo para contactar")
+            self.logger.warning("missing {contact_id_field}")
 
         # Mensaje del portal
         if self.send_msg_field in lead_res:
             self.send_message(lead_res[self.send_msg_field], msg)
         else:
-            self.logger.warning("No se encontro campo para enviar mensaje")
+            self.logger.warning("missing {send_msg_field}")
 
 
 def main(portal: Portal):
@@ -159,9 +154,11 @@ def first_run(portal: Portal):
             portal.logger.debug(count)
             count += 1
 
-# Obtener solamente 10 leads para ver si está funcionando correctamente
+
 def test(portal: Portal):
-    # portal.login()
+    """
+    Obtener solamente 10 leads para ver si está funcionando correctamente
+    """
 
     pool = ThreadPool(processes=20)
 
@@ -189,8 +186,11 @@ def test(portal: Portal):
 
         return
 
-# Testear si la paginacion esta funcionando bien
+
 def test_page(portal: Portal):
+    """
+    Testear si la paginacion esta funcionando bien
+    """
     count = 0
     max_pages = 4
     for page in portal.get_leads(Mode.NEW):
