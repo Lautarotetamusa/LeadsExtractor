@@ -7,6 +7,7 @@ import uuid
 import requests
 
 from src.api import download_file
+from src.client import Client
 from src.scraper import SENDER_PHONE
 from src.property import PlanType, Property
 from src.portal import Mode, Portal
@@ -27,10 +28,14 @@ class Lamudi(Portal):
             send_msg_field="id",
             username_env="LAMUDI_USERNAME",
             password_env="LAMUDI_PASSWORD",
-            params_type="cookies",
-            unauthorized_codes=[401],
             filename=__file__
         )
+
+        self.client = Client(self.login, unauthorized_codes=[401])
+        self.load_session_params()
+
+    def load_session_params(self):
+        self.client.session.cookies.update(self.params.get("cookies", {}))
 
     def login(self):
         self.logger.debug("Iniciando sesion")
@@ -41,14 +46,16 @@ class Lamudi(Portal):
             "password": self.password
         }
         res = requests.post(login_url, json=data)
-        if res is None:
+        if res is None or not res.ok:
+            self.logger.error("Cannot init session")
             return
 
-        self.request.cookies = {
-            "authToken": res.cookies["authToken"]
-        }
-        with open(self.params_file, "w") as f:
-            json.dump(self.request.cookies, f, indent=4)
+        self.update_params({
+            "cookies": {
+                "authToken": res.cookies["authToken"]
+            }
+        })
+        self.load_session_params()
         self.logger.success("Sesion iniciada con exito")
 
     def get_leads(self, mode=Mode.NEW) -> Iterator[list[dict]]:
@@ -66,7 +73,7 @@ class Lamudi(Portal):
             else:
                 url = f"{API_URL}/leads?_limit={limit}&_order=desc&_page={page}&_sort=lastActivity"
 
-            res = self.request.make(url, 'GET')
+            res = self.client.get(url)
             if res is None:
                 break
 
@@ -82,7 +89,7 @@ class Lamudi(Portal):
 
     def get_lead_property(self, lead_id):
         property_url = f"{API_URL}/leads/{lead_id}/properties"
-        res = self.request.make(property_url)
+        res = self.client.get(property_url)
         if res is None:
             return {}
         props = res.json().get("data", [])
@@ -137,7 +144,7 @@ class Lamudi(Portal):
             "id": msg_id,
             "message": message
         }
-        self.request.make(msg_url, 'POST', json=data)
+        self.client.post(msg_url, json=data)
         self.logger.success(f"Mensaje enviado correctamente a lead {id}")
 
     def make_contacted(self, lead):
@@ -148,14 +155,14 @@ class Lamudi(Portal):
         data = {
             "status": "contacted"
         }
-        self.request.make(read_url, 'PUT', json=data)
+        self.client.put(read_url, json=data)
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
-    def get_location(self, address) -> dict | None: 
+    def get_location(self, address) -> dict | None:
         prediction_url = f"{API_URL}/address-suggestions?query={address}"
         address_url = f"{API_URL}/property-geolocations/address?address={address}"
 
-        res = self.request.make(prediction_url, "GET")
+        res = self.client.get(prediction_url)
         if res is None or not res.ok:
             return None
 
@@ -164,9 +171,10 @@ class Lamudi(Portal):
             self.logger.error("cannot get address predictions: " + str(res.json()))
             return None
         place_id = predictions[0].get("place_id")
-        if place_id is None: return None
+        if place_id is None:
+            return None
 
-        res = self.request.make(address_url + f"&place_id={place_id}", "GET")
+        res = self.client.get(address_url + f"&place_id={place_id}")
         if res is None or not res.ok:
             return None
 
@@ -198,14 +206,14 @@ class Lamudi(Portal):
         props = [1]
         while len(props) > 0:
             self.logger.debug("page: " + str(params["_page"]))
-            res = self.request.make(url, "GET", params=params)
+            res = self.client.get(url, params=params)
             if res is None or not res.ok:
                 break
 
             data = res.json().get("data", {})
             props = data.get("rows", [])
 
-            if not "page" in query:
+            if "page" not in query:
                 params["_page"] += 1
 
             for prop in props:
@@ -219,7 +227,7 @@ class Lamudi(Portal):
             "superboosted": True
         }
 
-        res = self.request.make(highlight_url, "PUT", json=payload)
+        res = self.client.put(highlight_url, json=payload)
         if res is None:
             return Exception(f"error highlighting the property with id {publication_id}")
         if not res.ok:
@@ -238,7 +246,7 @@ class Lamudi(Portal):
     def unpublish_one(self, publication_id: str) -> Exception | None:
         url = f"{API_URL}/properties/{publication_id}"
 
-        res = self.request.make(url, "DELETE")
+        res = self.client.delete(url)
         if res is None or not res.ok:
             return Exception(f"cannot delete the property with id: {publication_id}")
 
@@ -257,7 +265,7 @@ class Lamudi(Portal):
                 "latitude": property.ubication.location.lat,
                 "longitude": property.ubication.location.lng
             },
-            ## This field its required
+            # This field its required
             "geoLevels": location_data["geoLevels"],
             "locationVisibility": "accurate",
             "floorPlans": [],
@@ -280,11 +288,11 @@ class Lamudi(Portal):
             "condition": "new",
             "furnished": "unfurnished",
             "constructionYear": date.today().year - (property.antiquity if property.antiquity is not None else 0),
-            "floorArea": property.m2_covered, # Built area
+            "floorArea": property.m2_covered,  # Built area
             "floorAreaUnit": "sqm",
-            "usableArea": property.m2_covered, # Usable = Built area
+            "usableArea": property.m2_covered,  # Usable = Built area
             "usableAreaUnit": "sqm",
-            "plotArea": [ # Terrain
+            "plotArea": [  # Terrain
                 {
                     "value": property.m2_total,
                     "unit": "m2"
@@ -340,14 +348,14 @@ class Lamudi(Portal):
             i += 1
 
         self.logger.debug("creating property")
-        res = self.request.make(f"{API_URL}/properties/{id}", "POST", files=files)
+        res = self.client.post(f"{API_URL}/properties/{id}", files=files)
         if res is None or not res.ok:
             return Exception("cannot create the property"), None
         self.logger.success("property created successfully")
 
         self.logger.debug("publishing property")
         publish_url = f"{API_URL}/properties/{id}/published"
-        res = self.request.make(publish_url, "PUT", json={
+        res = self.client.put(publish_url, json={
             "published": True
         })
         if res is None or not res.ok:
