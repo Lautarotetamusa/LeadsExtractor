@@ -15,6 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from src.address import extract_street_from_address
 from src.api import download_file
+from src.client import Client
 from src.property import Property, OperationType, PropertyType
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -46,10 +47,14 @@ class CasasYTerrenos(Portal):
             send_msg_field="",
             username_env="CASASYTERRENOS_USERNAME",
             password_env="CASASYTERRENOS_PASSWORD",
-            params_type="headers",
-            unauthorized_codes=[401],
             filename=__file__
         )
+
+        self.client = Client(self.login, unauthorized_codes=[401])
+        self.load_session_params()
+
+    def load_session_params(self):
+        self.client.session.headers.update(self.params.get("headers", {}))
 
     def get_leads(self, mode=Mode.NEW) -> Iterator[list[dict]]:
         page = 1
@@ -61,7 +66,7 @@ class CasasYTerrenos(Portal):
             url = f"{API_URL}/list_contact/?page={page}"
 
         while url is not None:
-            res = self.request.make(url)
+            res = self.client.get(url)
             if res is None:
                 break
             data = res.json()
@@ -115,7 +120,7 @@ class CasasYTerrenos(Portal):
                 "status": "inactive"
             }
 
-            res = self.request.make(unpublish_url, "PATCH", json=payload)
+            res = self.client.patch(unpublish_url, json=payload)
             if res is None:
                 return Exception(f"error unpublishing the property with id {publication_id}")
             if not res.ok:
@@ -124,18 +129,18 @@ class CasasYTerrenos(Portal):
     def highlight(self, publication_id: str, plan) -> Exception | None:
         self.logger.debug(f"highlighting property {publication_id}")
         url = f"{API_URL}/featured_property/"
-        days_duration = 3 # i dont know if this can be greater 
+        days_duration = 3  # i dont know if this can be greater
         payload = {
             "properties": [
                 {
                     "end_date": (date.today() + timedelta(days=days_duration)).strftime("%Y-%m-%d"), # "2025-08-05",,
                     "property": publication_id,
-                    "start_date": date.today().strftime("%Y-%m-%d"), # "2025-05-05",
+                    "start_date": date.today().strftime("%Y-%m-%d"),
                     "status": 1
                 }
             ]
         }
-        res = self.request.make(url, "POST", json=payload)
+        res = self.client.post(url, json=payload)
         if res is None:
             return Exception(f"error unpublishing the property with id {publication_id}")
         if not res.ok:
@@ -160,7 +165,7 @@ class CasasYTerrenos(Portal):
 
         next = url + urllib.parse.urlencode(params, doseq=True)
         while next is not None:
-            res = self.request.make(next, "GET")
+            res = self.client.get(next)
             if res is None:
                 break
 
@@ -196,7 +201,7 @@ class CasasYTerrenos(Portal):
             "sqr_mt_lot": property.m2_total,
             "sqr_mt_construction": property.m2_covered,
             "name": property.title,
-            "description": f"<div><!--block-->Ubicacion: {property.ubication.address}<br>{description}!</div>",
+            "description": f"<div><!--block-->Ubicacion: {propertypropiedades.ubication.address}<br>{description}!</div>",
             "property_type": property_type_map[str(property.type)],
             "operation_type": [operation_type_map[str(property.operation_type)]],
             # "membership": "434451",
@@ -218,15 +223,13 @@ class CasasYTerrenos(Portal):
             self.logger.error(f"unexpected operation type {property.operation_type}")
             return None
 
-        res = self.request.make(API_URL + "/property", "POST", json=payload)
+        res = self.client.post(f"{API_URL}/property", json=payload)
         if res is None:
             return None
         data = res.json()
         return data.get("id")
 
     def add_ubication(self, prop_id: int, property: Property) -> Exception | None:
-        # {"colony": 32151, "municipality": 2995, "state": "14", "street": "Av. Juan Palomar y Arias 370", "exterior_number": "", "internal_number": ""}
-
         payload = {
             "latitude": property.ubication.location.lat,
             "longitude": property.ubication.location.lng,
@@ -238,7 +241,7 @@ class CasasYTerrenos(Portal):
             "interior_number": ""
         }
 
-        res = self.request.make(f"{API_URL}/property/{prop_id}", "PATCH", json=payload)
+        res = self.client.patch(f"{API_URL}/property/{prop_id}", json=payload)
         if res is None or not res.ok:
             return Exception("error adding ubication data")
         return None
@@ -261,7 +264,7 @@ class CasasYTerrenos(Portal):
                 "format": img_type
             })
 
-        res = self.request.make(sign_url, "POST", json=sign_payload)
+        res = self.client.post(sign_url, json=sign_payload)
         if res is None or not res.ok:
             return Exception("cannot sign the images")
         sign_data = res.json()
@@ -307,7 +310,7 @@ class CasasYTerrenos(Portal):
 
             i += 1
 
-        res = self.request.make(f"{API_URL}/property/{property_id}", "PATCH", json={
+        res = self.client.patch(f"{API_URL}/property/{property_id}", json={
             "images": uploaded_images
         })
         if res is None or not res.ok:
@@ -366,11 +369,12 @@ class CasasYTerrenos(Portal):
         finally:
             driver.quit()
 
-        self.request.headers = {
-            "Authorization": f"Bearer {access_token}"
-        }
-        with open(self.params_file, "w") as f:
-            json.dump(self.request.headers, f, indent=4)
+        self.update_params({
+            "headers": {
+                "Authorization": f"Bearer {access_token}"
+            }
+        })
+        self.load_session_params()
 
 
 if __name__ == "__main__":
