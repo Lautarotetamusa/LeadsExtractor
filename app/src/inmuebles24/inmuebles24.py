@@ -1,18 +1,15 @@
 from datetime import datetime
 from enum import Enum
 import os
-import json
 import time
 import uuid
-from typing import Any, Iterator
+from typing import Iterator
 import requests
 import concurrent.futures
 import urllib.parse
 
-from src.address import extract_street_from_address
 from src.api import download_file
-from src.property import Internal, PlanType, Property, PropertyType
-from src.make_requests import ApiRequest
+from src.property import PlanType, Property, PropertyType
 from src.zenrows import ZenRowsClient
 from src.portal import Mode, Portal
 from src.lead import Lead
@@ -21,10 +18,7 @@ from src.inmuebles24.amenities import amenities
 DATE_FORMAT = os.getenv("DATE_FORMAT")
 assert DATE_FORMAT is not None, "DATE_FORMAT is not seted"
 ZENROWS_API_KEY = os.getenv("ZENROWS_APIKEY")
-ZENROWS_API_URL = "https://api.zenrows.com/v1/"
 PARAMS = {
-    "apikey": ZENROWS_API_KEY,
-    "url": "",
     # "js_render": "true",
     # "antibot": "true",
     "premium_proxy": "true",
@@ -125,47 +119,21 @@ class Inmuebles24(Portal):
                 send_msg_field="id",
                 username_env="INMUEBLES24_USERNAME",
                 password_env="INMUEBLES24_PASSWORD",
-                params_type="headers",
-                unauthorized_codes=[401],
                 filename=__file__
                 )
-        cookies = {
-            "allowCookies": "true",
-            "changeInbox": "true",
-            "crto_is_user_optout": "false",
-            "G_ENABLED_IDPS": "google",
-            "hashKey": self.request.headers["hashKey"],
-            "hideWelcomeBanner": "true",
-            "IDusuario": self.request.headers["idUsuario"],
-            "JSESSIONID": "1971D320A1B78F9CDD06DAA4DF456B3C",
-            "pasoExitoso": "{'trigger':'Continuar'&'stepId':1&'stepName':'Datos principales-Profesional'}",
-            "reputationModalLevelSeen": "true",
-            "reputationModalLevelSeen2": "true",
-            "reputationTourLevelSeen": "true",
-            "sessionId": self.request.headers["sessionId"],
-            "showWelcomePanelStatus": "true",
-            "tableCreditsOpen": "true",
-            "usuarioPublisher": "true",
-            "usuarioFormId": self.request.headers["idUsuario"],
 
-            # TODO: dont hardcode this fields
-            "usuarioFormApellido": "Residences",
-            "usuarioFormEmail": "control.general@rebora.com.mx",
-            "usuarioFormNombre": "RBA",
-            "usuarioFormTelefono": "523341690109",
-            "usuarioIdCompany": "50796870",
-            "usuarioLogeado": "control.general@rebora.com.mx",
-        }
-        self.zenrows = ZenRowsClient(
+        self.client = ZenRowsClient(
             ZENROWS_API_KEY,
             login_method=self.login,
             default_params=PARAMS,
-            default_cookies=cookies,
-            default_headers=self.request.headers,
             unauthorized_codes=[401]
         )
-        self.api_req = ApiRequest(self.logger, ZENROWS_API_URL, PARAMS)
-        self.request.cookies = cookies
+
+        self.load_session_params()
+
+    def load_session_params(self):
+        self.client.session.headers.update(self.params.get("headers", {}))
+        self.client.session.cookies.update(self.params.get("cookies", {}))
 
     def login(self):
         self.logger.debug("Iniciando sesion")
@@ -178,7 +146,7 @@ class Inmuebles24(Portal):
             "urlActual": SITE_URL
         }
 
-        res = self.api_req.make(login_url, "POST", data=data)
+        res = self.client.post(login_url, data=data, nologin=True)
         if res is None:
             self.logger.error("Cant login")
             return
@@ -198,11 +166,11 @@ class Inmuebles24(Portal):
             "Content-Type": "application/json; charset=UTF-8"
         }
 
-        self.request.headers = headers
-        self.zenrows.default_headers = headers
-
-        with open(self.params_file, "w") as f:
-            json.dump(headers, f, indent=4)
+        self.update_params({
+            "headers": headers,
+            "cookies": parse_cookies_from_headers(res.headers)
+        })
+        self.load_session_params()
         self.logger.success("Sesion iniciada con exito")
 
     def get_leads(self, mode=Mode.NEW):
@@ -223,7 +191,7 @@ class Inmuebles24(Portal):
             )
 
             self.logger.debug(f"GET {url}")
-            res = self.zenrows.get(url)
+            res = self.client.get(url)
             if res is None:
                 break
             offset += limit
@@ -317,7 +285,7 @@ class Inmuebles24(Portal):
         url = busqueda_url.format(lead_id=lead_id)
 
         self.logger.debug(f"GET {url}")
-        res = self.zenrows.get(url)
+        res = self.client.get(url)
 
         if res is None:
             self.logger.error("No se pudo obtener la informacion de busqueda para el lead: "+lead_id)
@@ -347,7 +315,7 @@ class Inmuebles24(Portal):
             "message_attachments": []
         }
 
-        res = self.zenrows.post(url, json=data)
+        res = self.client.post(url, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Mensaje enviado correctamente a lead {id}")
@@ -364,7 +332,7 @@ class Inmuebles24(Portal):
             "lead_status_id": status.value
         }
         self.logger.debug(f"POST {url}")
-        res = self.zenrows.post(url, json=data, params={
+        res = self.client.post(url, json=data, params={
             'autoparse': False
         })
 
@@ -378,7 +346,7 @@ class Inmuebles24(Portal):
 
     def _make_read(self, contact_id):
         url = read_url.format(contact_id=contact_id)
-        res = self.zenrows.post(url)
+        res = self.client.post(url)
         if res is not None and res.status_code >= 200 and res.status_code < 300:
             self.logger.success(f"Se marco a lead {contact_id} como READ")
         else:
@@ -408,7 +376,7 @@ class Inmuebles24(Portal):
             url = list_url + urllib.parse.urlencode(params)
 
             self.logger.debug("GET ", str(url))
-            res = self.zenrows.get(url)
+            res = self.client.get(url)
             if res is None or not res.ok:
                 self.logger.error("cannot get the properties")
                 break
@@ -430,18 +398,18 @@ class Inmuebles24(Portal):
             "postings": [int(id) for id in publication_ids]
         }
 
-        res = self.zenrows.put(unpublish_url, json=payload)
+        res = self.client.put(unpublish_url, json=payload)
         if res is None or not res.ok:
             return Exception("cannot unpublish the properties")
 
-        res = self.zenrows.put(archive_url, json=payload)
+        res = self.client.put(archive_url, json=payload)
         if res is None or not res.ok:
             return Exception("cannot archive the properties")
 
     def _run_step(self, step: PublicationStep, payload: dict) -> tuple[Exception, None] | tuple[None, dict]:
         self.logger.debug(f"running step {step}")
 
-        res = self.zenrows.post(f"{step_url}/{step.value}", json=payload)
+        res = self.client.post(f"{step_url}/{step.value}", json=payload)
         if res is None or not res.ok:
             self.logger.error("payload", payload)
             return Exception(f"error in step {step}"), None
@@ -450,7 +418,7 @@ class Inmuebles24(Portal):
 
     def get_quality(self, prop_id):
         url = quality_url.format(prop_id=prop_id)
-        res = self.zenrows.get(url)
+        res = self.client.get(url)
         if res is None or not res.ok:
             return res
 
@@ -592,7 +560,7 @@ class Inmuebles24(Portal):
             self.logger.debug(f"POST {url}")
 
             time.sleep(0.5)
-            res = self.zenrows.post(url, files=files, headers={
+            res = self.client.post(url, files=files, headers={
                 # Necessary for the upload image request, otherwise will fail
                 "content-type": None,
                 "Content-Type": None
@@ -684,3 +652,24 @@ class Inmuebles24(Portal):
 
     def make_failed(self, lead: dict):
         self._change_status(lead, Status.phone_error)
+
+
+def parse_cookies_from_headers(headers_dict):
+    """Extrae cookies del header Zr-Set-Cookie"""
+    cookies_dict = {}
+
+    # Buscar el header con las cookies
+    set_cookie_header = headers_dict.get('Zr-Set-Cookie', '')
+
+    # Parsear las cookies (simplificado)
+    # En realidad deberías usar un parser más robusto para cookies
+    cookie_strings = set_cookie_header.split(', ')
+
+    for cookie_str in cookie_strings:
+        # Tomar solo la parte nombre=valor (antes del primer ';')
+        cookie_pair = cookie_str.split(';')[0]
+        if '=' in cookie_pair:
+            name, value = cookie_pair.split('=', 1)
+            cookies_dict[name] = value
+
+    return cookies_dict
