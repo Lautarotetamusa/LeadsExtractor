@@ -201,7 +201,7 @@ class CasasYTerrenos(Portal):
             "sqr_mt_lot": property.m2_total,
             "sqr_mt_construction": property.m2_covered,
             "name": property.title,
-            "description": f"<div><!--block-->Ubicacion: {propertypropiedades.ubication.address}<br>{description}!</div>",
+            "description": f"<div><!--block-->Ubicacion: {property.ubication.address}<br>{description}!</div>",
             "property_type": property_type_map[str(property.type)],
             "operation_type": [operation_type_map[str(property.operation_type)]],
             # "membership": "434451",
