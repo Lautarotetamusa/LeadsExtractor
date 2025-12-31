@@ -1,4 +1,3 @@
-import json
 import time
 import os
 import uuid
@@ -86,7 +85,7 @@ class CasasYTerrenos(Portal):
             "status": 2,  # 2 -> Contactado por correo
             "status_description": "Correo"
         }
-        self.request.make(url, 'PATCH', data=data)
+        self.client.path(url, data=data)
 
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
