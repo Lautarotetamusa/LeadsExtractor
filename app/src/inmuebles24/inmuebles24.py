@@ -126,7 +126,7 @@ class Inmuebles24(Portal):
             ZENROWS_API_KEY,
             login_method=self.login,
             default_params=PARAMS,
-            unauthorized_codes=[401]
+            unauthorized_codes=[401, 403]
         )
 
         self.load_session_params()
@@ -146,7 +146,8 @@ class Inmuebles24(Portal):
             "urlActual": SITE_URL
         }
 
-        res = self.client.post(login_url, data=data, nologin=True)
+        res = self.client.post(login_url, data=data, login_req=True)
+
         if res is None:
             self.logger.error("Cant login")
             return
