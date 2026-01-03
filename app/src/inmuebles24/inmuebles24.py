@@ -319,10 +319,11 @@ class Inmuebles24(Portal):
         res = self.client.post(url, json=data)
 
         if res is not None and res.status_code >= 200 and res.status_code < 300:
-            self.logger.success(f"Mensaje enviado correctamente a lead {id}")
+            self.logger.success(f"Mensaje enviado correctamente a lead {lead_id}")
         else:
-            self.logger.error(f"Error enviando mensaje al lead {id}")
-            self.logger.error(res.text)
+            self.logger.error(f"Error enviando mensaje al lead {lead_id}")
+            if res is not None:
+                self.logger.error(res.text)
 
     def _change_status(self, lead: dict, status: Status):
         contact_id = lead[self.contact_id_field]
