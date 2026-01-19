@@ -627,15 +627,15 @@ class Propiedades(Portal):
 
         res = requests.post(login_url, data=data, headers=headers)
         if not res.ok:
-            raise Exception("cannot login")
+            raise Exception("cannot login", res.text)
 
         js = res.json()
         if not js.get("success"):
-            raise Exception("error on login")
+            raise Exception("error on login", js)
 
         data = js.get("data")
         if not data:
-            raise Exception("error on login")
+            raise Exception("error on login", js)
 
         self.update_params({
             "headers": {
