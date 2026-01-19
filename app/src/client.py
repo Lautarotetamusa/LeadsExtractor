@@ -56,28 +56,35 @@ class Client:
         Método interno que maneja la lógica de reintentos y login
         """
         # Preparar los argumentos de la request
-        nologin = False
-        if 'nologin' in kwargs and kwargs['nologin']:
-            nologin = True
-            del kwargs['nologin']
+        login_req = False
+        if 'login_req' in kwargs and kwargs['login_req']:
+            login_req = True
+            del kwargs['login_req']
 
         final_kwargs = self._prepare_request_args(**kwargs)
 
         for attempt in range(self.max_retries):
             try:
-                response = self.session.request(method, target_url, **final_kwargs)
+                # ----- DEBUG ------
+                # import json
+                # print(method, target_url)
+                # print(json.dumps(final_kwargs, indent=4))
+
+                if login_req:
+                    # No usamos la session para no inferir esos headers y cookies
+                    response = requests.request(method, target_url, **final_kwargs)
+                else:
+                    response = self.session.request(method, target_url, **final_kwargs)
 
                 if response.ok:
                     return response
                 else:
-                    pass
+                    print(f"Request failed with status {response.status_code}, attempt {attempt + 1}/{self.max_retries}")
 
                 # Si es un error de autenticación/prohibido y tenemos método de login
                 if response.status_code in self.unauthorized_codes and self.login_method:
-                    print(f"Request failed with status {response.status_code}, attempt {attempt + 1}/{self.max_retries}")
-
                     if attempt < self.max_retries - 1:
-                        if nologin:
+                        if login_req:
                             print('ignoring login method')
                             time.sleep(1)
                             continue

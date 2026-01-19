@@ -85,7 +85,7 @@ class CasasYTerrenos(Portal):
             "status": 2,  # 2 -> Contactado por correo
             "status_description": "Correo"
         }
-        self.client.path(url, data=data)
+        self.client.patch(url, data=data)
 
         self.logger.success(f"Se contacto correctamente a lead {id}")
 
