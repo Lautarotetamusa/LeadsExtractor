@@ -271,6 +271,9 @@ class Propiedades(Portal):
         }
         res = self.client.post(cancel_url, data=data)
 
+        if res is None:
+            return Exception("cannot unhighlight the property")
+
         if not res.ok:
             return Exception("cannot unhighlight the property", res.text)
 
