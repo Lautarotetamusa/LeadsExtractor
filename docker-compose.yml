@@ -18,6 +18,39 @@ services:
       timeout: 20s
       retries: 10
 
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    ports:
+      - "3000:3000"
+    env_file: ./.env
+    environment:
+      # MB_DB_TYPE: mysql
+      # MB_DB_DBNAME: metabase
+      # MB_DB_PORT: $DB_PORT
+      # MB_DB_USER: $DB_USER
+      # MB_DB_PASS: $DB_PASS
+      # MB_DB_HOST: db
+
+      MB_DB_TYPE: h2
+      MB_DB_FILE: /metabase-data/metabase.db
+
+      # Configuración de aplicación
+      MB_SITE_NAME: "Analytics Dashboard"
+      # MB_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      MB_SITE_LOCALE: es
+      # MB_EMBEDDING_SECRET_KEY: ${MB_EMBEDDING_KEY:-your-secret-key-here}
+      
+      # Rendimiento
+      JAVA_TIMEZONE: America/Mexico_City  # Cambia según tu zona
+      # JAVA_OPTS: "-Xmx2g -Xms512m"
+    volumes:
+      # Persistir la BD H2 de Metabase
+      - metabase_data:/metabase-data
+    depends_on:
+      db:
+        condition: service_healthy
+
   mongo:
     image: mongo
     restart: always
@@ -61,3 +94,5 @@ services:
     volumes:
       - ./api/actions.json:/go/app/api/actions.json
 
+volumes:
+  metabase_data:
