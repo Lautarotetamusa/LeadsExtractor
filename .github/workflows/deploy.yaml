@@ -7,36 +7,17 @@ on:
     branches: [ "main" ]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Deploy to the server
-        run: |
-          # Copying files
-          scp -o StrictHostKeyChecking=no -r ./ $SERVER_HOST:$DEPLOY_PATH
-
-          # Write .env file
-          ssh -o StrictHostKeyChecking=no $SERVER_HOST \
-            "echo '$ENV_FILE_CONTENT' > $DEPLOY_PATH/.env"
-
-          # Deploy the api with docker
-          ssh -o StrictHostKeyChecking=no $SERVER_HOST \
-            "cd $DEPLOY_PATH && pwd && \
-            docker compose down && \
-            docker compose build && \
-            docker compose up -d"
-
-        env:
-          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-          SERVER_HOST: ubuntu@${{ secrets.SERVER_HOST }}
-          DEPLOY_PATH: /home/ubuntu/LeadsExtractor
+  deploy:    
+    uses: Thorque-Software/actions/.github/workflows/rsync.yml@main
+    secrets:
+      key: ${{ secrets.SSH_PRIVATE_KEY }}
+      env-file-content: ${{ secrets.ENV_FILE_CONTENT }}
+    with:
+      user: ${{ vars.SSH_USER }}
+      host: ${{ vars.SSH_HOST }}
+      deploy-path: /home/ubuntu/LeadsExtractor
+      files: "./app ./api ./mesages ./db ./nginx docker-compose.yml"
+      script: |
+          docker compose down
+          docker compose build
+          docker compose up -d

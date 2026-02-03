@@ -15,7 +15,6 @@ import (
 	"leadsextractor/handlers"
 	"leadsextractor/pkg"
 	"leadsextractor/pkg/infobip"
-	"leadsextractor/pkg/logs"
 	"leadsextractor/pkg/pipedrive"
 	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/pkg/whatsapp"
@@ -37,31 +36,12 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	//TODO: Agregar un index a campo 'time' de la db de logs
-	client := logs.MongoConnect(ctx, &logs.MongoConnectionSettings{
-		User: os.Getenv("DB_USER"),
-		Pass: os.Getenv("DB_PASS"),
-		Host: os.Getenv("HOST"),
-		Port: int16(27017),
-	})
-	collection := client.Database("db").Collection("log")
-
-	w := os.Stdout
-	mw := logs.NewMongoWriter(collection)
-
 	logger := slog.New(
-		logs.Fanout(
-			slog.NewJSONHandler(mw, &slog.HandlerOptions{
-				Level: slog.LevelDebug,
-			}),
-			tint.NewHandler(w, &tint.Options{
-				Level:      slog.LevelDebug,
-				TimeFormat: time.DateTime,
-			}),
-		),
+		tint.NewHandler(os.Stdout, &tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.DateTime,
+		}),
 	)
-
-	logsHandler := logs.NewLogsHandler(ctx, collection)
 
 	db := store.ConnectDB(ctx)
 
@@ -185,9 +165,6 @@ func main() {
 
 	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.ReciveNotificaction)).Methods(http.MethodPost)
 	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods(http.MethodGet)
-
-	// Logs
-	router.HandleFunc("/logs", handlers.HandleErrors(logsHandler.GetLogs)).Methods(http.MethodGet, http.MethodOptions)
 
     // OneDrive images
     fs := http.StripPrefix("/onedrive/", http.FileServer(http.Dir("./onedrive/")))
