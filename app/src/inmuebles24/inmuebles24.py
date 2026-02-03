@@ -590,7 +590,7 @@ class Inmuebles24(Portal):
                 if result is not None:
                     uploaded_images.append(result)
 
-        aceptance_fail = 2
+        aceptance_fail = 0
         if len(uploaded_images) < len(prop.images) - aceptance_fail:
             self.logger.error(f"more than {aceptance_fail} images failed to publish, publication failed")
             return Exception("not all the images are successfully added")
