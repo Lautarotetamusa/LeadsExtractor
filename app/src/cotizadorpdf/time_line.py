@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
-import random
-import string
 
 out_path = "pdfs/static"
 
 
-def grafico_pagos(c: dict):
+def grafico_pagos(path: str, c: dict):
+    """
+    Generates and save the grafic under path
+    """
     # Datos de ejemplo: Meses (1 al 21) y los montos a pagar
     meses = list(range(0, c['meses']+6))  # Meses del 0 al 21
     montos = []
@@ -85,9 +86,7 @@ def grafico_pagos(c: dict):
     plt.tight_layout()
 
     # Guardar el gráfico en un archivo de alta resolución
-    path = f"/app/pdfs/static/grafico_pagos.png"
     plt.savefig(path, dpi=300, bbox_inches="tight")
 
     # Cerrar la figura para liberar recursos
     plt.close()
-    return path

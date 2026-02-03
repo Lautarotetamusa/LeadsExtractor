@@ -66,7 +66,6 @@ def translateContext(cin) -> dict:
     etelefono = cin['elaborado_por']['telefono']
     nombre = cin['datos']['nombre']
     fecha = date.today().strftime("%d/%m/%Y")
-    print("amenidades", "amenidades" in cin)
     banios = cin['areas_interiores']['banos']
     recamaras = cin['areas_interiores']['cuartos']
     calidad = cin['pagos']['tipo']
@@ -97,6 +96,7 @@ def translateContext(cin) -> dict:
         niveles += 1
 
     total_extras = 0
+    cin["extras"] = cin.get("extras", [])
     for extra in cin["extras"]:
         total_extras += int(calcular_importe(extra["pu"], coeficiente_ganancia) * extra["cantidad"])
 
@@ -264,8 +264,9 @@ def to_pdf(json) -> str:
 
     try:
         context = translateContext(json)
-        context['nombre_grafico_pagos'] = grafico_pagos(context)
-        context['nombre_grafico_pagos'] = os.path.join(base_path, "pdfs", "static", "grafico_pagos.png")
+        path = os.path.join(base_path, "pdfs", "static", "grafico_pagos.png")
+        context['nombre_grafico_pagos'] = path
+        grafico_pagos(path, context)
 
         template_path = "src/cotizadorpdf/template.html"
         html_content = renderizar_html(template_path, context)
@@ -283,5 +284,5 @@ def to_pdf(json) -> str:
 
         return timestamp_str
     except Exception as e:
-        print(e)
+        print("ERROR Cotizador:", e)
         return "error"
