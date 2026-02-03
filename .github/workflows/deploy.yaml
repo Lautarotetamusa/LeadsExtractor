@@ -13,8 +13,8 @@ jobs:
       key: ${{ secrets.SSH_PRIVATE_KEY }}
       env-file-content: ${{ secrets.ENV_FILE_CONTENT }}
     with:
-      user: ${{ vars.SSH_USER }}
-      host: ${{ vars.SSH_HOST }}
+      user: ubuntu
+      host: ${{ secrets.SERVER_HOST }}
       deploy-path: /home/ubuntu/LeadsExtractor
       files: "./app ./api ./mesages ./db ./nginx docker-compose.yml"
       script: |
