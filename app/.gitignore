@@ -5,7 +5,3 @@ har-examples
 #Headers y cookies
 params.json
 params.py
-
-#pdfs
-pdfs/*
-
