@@ -14,7 +14,7 @@ jobs:
       env-file-content: ${{ secrets.ENV_FILE_CONTENT }}
     with:
       user: ubuntu
-      host: ${{ secrets.SERVER_HOST }}
+      host: ${{ vars.SERVER_HOST }}
       deploy-path: /home/ubuntu/LeadsExtractor
       files: "./app ./api ./mesages ./db ./nginx docker-compose.yml"
       script: |
