@@ -132,7 +132,7 @@ func main() {
 
     // Cron report
     reportService := handlers.NewReportService(commStore, wpp)
-    reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), ";")
+    reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), "|")
     logger.Debug("Getting report numbers", "report numbers", reportNumbers)
     c := cron.New()
     cronStr := "0 8 * * *" // Every day at 8:00 AM
