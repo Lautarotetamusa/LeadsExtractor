@@ -16,7 +16,7 @@ jobs:
       user: ubuntu
       host: ${{ vars.SERVER_HOST }}
       deploy-path: /home/ubuntu/LeadsExtractor
-      files: "./app ./api ./mesages ./db ./nginx docker-compose.yml"
+      files: "./app ./api ./messages ./db ./nginx docker-compose.yml"
       script: |
           docker compose down
           docker compose build
