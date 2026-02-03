@@ -19,5 +19,7 @@ jobs:
       files: "./app ./api ./messages ./db ./nginx docker-compose.yml"
       script: |
           docker compose down
+
           docker compose build
+
           docker compose up -d
