@@ -557,23 +557,31 @@ class Inmuebles24(Portal):
                 ('file', (file_name, img_data, f"image/{img_type}")),
             ]
 
-            self.logger.debug("uploading the image")
-            url = upload_image_url.format(prop_id=prop_id)
-            self.logger.debug(f"POST {url}")
+            tries = 0
+            max_tries = 3
+            uploaded = False
+            while (tries < max_tries and not uploaded):
+                self.logger.debug("uploading the image")
+                url = upload_image_url.format(prop_id=prop_id)
+                self.logger.debug(f"POST {url}")
 
-            time.sleep(0.5)
-            res = self.client.post(url, files=files, headers={
-                # Necessary for the upload image request, otherwise will fail
-                "content-type": None,
-                "Content-Type": None
-            })
+                time.sleep(0.5)
+                res = self.client.post(url, files=files, headers={
+                    # Necessary for the upload image request, otherwise will fail
+                    "content-type": None,
+                    "Content-Type": None
+                })
 
-            if res is None:
-                self.logger.error("unknonw error uploading the image", image["url"])
-                return None
-            if not res.ok:
-                self.logger.error("error uploading the image: ", image["url"], "error: ", res.text)
-                return None
+                if res is None:
+                    self.logger.error("unknonw error uploading the image", image["url"])
+                    tries += 1
+                    continue
+                if not res.ok:
+                    self.logger.error("error uploading the image: ", image["url"], "error: ", res.text)
+                    tries += 1
+                    continue
+
+                uploaded = True
 
             # file_url = res.text.replace("FILEID:", "")
             data = res.json()
