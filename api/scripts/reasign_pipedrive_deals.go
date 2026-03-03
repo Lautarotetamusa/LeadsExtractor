@@ -43,12 +43,16 @@ func main(){
 
     // Lista de users (Asesores) para los cuales no tenenmos que reasignar
     blackList := map[string]any{
-        "brenda.diaz@rebora.com.mx": true,
-        "hernan.guerrero@rebora.com.mx": true,
+        "rebeca.zamorano@rbaresidences.com": true,
+		"alejandro.gutierrez@rbaresidences.com": true,
+		"gustavo.lozano@rbaresidences.com": true,
+		"brenda.diaz@rebora.com.mx": true,
+		"hernan.guerrero@rebora.com.mx": true,
+		"marcelo.michel@rebora.com.mx": true,
     }
 
-    // Vamos a reasignar todas las personas a este user (Hernan)
-    newOwnerId := uint32(21828798)
+	i := 0
+	assignTo := [3]uint32{23770485, 23770496, 25406515}
 
     for _, user := range users{
         if _, ok := blackList[user.Email]; ok {
@@ -64,6 +68,10 @@ func main(){
         logger.Debug("Deals encontrados", "cantidad", len(deals))
 
         for _, deal := range deals {
+			newOwnerId := assignTo[i] 
+			i += 1
+			i %= len(assignTo)
+            logger.Info(fmt.Sprintf("actualizando deal %d a %d", deal.Id, newOwnerId))
             if _, err := pipe.ReasignDeal(deal.Id, newOwnerId); err != nil {
                 logger.Error(fmt.Sprintf("error actualizando deal %d, \n err=%s", deal.Id, err.Error()))
             }else{

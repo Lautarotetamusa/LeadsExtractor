@@ -583,10 +583,13 @@ class Inmuebles24(Portal):
 
                 uploaded = True
 
-            # file_url = res.text.replace("FILEID:", "")
-            data = res.json()
-            self.logger.success(f"image uploaded successfully, url: {data['temporalUrl']}")
-            return data
+            if uploaded:
+                # file_url = res.text.replace("FILEID:", "")
+                data = res.json()
+                self.logger.success(f"image uploaded successfully, url: {data['temporalUrl']}")
+                return data
+
+            return None
 
         max_workers = 5
         uploaded_images = []

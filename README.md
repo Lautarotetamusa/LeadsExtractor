@@ -246,3 +246,30 @@ La usamos para almacenar imagenes
 # Posibles mejoras
   * Diseñar y desarrollar una base de datos, esto permitiría conectar los datos de los diferentes portales sin repetir información, lo que permitiría un mejor manejo de la información.
   * Nuevos portales.
+
+
+## Errores
+app-1  | Traceback (most recent call last):
+app-1  |   File "/usr/local/lib/python3.10/threading.py", line 1016, in _bootstrap_inner
+app-1  |     self.run()
+app-1  |   File "/usr/local/lib/python3.10/threading.py", line 953, in run
+app-1  |     self._target(*self._args, **self._kwargs)
+app-1  |   File "/app/server.py", line 141, in publish
+app-1  |     err, publication_id = PORTALS[portal].publish(property)
+app-1  |   File "/app/src/inmuebles24/inmuebles24.py", line 459, in publish
+app-1  |     err = self.upload_images(prop_id, property)
+app-1  |   File "/app/src/inmuebles24/inmuebles24.py", line 594, in upload_images
+app-1  |     results = list(executor.map(process_image, prop.images))
+app-1  |   File "/usr/local/lib/python3.10/concurrent/futures/_base.py", line 621, in result_iterator
+app-1  |     yield _result_or_cancel(fs.pop())
+app-1  |   File "/usr/local/lib/python3.10/concurrent/futures/_base.py", line 319, in _result_or_cancel
+app-1  |     return fut.result(timeout)
+app-1  |   File "/usr/local/lib/python3.10/concurrent/futures/_base.py", line 458, in result
+app-1  |     return self.__get_result()
+app-1  |   File "/usr/local/lib/python3.10/concurrent/futures/_base.py", line 403, in __get_result
+app-1  |     raise self._exception
+app-1  |   File "/usr/local/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+app-1  |     result = self.fn(*self.args, **self.kwargs)
+app-1  |   File "/app/src/inmuebles24/inmuebles24.py", line 587, in process_image
+app-1  |     data = res.json()
+app-1  | AttributeError: 'NoneType' object has no attribute 'json'
