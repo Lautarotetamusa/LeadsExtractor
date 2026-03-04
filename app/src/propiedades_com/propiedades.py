@@ -119,7 +119,7 @@ class Propiedades(Portal):
             filename=__file__
         )
 
-        self.client = PropiedadesClient(self.login, unauthorized_codes=[401])
+        self.client = PropiedadesClient(self.login, unauthorized_codes=[401, 403])
         self.load_session_params()
 
     def load_session_params(self):
