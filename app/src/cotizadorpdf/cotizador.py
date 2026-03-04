@@ -126,11 +126,14 @@ def translateContext(cin) -> dict:
     valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
     valor_administracion = int(valor_administracion_m2 * area_interior)
     valor_total = valor_exterior+valor_interior+valor_permisos+total_extras+total_extras
+
     valor_total_min = valor_total * 0.95
-    valor_total_max = valor_total * 1.05
     valor_total_min_m2 = importe_calidad * 0.95
+
+    valor_total_max = valor_total * 1.07
+    valor_total_max_m2 = importe_calidad * 1.07
+
     valor_total_m2 = importe_calidad
-    valor_total_max_m2 = importe_calidad * 1.05
     costo_directo = int((valor_total) * (100/(100+porcentaje_administracion)))
     porcentaje_administracion_rebora_total = int((valor_interior-valor_interior*coeficiente_ganancia)+ valor_exterior-valor_exterior*coeficiente_ganancia + valor_permisos - valor_permisos*coeficiente_ganancia)
     ahorro_materiales = (importe_inicial*area_interior)*0.08

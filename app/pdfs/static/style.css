@@ -311,6 +311,7 @@ table th {
     }
 
 .footer small {
+    height: 5em;
 	display: block;
 	max-width: 800px;
 	margin: 0 auto;
