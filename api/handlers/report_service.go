@@ -13,9 +13,10 @@ type ReportService struct {
 }
 
 type SourceReportData struct {
-	NewLeads     int
-	Existing     int
-	Total        int
+	Prospected		int
+	NewLeads     	int
+	Existing     	int
+	Total        	int
 }
 
 func NewReportService(store store.CommunicationStorer, wa *whatsapp.Whatsapp) *ReportService {
@@ -30,7 +31,7 @@ func (rs *ReportService) GenerateDailyStats(date time.Time) (map[string]SourceRe
     end := time.Now().AddDate(0, 0, 1).In(utcLoc) // tomorrow
 
     stats, err := rs.commStore.GetCommunicationStats(start, end)
-	fmt.Printf("%#v\n", stats)
+	fmt.Printf("%#v\n", stats[0])
     if err != nil {
         return nil, err
     }
@@ -45,26 +46,14 @@ func (rs *ReportService) GenerateDailyStats(date time.Time) (map[string]SourceRe
         } else {
             data.Existing += row.Count
         }
+		if row.UtmSource.Valid && row.UtmSource.String == "prospectador" {
+			data.Prospected += row.Count
+		}
+
         data.Total += row.Count
         sourceMap[row.Source] = data
     }
 
-    // Construir reporte
-    // report := "📊 *Reporte Diario de Comunicaciones*\n"
-    // report += fmt.Sprintf("Fecha desde: %s\n\n", date.Format("2006-01-02"))
-    //
-    // total := 0
-    // for source, data := range sourceMap {
-    //     report += fmt.Sprintf("*%s:*\n", source)
-    //     report += fmt.Sprintf("  - Nuevos: %d\n", data.NewLeads)
-    //     report += fmt.Sprintf("  - Duplicados: %d\n", data.Existing)
-    //     report += fmt.Sprintf("  - Total: %d\n\n", data.Total)
-    //     total += data.Total
-    // }
-    // report += "-----------------------------\n"
-    // report += fmt.Sprintf("TOTAL: %d\n\n", total)
-    //
-    // return report, nil
 	return sourceMap, nil
 }
 
@@ -108,7 +97,12 @@ func (rs *ReportService) SendReport(numbers []string, daysBefore int) error {
 		Type: "text",
 		Text: fmt.Sprintf("%d", total),
 	})
-	fmt.Println(len(p))
+
+	// Prospectador por i24
+	p = append(p, whatsapp.Parameter{
+		Type: "text",
+		Text: fmt.Sprintf("%d", report["inmuebles24"].Prospected),
+	})
 
 	t := whatsapp.TemplatePayload {
 		Name: "reporte",

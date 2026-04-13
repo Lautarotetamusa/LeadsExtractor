@@ -23,7 +23,10 @@ type CommunicationStore struct {
 	db *sqlx.DB
 }
 
+// Filas agrupadas por utm_source, campaign, source, new_lead
 type DailyStatsRow struct {
+	UtmSource	models.NullString `db:"utm_source"`
+	UtmCampaign	models.NullString `db:"utm_campaign"`
     Source  string  `db:"source"`
     NewLead bool    `db:"new_lead"`
     Count   int     `db:"count"`
@@ -144,16 +147,20 @@ func (s *CommunicationStore) Exists(params *QueryParam) bool {
 
 func (s *CommunicationStore) GetCommunicationStats(start time.Time, end time.Time) ([]*DailyStatsRow, error) {
     query := `
-        select count(*) as count,
-        new_lead, IF(S.type = "property", P.portal, S.type) as source 
+        select 
+			count(*) as count,
+			new_lead, 
+			utm_source,
+			utm_campaign,
+			IF(S.type = "property", P.portal, S.type) as source 
         FROM Communication C
         INNER JOIN Source S
             ON C.source_id = S.id
         LEFT JOIN Property P
             ON S.property_id = P.id
         WHERE created_at BETWEEN ? AND ?
-        group by source, new_lead;
-    `
+        group by source, utm_source, utm_campaign, new_lead;
+    `;
 
     var stats []*DailyStatsRow
     err := s.db.Select(&stats, query, start, end)

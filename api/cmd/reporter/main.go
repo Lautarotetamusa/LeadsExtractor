@@ -36,7 +36,7 @@ func main() {
     fmt.Println(reportNumbers)
     
 	// Send 99 days before for testing porpouses
-    if err := reportService.SendReport(reportNumbers, 99); err != nil {
+    if err := reportService.SendReport(reportNumbers, 999); err != nil {
         log.Fatalf("Error enviando reporte: %v", err)
     }
     

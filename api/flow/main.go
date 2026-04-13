@@ -178,6 +178,9 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
 				}
 			})
 		}
+
+		// if one rule passes, the rest are not going to be sended 
+		break;
 	}
 }
 
