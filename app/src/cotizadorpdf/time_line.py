@@ -1,4 +1,20 @@
+import copy
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib.path import Path
+
+# Workaround for matplotlib 3.10.x bug: Path.__deepcopy__ calls
+# copy.deepcopy(super(), memo) which infinitely recurses in Python 3.14.
+def _path_deepcopy(self, memo):
+    cls = type(self)
+    result = cls.__new__(cls)
+    memo[id(self)] = result
+    for k, v in self.__dict__.items():
+        setattr(result, k, copy.deepcopy(v, memo))
+    return result
+
+Path.__deepcopy__ = _path_deepcopy
 
 out_path = "pdfs/static"
 
