@@ -115,23 +115,28 @@ def translateContext(cin) -> dict:
     valor_mecanica = int(cin['valor_permisos']['mecanica'] / coeficiente_ganancia)
     valor_calculo = int(cin['valor_permisos']['calculo'] / coeficiente_ganancia)
     valor_permisos = (valor_licencia + valor_gestorias + valor_calculo) * area_interior + 3 * valor_mecanica + valor_topografia
+
     valor_rebora = valor_metro_rebora * area_interior
     valor_preconstruccion = int(valor_rebora*0.3)
     valor_construccion = int(valor_rebora*0.7)
+
     is_valor_permisos = cin["elaborado_por"]["is_valor_permisos"]
+    area_terreno = cin['elaborado_por']['area_terreno']
+
     valor_interior_m2 = int(valor_interior/area_interior)
     valor_exterior_m2 = int(valor_exterior/area_interior)
     valor_permisos_m2 = int(valor_permisos/area_interior)
     valor_subtotal_m2 = int((valor_interior_m2+valor_exterior_m2+valor_permisos_m2*is_valor_permisos))
     valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
     valor_administracion = int(valor_administracion_m2 * area_interior)
-    valor_total = valor_exterior+valor_interior+valor_permisos+total_extras+total_extras
+    valor_dido = int(valor_metro_rebora*area_terreno/coeficiente_ganancia)
+    valor_total = valor_dido+valor_exterior+valor_interior+valor_permisos+total_extras
 
-    valor_total_min = valor_total * 0.95
-    valor_total_min_m2 = importe_calidad * 0.95
+    valor_total_min = valor_interior * 0.97
+    valor_total_min_m2 = importe_calidad * 0.97
 
-    valor_total_max = valor_total * 1.07
-    valor_total_max_m2 = importe_calidad * 1.07
+    valor_total_max = valor_interior * 1.06
+    valor_total_max_m2 = importe_calidad * 1.06
 
     valor_total_m2 = importe_calidad
     costo_directo = int((valor_total) * (100/(100+porcentaje_administracion)))
@@ -145,7 +150,6 @@ def translateContext(cin) -> dict:
     meses = cin['pagos']['meses']
     pagos_mensuales = int((valor_total - valor_previo - anticipo)/meses)
     valor_terreno = cin['elaborado_por']['valor_terreno']
-    area_terreno = cin['elaborado_por']['area_terreno']
     plusvalia_terreno_rebora = valor_terreno*0.24
     plusvalia_terreno_otro_despacho = valor_terreno*0.20
     plusvalia_terreno_casa_construida = valor_terreno*0.20
@@ -215,6 +219,7 @@ def translateContext(cin) -> dict:
         "valor_total_min_m2": valor_total_min_m2,
         "valor_total_m2": valor_total_m2,
         "valor_total_max_m2": valor_total_max_m2,
+        "valor_dido": valor_dido,
         "porcentaje_administracion_rebora_total": porcentaje_administracion_rebora_total,
         "costo_directo": costo_directo,
         "ahorro_materiales": ahorro_materiales,
@@ -247,7 +252,7 @@ def translateContext(cin) -> dict:
         "banios": banios,
         "recamaras": recamaras,
         "niveles": niveles,
-        "extras": cin["extras"],
+        "extras": [],   # []cin["extras"], Descomentar si queremos volver a agregarlo
         "total_extras": total_extras
     }
     print(json.dumps(contexto, indent=4))

@@ -273,6 +273,10 @@
                             <td>Permisos y Preliminares</td>
                             <td class="amount">${{ valor_permisos|formato_miles }}</td>
                         </tr>
+                        <tr>
+                            <td>DIDO (Diseño, interiorismo y dirección de obra)</td>
+                            <td class="amount">${{ valor_dido|formato_miles }}</td>
+                        </tr>
                         {% if extras | length > 0 %}
                             <tr>
                                 <td>Extras</td>
@@ -339,9 +343,9 @@
             <thead>
                 <tr>
                     <th></th>
-                    <th>-5%</th>
+                    <th>-3%</th>
                     <th>Estimado</th>
-                    <th>+7%</th>
+                    <th>+6%</th>
                 </tr>
             </thead>
             <tbody>
@@ -354,7 +358,7 @@
                 <tr>
                     <td>Rango total</td>
                     <td> ${{valor_total_min|formato_miles}}</td>
-                    <td class="highlighted-cell"> ${{valor_total|formato_miles}}</td>
+                    <td class="highlighted-cell"> ${{valor_interior|formato_miles}}</td>
                     <td>${{valor_total_max|formato_miles}}</td>
                 </tr>
             </tbody>
@@ -436,7 +440,7 @@
                     </tr>
                     <tr>
                         <td style="text-align:left">Precio construcción</td>
-                        <td class="highlighted-cell">${{ valor_total|formato_miles }}</td>
+                        <td class="highlighted-cell">${{ total_estimado|formato_miles }}</td>
                         <td>${{ valor_otro_despacho|formato_miles }}</td>
                         <td>${{ valor_casa_construida|formato_miles }}</td>                        
                     </tr>
