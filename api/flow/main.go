@@ -168,13 +168,14 @@ func (f *FlowManager) RunFlow(c *models.Communication, uuid uuid.UUID) {
 			schedule.After(time.Duration(action.Interval), func() {
 				f.logger.Debug("running action", "name", action.Name)
 
-				if err := f.storer.SaveAction(actionRunned); err != nil {
-					f.logger.Error("cannot save action", "err", err.Error())
-				}
-
 				err := actionFunc(c, action.Params)
 				if err != nil {
 					f.logger.Error(err.Error(), "action", action.Name)
+				}
+
+				actionRunned.Text = c.LastSentMessage.String
+				if err := f.storer.SaveAction(actionRunned); err != nil {
+					f.logger.Error("cannot save action", "err", err.Error())
 				}
 			})
 		}

@@ -57,6 +57,10 @@ func (s CommunicationService) NewCommunication(c *models.Communication) error {
 		return err
 	}
 
+	if text, err := s.Store.GetLastSentMessageToLead(c.Telefono); err == nil {
+		c.LastSentMessage = models.NullString{String: text, Valid: true}
+	}
+
 	s.runAction(c)
 
 	return nil

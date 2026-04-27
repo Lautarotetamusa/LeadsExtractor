@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
+	"leadsextractor/pkg/email"
 	"leadsextractor/pkg/infobip"
 	"leadsextractor/pkg/jotform"
 	"leadsextractor/pkg/pipedrive"
@@ -13,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"strings"
 	"text/template"
 )
 
@@ -22,6 +24,7 @@ func DefineActions(
 	pipedriveApi *pipedrive.Pipedrive,
 	infobipApi *infobip.InfobipApi,
 	leadStorer store.LeadStorer,
+	mailer email.Sender,
 ) {
 	cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
 	cotizacion2 := mustReadFile("../messages/plantilla_cotizacion_2.txt")
@@ -40,6 +43,7 @@ func DefineActions(
 
 			msg := formatMsg(param.Text, c)
 			wpp.SendMessage(c.Telefono.String(), msg)
+			c.LastSentMessage = models.NullString{String: msg, Valid: true}
 			return nil
 		},
 		reflect.TypeOf(SendWppTextParam{}),
@@ -147,6 +151,22 @@ func DefineActions(
 		},
 		nil,
 	)
+
+	DefineAction("email.send_asesor",
+		func(c *models.Communication, params interface{}) error {
+			if c.Asesor.Email == "" {
+				return fmt.Errorf("el asesor %s no tiene email configurado", c.Asesor.Name)
+			}
+			isNew := "DUPLICADO"
+			if c.IsNew {
+				isNew = "NUEVO"
+			}
+			subject := fmt.Sprintf("[%s] Lead de %s - %s", isNew, c.Fuente, c.Nombre)
+			body := buildAsesorEmailHTML(c)
+			return mailer.Send([]string{c.Asesor.Email}, subject, body)
+		},
+		nil,
+	)
 }
 
 func (m *FlowManager) GetActions() interface{} {
@@ -179,4 +199,46 @@ func formatMsg(tmpl string, c *models.Communication) string {
 		return ""
 	}
 	return buf.String()
+}
+
+func buildAsesorEmailHTML(c *models.Communication) string {
+	isNew := "DUPLICADO"
+	if c.IsNew {
+		isNew = "NUEVO"
+	}
+
+	rows := [][2]string{
+		{"Estado", isNew},
+		{"Fuente", c.Fuente},
+		{"Nombre", c.Nombre},
+		{"Teléfono", c.Telefono.String()},
+		{"Email", c.Email.String},
+		{"Fecha", c.FechaLead},
+		{"Link", c.Link},
+		{"Propiedad", c.Propiedad.Titulo.String},
+		{"Precio", c.Propiedad.Precio.String},
+		{"Ubicación", c.Propiedad.Ubicacion.String},
+		{"Link propiedad", c.Propiedad.Link.String},
+		{"Presupuesto", c.Busquedas.Presupuesto},
+		{"UTM source", c.Utm.Source.String},
+		{"UTM campaign", c.Utm.Campaign.String},
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<html><body style="font-family:sans-serif">`)
+	sb.WriteString(fmt.Sprintf(`<h2>Nuevo lead: %s</h2>`, c.Nombre))
+	sb.WriteString(`<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse">`)
+
+	for _, row := range rows {
+		if row[1] == "" {
+			continue
+		}
+		sb.WriteString(fmt.Sprintf(
+			`<tr><td style="background:#f0f0f0;font-weight:bold">%s</td><td>%s</td></tr>`,
+			row[0], row[1],
+		))
+	}
+
+	sb.WriteString(`</table></body></html>`)
+	return sb.String()
 }

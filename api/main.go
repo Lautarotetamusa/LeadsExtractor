@@ -14,8 +14,10 @@ import (
 	"leadsextractor/flow"
 	"leadsextractor/handlers"
 	"leadsextractor/pkg"
+	"leadsextractor/pkg/email"
 	"leadsextractor/pkg/infobip"
 	"leadsextractor/pkg/pipedrive"
+	"leadsextractor/pkg/postmark"
 	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/pkg/whatsapp"
 	"leadsextractor/store"
@@ -91,8 +93,22 @@ func main() {
 	}
 	rr := roundrobin.New(asesores)
 
+	useSMTP := true
+	var mailer email.Sender
+	if useSMTP {
+		mailer = email.NewMailer(
+			os.Getenv("SMTP_HOST"),
+			os.Getenv("SMTP_PORT"),
+			os.Getenv("SMTP_USER"),
+			os.Getenv("SMTP_PASSWORD"),
+			os.Getenv("SMTP_FROM"),
+		)
+	} else {
+		mailer = postmark.NewClient(os.Getenv("POSTMARK_SERVER_TOKEN"), os.Getenv("POSTMARK_FROM"))
+	}
+
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
-	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore)
+	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore, mailer)
 	flowManager.MustLoad()
 
 	// Services
@@ -110,8 +126,8 @@ func main() {
 	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 
 	// Handlers
-    propHandler := handlers.NewPropertyHandler(propStore, logger)
-    publishPropHandler := handlers.NewPublishedPropertyHandler(publisPropStore, propStore, appHost)
+	propHandler := handlers.NewPropertyHandler(propStore, logger)
+	publishPropHandler := handlers.NewPublishedPropertyHandler(publisPropStore, propStore, appHost)
 	leadHandler := handlers.NewLeadHandler(leadStore)
 	utmHandler := handlers.NewUTMHandler(utmStore)
 	flowHandler := handlers.NewFlowHandler(flowManager, commStore)
@@ -119,30 +135,33 @@ func main() {
 	asesorHandler := handlers.NewAsesorHandler(asesorService)
 
 	router := mux.NewRouter()
-    router.Use(CORS)
+	router.Use(CORS)
 
 	// Register routes
-    propHandler.RegisterRoutes(router)
+	propHandler.RegisterRoutes(router)
 	leadHandler.RegisterRoutes(router)
 	utmHandler.RegisterRoutes(router)
 	flowHandler.RegisterRoutes(router)
 	commHandler.RegisterRoutes(router)
 	asesorHandler.RegisterRoutes(router)
-    publishPropHandler.RegisterRoutes(router) 
+	publishPropHandler.RegisterRoutes(router)
 
-    // Cron report
-    reportService := handlers.NewReportService(commStore, wpp)
-    reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), "|")
-    logger.Debug("Getting report numbers", "report numbers", reportNumbers)
-    c := cron.New()
-    cronStr := "0 8 * * *" // Every day at 8:00 AM
-    // cronStr := "*/5 * * * *"
-    _, err = c.AddFunc(cronStr, func() { 
-        err = reportService.SendDailyReport(reportNumbers)
-        if err != nil {
-            logger.Error("Cannot send daily report %w", err)
-        }
-    })
+	// Cron report
+	reportService := handlers.NewReportService(commStore, wpp, mailer)
+	reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), "|")
+	reportEmails := strings.Split(os.Getenv("REPORT_EMAILS"), ";")
+	logger.Debug("Getting report numbers", "report numbers", reportNumbers)
+	c := cron.New()
+	cronStr := "0 8 * * *" // Every day at 8:00 AM
+	// cronStr := "*/5 * * * *"
+	_, err = c.AddFunc(cronStr, func() {
+		if err := reportService.SendDailyReport(reportNumbers); err != nil {
+			logger.Error("Cannot send daily report via WhatsApp", "err", err)
+		}
+		if err := reportService.SendDailyReportEmail(reportEmails); err != nil {
+			logger.Error("Cannot send daily report via email", "err", err)
+		}
+	})
     if err != nil {
         log.Fatal("Error programando cron:", err)
     }

@@ -17,6 +17,7 @@ const noteContent = `
 fuente: %s
 fecha: %s
 mensaje: %s
+ultimo mensaje enviado: %s
 link lead: %s
 titulo: %s
 link propiedad: %s
@@ -43,6 +44,7 @@ func (p *Pipedrive) addNote(c *models.Communication, dealId uint32) (*Note, erro
 		c.Fuente,
 		c.Fecha,
 		c.Message.String,
+		c.LastSentMessage.String,
 		c.Link,
 		c.Propiedad.Titulo.String,
 		c.Propiedad.Link.String,

@@ -55,7 +55,8 @@ type Communication struct {
 	Asesor     Asesor              `json:"asesor"`
 	Propiedad  Propiedad           `json:"propiedad" csv:"propiedad"`
 	Busquedas  Busquedas           `json:"busquedas"`
-	IsNew      bool                `json:"is_new" db:"new_lead"`
-	Message    NullString          `json:"message" csv:"mensaje"`
-	Wamid      NullString
+	IsNew           bool       `json:"is_new" db:"new_lead"`
+	Message         NullString `json:"message" csv:"mensaje"`
+	Wamid           NullString
+	LastSentMessage NullString `json:"-" db:"-"` // último mensaje enviado al lead (no persistido)
 }

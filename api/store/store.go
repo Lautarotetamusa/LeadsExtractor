@@ -16,6 +16,7 @@ type Storer interface {
 	// Action storer
 	SaveAction(*ActionSave) error
 	GetLastActionFromLead(numbers.PhoneNumber) (*ActionSave, error)
+	GetLastSentMessageToLead(numbers.PhoneNumber) (string, error)
 }
 
 type Store struct {

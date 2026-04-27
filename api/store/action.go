@@ -15,11 +15,12 @@ type ActionSave struct {
 	FlowUUID   uuid.UUID     `db:"flow_uuid"`
 	SendedAt   string        `db:"sended_at"`
 	LeadPhone  string        `db:"lead_phone"`
-	// Flow que vamos a ejecutar en caso de que alguien responda a este action  
+	Text       string        `db:"text"` // texto del mensaje enviado (si aplica)
+	// Flow que vamos a ejecutar en caso de que alguien responda a este action
 	OnResponse uuid.NullUUID `db:"on_response,omitempty"`
 }
 
-var insertFieldsAction = []string{"name", "nro", "flow_uuid", "lead_phone", "on_response"}
+var insertFieldsAction = []string{"name", "nro", "flow_uuid", "lead_phone", "text", "on_response"}
 
 const tableNameAction = "Action"
 
@@ -42,4 +43,16 @@ func (s *Store) GetLastActionFromLead(leadPhone numbers.PhoneNumber) (*ActionSav
 		return nil, err
 	}
 	return &a, nil
+}
+
+func (s *Store) GetLastSentMessageToLead(leadPhone numbers.PhoneNumber) (string, error) {
+	var text string
+	query := fmt.Sprintf(
+		"SELECT text FROM %s WHERE lead_phone=? AND text != '' ORDER BY sended_at DESC LIMIT 1",
+		tableNameAction,
+	)
+	if err := s.db.Get(&text, query, leadPhone.String()); err != nil {
+		return "", err
+	}
+	return text, nil
 }
