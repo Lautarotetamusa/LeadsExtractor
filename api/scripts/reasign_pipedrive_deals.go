@@ -52,7 +52,7 @@ func main(){
     }
 
 	i := 0
-	assignTo := [3]uint32{23770485, 23770496, 25406515}
+	assignTo := [3]uint32{23770485}
 
     for _, user := range users{
         if _, ok := blackList[user.Email]; ok {

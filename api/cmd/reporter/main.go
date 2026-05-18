@@ -54,7 +54,7 @@ func main() {
 	fmt.Println(reportNumbers)
 
 	// Send 99 days before for testing purposes
-	if err := reportService.SendReport(reportNumbers, 999); err != nil {
+	if err := reportService.SendReport(reportNumbers, 1); err != nil {
 		log.Fatalf("Error enviando reporte por WhatsApp: %v", err)
 	}
 	log.Println("Reporte WhatsApp enviado exitosamente")
@@ -62,7 +62,7 @@ func main() {
 	reportEmails := strings.Split(os.Getenv("REPORT_EMAILS"), ";")
 	fmt.Println(reportEmails)
 
-	if err := reportService.SendReportEmail(reportEmails, 999); err != nil {
+	if err := reportService.SendReportEmail(reportEmails, 1); err != nil {
 		log.Fatalf("Error enviando reporte por email: %v", err)
 	}
 	log.Println("Reporte email enviado exitosamente")

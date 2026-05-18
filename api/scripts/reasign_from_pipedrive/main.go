@@ -66,10 +66,19 @@ func main(){
 
         for _, deal := range deals {
             person := deal.Person
-            if person.Phone == nil || len(person.Phone) <= 0 {
-                logger.Warn("person sin telefono", "person", person)
-                continue
+			if person == nil {
+				logger.Warn("person is nil")
+				continue
+			}
+            if person.Phone == nil { 
+				logger.Warn("person phone is nil")
+				continue
             }
+			if len(person.Phone) <= 0 {
+				logger.Warn("person sin telefono", "person", person)
+				continue
+			}
+
             rawPhone := person.Phone[0].Value
             phone, err := numbers.NewPhoneNumber(strings.ReplaceAll(rawPhone, " ", ""))
 
