@@ -121,7 +121,6 @@ def translateContext(cin) -> dict:
     valor_construccion = int(valor_rebora*0.7)
 
     is_valor_permisos = cin["elaborado_por"]["is_valor_permisos"]
-    area_terreno = cin['elaborado_por']['area_terreno']
 
     valor_interior_m2 = int(valor_interior/area_interior)
     valor_exterior_m2 = int(valor_exterior/area_interior)
@@ -129,7 +128,8 @@ def translateContext(cin) -> dict:
     valor_subtotal_m2 = int((valor_interior_m2+valor_exterior_m2+valor_permisos_m2*is_valor_permisos))
     valor_administracion_m2 = int((valor_subtotal_m2*porcentaje_administracion)/100)
     valor_administracion = int(valor_administracion_m2 * area_interior)
-    valor_dido = int(valor_metro_rebora*area_terreno/coeficiente_ganancia)
+    valor_dido = int(valor_metro_rebora*area_interior/coeficiente_ganancia)
+
     valor_total = valor_dido+valor_exterior+valor_interior+valor_permisos+total_extras
 
     valor_total_min = valor_interior * 0.97
@@ -172,7 +172,7 @@ def translateContext(cin) -> dict:
     contexto = {
         "roi_terreno": roi_terreno,
         "enombre": enombre,
-        "etelefono":etelefono,
+        "etelefono": etelefono,
         "email": email,
         "nombre": nombre,
         "fecha": fecha,
