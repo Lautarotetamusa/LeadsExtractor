@@ -295,7 +295,7 @@
             <span>Este monto incluye</span>
             <p>Costo directo: materiales, mano de obra, fasar(impuesto de obra)<br>
             Porcentaje de administacion: ${{ porcentaje_administracion }}%<br>
-            diseño, dirección de Obra e interiorismo (${{ valor_metro_rebora }} por m2 construibles techado({{ area_interior }}² ))
+            diseño, dirección de Obra e interiorismo (${{ ( valor_metro_rebora  / coeficiente_ganancia ) | formato_miles }} por m2 construibles techado({{ area_interior }}² ))
             </p>
         </div>
     </div>
