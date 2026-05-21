@@ -2,6 +2,7 @@ package flow
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
@@ -163,7 +164,14 @@ func DefineActions(
 			}
 			subject := fmt.Sprintf("[%s] Lead de %s - %s", isNew, c.Fuente, c.Nombre)
 			body := buildAsesorEmailHTML(c)
-			return mailer.Send([]string{c.Asesor.Email}, subject, body)
+			return mailer.Send(
+				context.Background(), 
+				"from@rbaresidences.com",
+				[]string{c.Asesor.Email}, 
+				subject, 
+				body,
+				true,
+			)
 		},
 		nil,
 	)

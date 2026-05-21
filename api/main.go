@@ -17,7 +17,6 @@ import (
 	"leadsextractor/pkg/email"
 	"leadsextractor/pkg/infobip"
 	"leadsextractor/pkg/pipedrive"
-	"leadsextractor/pkg/postmark"
 	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/pkg/whatsapp"
 	"leadsextractor/store"
@@ -93,19 +92,11 @@ func main() {
 	}
 	rr := roundrobin.New(asesores)
 
-	useSMTP := true
-	var mailer email.Sender
-	if useSMTP {
-		mailer = email.NewMailer(
-			os.Getenv("SMTP_HOST"),
-			os.Getenv("SMTP_PORT"),
-			os.Getenv("SMTP_USER"),
-			os.Getenv("SMTP_PASSWORD"),
-			os.Getenv("SMTP_FROM"),
-		)
-	} else {
-		mailer = postmark.NewClient(os.Getenv("POSTMARK_SERVER_TOKEN"), os.Getenv("POSTMARK_FROM"))
-	}
+	mailer := email.NewGraphMailer(email.Config{
+		ClientID:     "TU_CLIENT_ID",
+		TenantID:     "TU_TENANT_ID",
+		ClientSecret: "TU_CLIENT_SECRET",
+	})
 
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)
 	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore, mailer)

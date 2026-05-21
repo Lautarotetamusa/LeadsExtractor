@@ -3,6 +3,7 @@ package pipedrive
 import (
 	"fmt"
 	"leadsextractor/models"
+	"strings"
 )
 
 type Deal struct {
@@ -34,6 +35,10 @@ type UpdateDeal struct {
     StageId int `json:"stage_id"`
 }
 
+var customDealFields = map[string]string{
+	"campaign_mkt": "e3870475a190125348a7b55e113ffa7e3c4004da",
+}
+
 // Buscamos para la persona con id personId una trato con el asesor con id userId
 func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, error) {
 	url := fmt.Sprintf("persons/%d/deals", personId)
@@ -59,19 +64,38 @@ func (p *Pipedrive) SearchPersonDeal(personId uint32, userId uint32) (*Deal, err
 	return nil, fmt.Errorf("el asesor con id: %d no tiene ningun trato con la persona: %d", userId, personId)
 }
 
+func findCampaignMkt(s string) (string, bool) {
+	start := strings.Index(s, "[")
+	if start == -1 {
+		return "", false
+	}
+	end := strings.Index(s[start:], "]")
+	if end == -1 {
+		return "", false
+	}
+
+	// end es la posición relativa dentro de s[start:]; ajustamos al índice absoluto.
+	return s[start+1 : start+end], true
+}
+
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (*Deal, error) {
 	title := c.Propiedad.Titulo.String
 	if title == "" {
 		title = "Trato con " + c.Nombre
 	}
 
-	payload := CreateDeal{
-		Title:     title,
-		UserId:    userId,
-		PersonId:  personId,
-		Value:     c.Propiedad.Precio.String,
-		Currency:  "MXN",
-		VisibleTo: "3", //Para todos
+	payload := map[string]interface{}{
+		"title":     title,
+		"user_id":    userId,
+		"person_id":  personId,
+		"value":     c.Propiedad.Precio.String,
+		"currency":  "MXN",
+		"visible_to": "3", //Para todos
+	}
+
+	if mktCampaign, exists := findCampaignMkt(c.Message.String); exists {
+		p.logger.Debug("MKT Campaign found on message", "campaign", mktCampaign)
+		payload[customDealFields["campaign_mkt"]] = mktCampaign
 	}
 
 	var deal Deal

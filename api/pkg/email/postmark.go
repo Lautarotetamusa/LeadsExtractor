@@ -1,4 +1,4 @@
-package postmark
+package email
 
 import (
 	"bytes"
