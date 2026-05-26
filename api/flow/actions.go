@@ -105,6 +105,13 @@ func DefineActions(
 		nil,
 	)
 
+	DefineAction("wpp.cotizacion",
+		func(c *models.Communication, params interface{}) error {
+			return nil
+		},
+		nil,
+	)
+
 	DefineAction("email.send_asesor",
 		func(c *models.Communication, params interface{}) error {
 			if c.Asesor.Email == "" {
