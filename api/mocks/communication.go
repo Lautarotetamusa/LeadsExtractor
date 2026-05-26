@@ -3,6 +3,7 @@ package mocks
 import (
 	"leadsextractor/models"
 	"leadsextractor/store"
+	"time"
 )
 
 type MockCommStorer struct {
@@ -69,4 +70,40 @@ func (s *MockCommStorer) Count(params *store.QueryParam) (int, error) {
 
 func (s *MockCommStorer) Exists(params *store.QueryParam) bool {
 	return true
+}
+
+func (s *MockCommStorer) GetCommunicationStats(start, end time.Time) ([]*store.DailyStatsRow, error) {
+	type key struct {
+		utmSource   string
+		utmCampaign string
+		source      string
+		newLead     bool
+	}
+	counts := make(map[key]int)
+
+	for _, c := range s.comms {
+		date, err := time.Parse("2006-01-02", c.FechaLead)
+		if err != nil || date.Before(start) || date.After(end) {
+			continue
+		}
+		k := key{
+			utmSource:   c.Utm.Source.String,
+			utmCampaign: c.Utm.Campaign.String,
+			source:      c.Fuente,
+			newLead:     c.IsNew,
+		}
+		counts[k]++
+	}
+
+	rows := make([]*store.DailyStatsRow, 0, len(counts))
+	for k, count := range counts {
+		rows = append(rows, &store.DailyStatsRow{
+			UtmSource:   models.NullString{String: k.utmSource, Valid: k.utmSource != ""},
+			UtmCampaign: models.NullString{String: k.utmCampaign, Valid: k.utmCampaign != ""},
+			Source:      k.source,
+			NewLead:     k.newLead,
+			Count:       count,
+		})
+	}
+	return rows, nil
 }

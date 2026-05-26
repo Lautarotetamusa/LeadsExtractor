@@ -14,6 +14,7 @@ type Config struct {
 	ClientID     string
 	TenantID     string
 	ClientSecret string
+	From	 	 string
 }
 
 // Message representa la estructura de un correo para Graph API
@@ -101,7 +102,7 @@ func (g *GraphMailer) getAccessToken(ctx context.Context) (string, error) {
 // fromAddress: dirección del remitente (ej. lautaro.teta@rbaresidences.com)
 // to: lista de destinatarios (strings)
 // subject, body, isHTML: contenido del mensaje
-func (g *GraphMailer) Send(ctx context.Context, fromAddress string, to []string, subject, body string, isHTML bool) error {
+func (g *GraphMailer) Send(ctx context.Context, to []string, subject, body string, isHTML bool) error {
 	token, err := g.getAccessToken(ctx)
 	if err != nil {
 		return fmt.Errorf("error autenticando: %w", err)
@@ -125,7 +126,7 @@ func (g *GraphMailer) Send(ctx context.Context, fromAddress string, to []string,
 		return err
 	}
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/sendMail", fromAddress)
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/users/%s/sendMail", g.config.From)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		return err

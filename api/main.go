@@ -93,9 +93,10 @@ func main() {
 	rr := roundrobin.New(asesores)
 
 	mailer := email.NewGraphMailer(email.Config{
-		ClientID:     "TU_CLIENT_ID",
-		TenantID:     "TU_TENANT_ID",
-		ClientSecret: "TU_CLIENT_SECRET",
+		ClientID:		os.Getenv("MS_CLIENT_ID"),
+		TenantID:		os.Getenv("MS_TENANT_ID"),
+		ClientSecret: 	os.Getenv("MS_CLIENT_SECRET"),
+		From:			"lautaro.teta@rbaresidences.com",
 	})
 
 	flowManager := flow.NewFlowManager("actions.json", storer, logger)

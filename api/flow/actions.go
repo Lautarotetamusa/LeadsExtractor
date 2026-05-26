@@ -125,7 +125,6 @@ func DefineActions(
 			body := buildAsesorEmailHTML(c)
 			return mailer.Send(
 				context.Background(), 
-				"from@rbaresidences.com",
 				[]string{c.Asesor.Email}, 
 				subject, 
 				body,
