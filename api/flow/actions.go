@@ -8,11 +8,9 @@ import (
 	"leadsextractor/models"
 	"leadsextractor/pkg/email"
 	"leadsextractor/pkg/infobip"
-	"leadsextractor/pkg/jotform"
 	"leadsextractor/pkg/pipedrive"
 	"leadsextractor/pkg/whatsapp"
 	"leadsextractor/store"
-	"log/slog"
 	"os"
 	"reflect"
 	"strings"
@@ -27,14 +25,6 @@ func DefineActions(
 	leadStorer store.LeadStorer,
 	mailer email.Sender,
 ) {
-	cotizacion1 := mustReadFile("../messages/plantilla_cotizacion_1.txt")
-	cotizacion2 := mustReadFile("../messages/plantilla_cotizacion_2.txt")
-	jotformApi := jotform.NewJotform(
-		os.Getenv("JOTFORM_API_KEY"),
-		os.Getenv("APP_HOST"),
-	)
-	form := jotformApi.AddForm(os.Getenv("JOTFORM_FORM_ID"))
-
 	DefineAction("wpp.message",
 		func(c *models.Communication, params interface{}) error {
 			param, ok := params.(*SendWppTextParam)
@@ -88,44 +78,6 @@ func DefineActions(
 			return nil
 		},
 		reflect.TypeOf(SendWppMedia{}),
-	)
-
-	DefineAction("wpp.cotizacion",
-		func(c *models.Communication, params interface{}) error {
-			if c.Cotizacion == "" {
-				url, err := jotformApi.GetPdf(c, form)
-				if err != nil {
-					return err
-				}
-				c.Cotizacion = url
-				lead := models.Lead{
-					Name:       c.Nombre,
-					Email:      c.Email,
-					Phone:      c.Telefono,
-					Cotizacion: c.Cotizacion,
-				}
-				if err := leadStorer.Update(&lead); err != nil {
-					return err
-				}
-				slog.Info("Cotizacion generada con exito")
-			}
-
-			var caption string
-			if !c.Busquedas.CoveredArea.Valid {
-				caption = cotizacion2
-			} else {
-				caption = cotizacion1
-			}
-
-			wpp.Send(whatsapp.NewDocumentPayload(
-				c.Telefono.String(),
-				c.Cotizacion,
-				caption,
-				fmt.Sprintf("Cotizacion para %s", c.Nombre),
-			))
-			return nil
-		},
-		nil,
 	)
 
 	DefineAction("wpp.send_message_asesor",
