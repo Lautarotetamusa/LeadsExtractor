@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
-
 	"time"
 
 	"leadsextractor/flow"
@@ -27,7 +25,6 @@ import (
 
 	"github.com/lmittmann/tint"
 
-	"github.com/robfig/cron/v3"
 )
 
 func main() {
@@ -137,27 +134,6 @@ func main() {
 	commHandler.RegisterRoutes(router)
 	asesorHandler.RegisterRoutes(router)
 	publishPropHandler.RegisterRoutes(router)
-
-	// Cron report
-	reportService := handlers.NewReportService(commStore, wpp, mailer)
-	reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), "|")
-	reportEmails := strings.Split(os.Getenv("REPORT_EMAILS"), ";")
-	logger.Debug("Getting report numbers", "report numbers", reportNumbers)
-	c := cron.New()
-	cronStr := "0 8 * * *" // Every day at 8:00 AM
-	// cronStr := "*/5 * * * *"
-	_, err = c.AddFunc(cronStr, func() {
-		if err := reportService.SendDailyReport(reportNumbers); err != nil {
-			logger.Error("Cannot send daily report via WhatsApp", "err", err)
-		}
-		if err := reportService.SendDailyReportEmail(reportEmails); err != nil {
-			logger.Error("Cannot send daily report via email", "err", err)
-		}
-	})
-    if err != nil {
-        log.Fatal("Error programando cron:", err)
-    }
-    c.Start()
 
 	// Server
 	apiPort := os.Getenv("API_PORT")
