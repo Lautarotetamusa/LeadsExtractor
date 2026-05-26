@@ -66,6 +66,8 @@ func (g *GraphMailer) getAccessToken(ctx context.Context) (string, error) {
 	data := fmt.Sprintf("client_id=%s&client_secret=%s&scope=https://graph.microsoft.com/.default&grant_type=client_credentials",
 		g.config.ClientID, g.config.ClientSecret)
 
+	fmt.Println(data)
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(data))
 	if err != nil {
 		return "", err
@@ -79,7 +81,7 @@ func (g *GraphMailer) getAccessToken(ctx context.Context) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error obteniendo token: %s", resp.Status)
+		return "", fmt.Errorf("error obteniendo token %s", resp.Status)
 	}
 
 	var tokenResp struct {

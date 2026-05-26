@@ -150,7 +150,7 @@ func (rs *ReportService) SendReportEmail(recipients []string, daysBefore int) er
 	subject := fmt.Sprintf("Reporte diario - %s", date.Format("2006-01-02"))
 	body := buildReportHTML(date, sources, report)
 
-	return rs.mailer.Send(context.Background(), "reporter@rbaresidences.com", recipients, subject, body, true)
+	return rs.mailer.Send(context.Background(), "lautaro.teta@rbaresidences.com", recipients, subject, body, true)
 }
 
 func buildReportHTML(date time.Time, sources []string, report map[string]SourceReportData) string {

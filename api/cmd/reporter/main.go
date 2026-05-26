@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"leadsextractor/handlers"
 	"leadsextractor/pkg/email"
-	"leadsextractor/pkg/postmark"
 	"leadsextractor/pkg/whatsapp"
 	"leadsextractor/store"
 	"log"
@@ -32,21 +31,11 @@ func main() {
 	)
 	commStore := store.NewCommStore(db)
 
-	useSMTP := false
-
-	var mailer email.Sender
-
-	if useSMTP {
-		mailer = email.NewMailer(
-			os.Getenv("SMTP_HOST"),
-			os.Getenv("SMTP_PORT"),
-			os.Getenv("SMTP_USER"),
-			os.Getenv("SMTP_PASSWORD"),
-			os.Getenv("SMTP_FROM"),
-		)
-	} else {
-		mailer = postmark.NewClient(os.Getenv("POSTMARK_SERVER_TOKEN"), os.Getenv("POSTMARK_FROM"))
-	}
+	mailer := email.NewGraphMailer(email.Config{
+		ClientID:		os.Getenv("MS_CLIENT_ID"),
+		TenantID:		os.Getenv("MS_TENANT_ID"),
+		ClientSecret: 	os.Getenv("MS_CLIENT_SECRET"),
+	})
 
 	reportService := handlers.NewReportService(commStore, wa, mailer)
 
@@ -54,10 +43,10 @@ func main() {
 	fmt.Println(reportNumbers)
 
 	// Send 99 days before for testing purposes
-	if err := reportService.SendReport(reportNumbers, 1); err != nil {
-		log.Fatalf("Error enviando reporte por WhatsApp: %v", err)
-	}
-	log.Println("Reporte WhatsApp enviado exitosamente")
+	// if err := reportService.SendReport(reportNumbers, 1); err != nil {
+	// 	log.Fatalf("Error enviando reporte por WhatsApp: %v", err)
+	// }
+	// log.Println("Reporte WhatsApp enviado exitosamente")
 
 	reportEmails := strings.Split(os.Getenv("REPORT_EMAILS"), ";")
 	fmt.Println(reportEmails)
