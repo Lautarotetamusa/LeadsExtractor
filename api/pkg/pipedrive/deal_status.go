@@ -25,7 +25,7 @@ var (
 		"open":   0,
 		"won":    1,
 		"lost":   2,
-		"delted": 3,
+		"deleted": 3,
 	}
 )
 

@@ -16,9 +16,10 @@ type Deal struct {
 	Person *Person    `json:"person_id"`
 	Status DealStatus `json:"status"`
 
-    // If the deal its closed, the stage_id stays in the same as before
-    StageId     int `json:"stage_id"`
-    PipelineId  int `json:"pipeline_id"`
+	// If the deal its closed, the stage_id stays in the same as before
+	StageId     int `json:"stage_id"`
+	PipelineId  int `json:"pipeline_id"`
+	CampaignMkt string `json:"e3870475a190125348a7b55e113ffa7e3c4004da"`
 }
 
 type CreateDeal struct {
@@ -78,6 +79,34 @@ func findCampaignMkt(s string) (string, bool) {
 	return s[start+1 : start+end], true
 }
 
+// appendCampaignMkt agrega newMkt al valor existente separado por coma, evitando duplicados.
+func appendCampaignMkt(existing, newMkt string) string {
+	if existing == "" {
+		return newMkt
+	}
+	for _, part := range strings.Split(existing, ",") {
+		if strings.TrimSpace(part) == newMkt {
+			return existing
+		}
+	}
+	return existing + "," + newMkt
+}
+
+func (p *Pipedrive) updateDealCampaignMkt(deal *Deal, newMkt string) {
+	updated := appendCampaignMkt(deal.CampaignMkt, newMkt)
+	if updated == deal.CampaignMkt {
+		return
+	}
+	payload := map[string]interface{}{
+		customDealFields["campaign_mkt"]: updated,
+	}
+	if err := p.makeRequest("PUT", fmt.Sprintf("deals/%d/", deal.Id), payload, deal); err != nil {
+		p.logger.Error("Error actualizando campaign_mkt", "err", err)
+		return
+	}
+	p.logger.Info("campaign_mkt actualizado", "value", updated)
+}
+
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (*Deal, error) {
 	title := c.Propiedad.Titulo.String
 	if title == "" {
@@ -107,14 +136,35 @@ func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId 
 	return &deal, nil
 }
 
-func (p *Pipedrive) updateDeal(dealId uint32, u *UpdateDeal) (*Deal, error) {
-	var deal Deal
-	err := p.makeRequest("PUT", fmt.Sprintf("deals/%d/", dealId), u, &deal)
+// We want to reopens the deals in the first stage or a specific pipeline
+func (p *Pipedrive) reopenDeal(c *models.Communication, deal *Deal) {
+    // Get the first stage of the same pipeline of the deal
+    stages, err := p.GetStages(StageFilter{
+        PipelineId: deal.PipelineId,
+        SortBy: "order_nr",
+    })
+    if err != nil || len(stages) == 0{
+        p.logger.Error(fmt.Sprintf("cannot get the stages for pipeline (%d)", deal.PipelineId), "err", err.Error())
+        return
+    }
+    p.logger.Debug(fmt.Sprintf("El deal está perdido, reabriendo en el stage %d", stages[0].ID))
 
-	if err != nil {
-		return nil, err
+	payload := map[string]interface{}{
+		"status":   Open,
+		"stage_id": stages[0].ID,
 	}
-	return &deal, nil
+
+	err = p.makeRequest("PUT", fmt.Sprintf("deals/%d/", deal.Id), payload, deal)
+	if err != nil {
+		p.logger.Error("Error reabriendo el deal", "err", err)
+		return
+	}
+	p.logger.Info("Deal reabierto con exito")
+
+	if mktCampaign, exists := findCampaignMkt(c.Message.String); exists {
+		p.logger.Debug("MKT Campaign found on message", "campaign", mktCampaign)
+		p.updateDealCampaignMkt(deal, mktCampaign)
+	}
 }
 
 func (p *Pipedrive) ReasignDeal(dealId uint32, newUserId uint32) (*Deal, error) {

@@ -69,11 +69,6 @@ type AdditionalData struct {
 	Pagination *Pagination `json:"pagination"`
 }
 
-type PaginatedResponse struct {
-	Success        bool            `json:"success"`
-	Data           []any           `json:"data"`
-	AdditionalData *AdditionalData `json:"additional_data"`
-}
 
 func NewPipedrive(c Config, l *slog.Logger) *Pipedrive {
 	client := fmt.Sprintf("%s:%s", c.ClientId, c.ClientSecret)
@@ -145,10 +140,14 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) {
 			p.logger.Error("Error creando deal", "err", err)
 			return
 		}
-
 		p.logger.Info("Deal creado correctamente")
 	} else if deal.Status == Lost {
-        p.reopenDeal(deal)
+		p.reopenDeal(c, deal)
+	} else {
+		if mktCampaign, exists := findCampaignMkt(c.Message.String); exists {
+			p.logger.Debug("MKT Campaign found on message", "campaign", mktCampaign)
+			p.updateDealCampaignMkt(deal, mktCampaign)
+		}
 	}
 
 	p.logger.Debug(fmt.Sprintf("Deal: %v", deal))
@@ -159,32 +158,6 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) {
 	} else {
 		p.logger.Info("Nota cargada con exito")
 	}
-}
-
-// We want to reopens the deals in the first stage or a specific pipeline
-func (p *Pipedrive) reopenDeal(deal *Deal) {
-    fmt.Printf("%#v\n", deal)
-
-    // Get the first stage of the same pipeline of the deal
-    stages, err := p.GetStages(StageFilter{
-        PipelineId: deal.PipelineId,
-        SortBy: "order_nr",
-    })
-    if err != nil || len(stages) == 0{
-        p.logger.Error(fmt.Sprintf("cannot get the stages for pipeline (%d)", deal.PipelineId), "err", err.Error())
-        return
-    }
-    p.logger.Debug(fmt.Sprintf("El deal está perdido, reabriendo en el stage %d", stages[0].ID))
-
-    _, err = p.updateDeal(deal.Id, &UpdateDeal{
-        Status: Open,
-        StageId: stages[0].ID,
-    })
-    if err != nil {
-        p.logger.Error("Error reabriendo el deal", "err", err)
-        return
-    }
-    p.logger.Info("Deal reabierto con exito")
 }
 
 func (p *Pipedrive) saveToken() {
@@ -211,13 +184,13 @@ func (p *Pipedrive) loadToken() {
 		log.Println("Autoriza la aplicacion: ", callbackUrl)
 		//TODO: Mantener la coneccion durante un tiempo X hasta que la aplicacion sea autorizada
 		//Se puede hacer con un channel en la funcion de callback
+		return
 	}
 	defer tokenFile.Close()
-	bytes, _ := io.ReadAll(tokenFile)
 
+	data, _ := io.ReadAll(tokenFile)
 	var token Token
-	err = json.Unmarshal(bytes, &token)
-	if err != nil {
+	if err = json.Unmarshal(data, &token); err != nil {
 		log.Fatal("No se pudo leer el archivo", fileName)
 	}
 	p.token = &token
@@ -238,10 +211,10 @@ func (p *Pipedrive) ExchangeCodeToToken(code string) *Token {
 }
 
 func (p *Pipedrive) refreshToken() *Token {
+	if p.token == nil {
+		log.Fatal("No se puede refrescar un token que no existe")
+	}
 	if time.Now().Unix() > p.token.ExpiresIn {
-		if p.token == nil {
-			log.Fatal("No se puede refrescar un token que no existe")
-		}
 
 		p.logger.Info("Refrescando token")
 		payload := map[string]string{
@@ -294,11 +267,9 @@ func (p *Pipedrive) makeRequest(method string, path string, payload any, data an
 		Success: true,
 		Data:    data,
 	}
-	err = json.Unmarshal(body, &jsonRes)
-	if err != nil {
+	if err = json.Unmarshal(body, &jsonRes); err != nil {
 		return err
 	}
-	data = &jsonRes.Data
 
 	if !jsonRes.Success {
 		var a interface{}
@@ -308,43 +279,6 @@ func (p *Pipedrive) makeRequest(method string, path string, payload any, data an
 	return nil
 }
 
-func (p *Pipedrive) getPaginatedData(url string, data *[]any) error {
-	moreItems := true
-	start := 0
-
-	for moreItems {
-		p.logger.Debug("getting page", "page", start)
-		url := baseUrl + fmt.Sprintf("%s&start=%d", url, start)
-
-		p.refreshToken()
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			return err
-		}
-
-		req.Header.Add("Accept", "application/json")
-		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("x-api-token", p.apiToken)
-
-		res, err := p.client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer res.Body.Close()
-
-		var response PaginatedResponse
-		if err = json.NewDecoder(res.Body).Decode(&response); err != nil {
-			return err
-		}
-
-		moreItems = response.AdditionalData.Pagination.MoreItemsInCollection
-		start = response.AdditionalData.Pagination.NextStart
-
-		*data = append(response.Data, data)
-	}
-
-	return nil
-}
 
 func (p *Pipedrive) tokenApiCall(payload map[string]string) *Token {
 	data := url.Values{}
