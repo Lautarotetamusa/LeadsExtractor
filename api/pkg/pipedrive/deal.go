@@ -108,9 +108,10 @@ func (p *Pipedrive) updateDealCampaignMkt(deal *Deal, newMkt string) {
 }
 
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (*Deal, error) {
-	title := c.Propiedad.Titulo.String
-	if title == "" {
-		title = "Trato con " + c.Nombre
+	var title string
+
+	if c.Propiedad.Titulo.Valid {
+		title = fmt.Sprintf("%s / %s", c.Propiedad.Titulo.String, c.Fuente)
 	}
 
 	payload := map[string]interface{}{
@@ -125,6 +126,8 @@ func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId 
 	if mktCampaign, exists := findCampaignMkt(c.Message.String); exists {
 		p.logger.Debug("MKT Campaign found on message", "campaign", mktCampaign)
 		payload[customDealFields["campaign_mkt"]] = mktCampaign
+
+		payload["title"] = fmt.Sprintf("%s / %s", c.Nombre, mktCampaign)
 	}
 
 	var deal Deal

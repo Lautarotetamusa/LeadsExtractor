@@ -125,7 +125,14 @@ func (s *CommunicationService) SaveLead(c *models.Communication) (*models.Lead, 
 			AsesorPhone: c.Asesor.Phone,
 			Cotizacion:  c.Cotizacion,
 		})
-	} else if lead != nil { // Duplicated lead
+		if err != nil {
+			fmt.Printf("Error creating Lead: %#v\n", err)
+		}
+	} else { 
+		return nil, err // Another error
+	}
+
+	if lead != nil { // Duplicated lead
 		c.Asesor = lead.Asesor
 
 		updateLead := models.UpdateLead{
