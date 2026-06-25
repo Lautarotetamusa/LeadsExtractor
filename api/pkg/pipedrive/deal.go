@@ -110,7 +110,7 @@ func (p *Pipedrive) updateDealCampaignMkt(deal *Deal, newMkt string) {
 func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId uint32) (*Deal, error) {
 	var title string
 
-	if c.Propiedad.Titulo.Valid {
+	if c.Propiedad.Titulo.Valid && strings.Compare(c.Propiedad.Titulo.String, "") != 0 {
 		title = fmt.Sprintf("%s / %s", c.Propiedad.Titulo.String, c.Fuente)
 	}
 
@@ -128,6 +128,10 @@ func (p *Pipedrive) createDeal(c *models.Communication, userId uint32, personId 
 		payload[customDealFields["campaign_mkt"]] = mktCampaign
 
 		payload["title"] = fmt.Sprintf("%s / %s", c.Nombre, mktCampaign)
+	}
+
+	if payload["title"] == "" {
+		payload["title"] = c.Nombre
 	}
 
 	var deal Deal
