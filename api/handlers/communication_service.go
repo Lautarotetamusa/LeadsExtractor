@@ -113,8 +113,13 @@ func (s CommunicationService) getOrInsertProperty(c *models.Communication) (*mod
 func (s *CommunicationService) SaveLead(c *models.Communication) (*models.Lead, error) {
 	lead, err := s.Leads.GetOne(c.Telefono)
 
-	// The lead does not exists
-	if _, isStoreErr := err.(store.StoreError); isStoreErr {
+	if err != nil {
+		// Another error, not "lead not found"
+		if _, isStoreErr := err.(store.StoreError); !isStoreErr {
+			return nil, err
+		}
+
+		// The lead does not exists
 		c.IsNew = true
 		c.Asesor = *s.RoundRobin.Next()
 
@@ -128,8 +133,6 @@ func (s *CommunicationService) SaveLead(c *models.Communication) (*models.Lead, 
 		if err != nil {
 			fmt.Printf("Error creating Lead: %#v\n", err)
 		}
-	} else { 
-		return nil, err // Another error
 	}
 
 	if lead != nil { // Duplicated lead
