@@ -1,8 +1,3 @@
-
-    `utm_source` varchar(256) DEFAULT NULL,
-    `utm_medium` varchar(256) DEFAULT NULL,
-    `utm_campaign` varchar(256) DEFAULT NULL,   
-
 CREATE TABLE Utm (
     id int not null auto_increment,
     code varchar(64) not null,

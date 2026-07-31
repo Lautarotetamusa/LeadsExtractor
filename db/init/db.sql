@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS Property(
     url VARCHAR(256) DEFAULT NULL,
     tipo VARCHAR(32) DEFAULT NULL,
     
-    CHECK (portal_id IS NOT NULL AND portal_id != '')
+    CHECK (portal_id IS NOT NULL AND portal_id != ''),
 
     PRIMARY KEY (id)
 );

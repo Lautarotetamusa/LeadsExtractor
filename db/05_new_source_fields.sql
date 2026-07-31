@@ -8,4 +8,4 @@ alter table Communication
     add column utm_medium VARCHAR(256),
     add column utm_campaign VARCHAR(256),
     add column utm_ad VARCHAR(256),
-    add column utm_channel VARCHAR(256),
+    add column utm_channel VARCHAR(256);
