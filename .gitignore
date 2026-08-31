@@ -23,8 +23,8 @@ certs/
 mysql/
 
 #go API
-api/main
-api/*.json
+src/main
+src/*.json
 
 #Debug
 debug/grafana/*

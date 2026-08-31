@@ -1,0 +1,168 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"time"
+
+	"leadsextractor/flow"
+	"leadsextractor/handlers"
+	"leadsextractor/pkg"
+	"leadsextractor/pkg/email"
+	"leadsextractor/pkg/infobip"
+	"leadsextractor/pkg/pipedrive"
+	"leadsextractor/pkg/roundrobin"
+	"leadsextractor/pkg/whatsapp"
+	"leadsextractor/store"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+
+	"github.com/lmittmann/tint"
+
+)
+
+func main() {
+	ctx := context.Background()
+
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	logger := slog.New(
+		tint.NewHandler(os.Stdout, &tint.Options{
+			Level:      slog.LevelDebug,
+			TimeFormat: time.DateTime,
+		}),
+	)
+
+	db := store.ConnectDB(ctx)
+
+	if err := store.RunMigrations(db); err != nil {
+		log.Fatal("error aplicando migraciones: ", err)
+	}
+
+	infobipApi := infobip.NewInfobipApi(
+		os.Getenv("INFOBIP_APIURL"),
+		os.Getenv("INFOBIP_APIKEY"),
+		"5213328092850",
+		logger,
+	)
+
+	pipedriveConfig := pipedrive.Config{
+		ClientId:     os.Getenv("PIPEDRIVE_CLIENT_ID"),
+		ClientSecret: os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
+		ApiToken:     os.Getenv("PIPEDRIVE_API_TOKEN"),
+		RedirectURI:  os.Getenv("PIPEDRIVE_REDIRECT_URI"),
+	}
+	pipedriveApi := pipedrive.NewPipedrive(pipedriveConfig, logger)
+
+	wpp := whatsapp.NewWhatsapp(
+		os.Getenv("WHATSAPP_ACCESS_TOKEN"),
+		os.Getenv("WHATSAPP_NUMBER_ID"),
+		logger,
+	)
+
+	webhook := whatsapp.NewWebhook(
+		os.Getenv("WHATSAPP_VERIFY_TOKEN"),
+		logger,
+	)
+
+	// Stores
+	storer := store.NewStore(db)
+
+	leadStore := store.NewLeadStore(db)
+	utmStore := store.NewUTMStore(db)
+	commStore := store.NewCommStore(db)
+	asesorStore := store.NewAsesorDBStore(db)
+	sourceStore := store.NewSourceDBStore(db)
+
+	// Round Robin
+	asesores, err := asesorStore.GetAllActive()
+	if err != nil {
+		log.Fatal("No se pudo obtener la lista de asesores\nERROR: ", err.Error())
+	}
+	rr := roundrobin.New(asesores)
+
+	mailer := email.NewGraphMailer(email.Config{
+		ClientID:		os.Getenv("MS_CLIENT_ID"),
+		TenantID:		os.Getenv("MS_TENANT_ID"),
+		ClientSecret: 	os.Getenv("MS_CLIENT_SECRET"),
+		From:			"lautaro.teta@rbaresidences.com",
+	})
+
+	flowManager := flow.NewFlowManager("actions.json", storer, logger)
+	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore, mailer)
+	flowManager.MustLoad()
+
+	// Services
+	commsService := handlers.CommunicationService{
+		RoundRobin: rr,
+		Logger:     logger,
+		Flows:      *flowManager,
+		Store:      storer,
+
+		Source: sourceStore,
+		Utms:   utmStore,
+		Comms:  commStore,
+		Leads:  leadStore,
+	}
+	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
+
+	// Handlers
+	leadHandler := handlers.NewLeadHandler(leadStore)
+	utmHandler := handlers.NewUTMHandler(utmStore)
+	flowHandler := handlers.NewFlowHandler(flowManager, commStore)
+	commHandler := handlers.NewCommHandler(commsService)
+	asesorHandler := handlers.NewAsesorHandler(asesorService)
+
+	router := mux.NewRouter()
+	router.Use(CORS)
+
+	// Register routes
+	leadHandler.RegisterRoutes(router)
+	utmHandler.RegisterRoutes(router)
+	flowHandler.RegisterRoutes(router)
+	commHandler.RegisterRoutes(router)
+	asesorHandler.RegisterRoutes(router)
+
+	// Server
+	apiPort := os.Getenv("API_PORT")
+	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
+	server := pkg.NewServer(pkg.ServerOpts{
+		ListenAddr: host,
+		Logger:     logger,
+	})
+
+	go webhook.ConsumeEntries(commsService.NewCommunication)
+
+	aircall := pkg.NewAircall(commsService.NewCommunication, logger)
+	router.Handle("/aircall", aircall).Methods(http.MethodPost)
+
+	router.HandleFunc("/pipedrive", handlers.HandleErrors(pipedriveApi.HandleOAuth)).Methods(http.MethodGet)
+
+	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.ReciveNotificaction)).Methods(http.MethodPost)
+	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods(http.MethodGet)
+
+	server.Run(router)
+}
+
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, DELETE, POST, PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}

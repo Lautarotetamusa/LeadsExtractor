@@ -25,14 +25,16 @@ Sistema de gestión y automatización de leads inmobiliarios. Captura leads de m
 
 ## Descripción General
 
-LeadsExtractor automatiza el proceso de captación y seguimiento de leads inmobiliarios:
+LeadsExtractor es el conector entre las fuentes de leads (Portalia, WhatsApp, IVR) y los CRMs (Pipedrive, Infobip):
 
-- **Captura** leads desde portales inmobiliarios (scraping Python) y vía WhatsApp (webhook)
+- **Recibe** leads desde Portalia (portales inmobiliarios), WhatsApp (webhook) e IVR
 - **Deduplica** leads por número de teléfono
 - **Asigna** automáticamente leads a asesores mediante round-robin
 - **Automatiza comunicaciones** vía WhatsApp usando un motor de flujos configurable (conditions + delays + templates)
 - **Integra** con Pipedrive e Infobip como CRMs
 - **Reporta** estadísticas diarias automáticas a los asesores
+
+> La gestión de propiedades y portales inmobiliarios (publicación, imágenes, scraping) vive en [Portalia](../portalia), un proyecto separado. Este repo solo guarda un snapshot de la propiedad asociada a cada comunicación (tabla `Property`), recibido tal cual en el payload de `POST /communication`.
 
 ---
 
@@ -40,10 +42,11 @@ LeadsExtractor automatiza el proceso de captación y seguimiento de leads inmobi
 
 ```
 LeadsExtractor/
-├── api/                        # Backend principal en Go
+├── src/                        # Backend principal en Go
 │   ├── main.go                 # Punto de entrada
 │   ├── go.mod / go.sum
 │   ├── actions.json            # Definición de flujos (flows)
+│   ├── db/migrations/          # Migraciones SQL (goose, embebidas en el binario)
 │   ├── flow/                   # Motor de ejecución de flujos
 │   ├── handlers/               # HTTP handlers
 │   ├── models/                 # Structs de datos
@@ -54,11 +57,8 @@ LeadsExtractor/
 │       ├── pipedrive/          # Pipedrive CRM (OAuth + API)
 │       ├── infobip/            # Infobip mensajería
 │       ├── roundrobin/         # Asignación round-robin
-│       ├── jotform/            # Generación de cotizaciones PDF
 │       └── logs/               # Logging estructurado
-├── db/                         # Esquemas y migraciones SQL
-├── messages/                   # Plantillas de mensajes
-├── app/                        # Scrapers Python para portales
+├── db/                         # Bootstrap de Docker + utilidades SQL (no es el esquema)
 └── docker-compose.yml
 ```
 
@@ -67,7 +67,6 @@ LeadsExtractor/
 - **Base de datos**: MySQL (sqlx)
 - **Mensajería**: WhatsApp Cloud API (Meta Graph API v17.0)
 - **CRMs**: Pipedrive, Infobip
-- **Scraping**: Python
 - **Scheduler**: robfig/cron + atomicgo/schedule
 
 ---
@@ -97,7 +96,7 @@ LeadsExtractor/
 
 ## Variables de Entorno
 
-Crear `api/.env`:
+Crear `src/.env`:
 
 ```env
 # Base de datos
@@ -110,7 +109,6 @@ HOST=
 # Servidor
 API_PORT=8080
 API_HOST=
-APP_HOST=
 
 # WhatsApp Cloud API (Meta)
 WHATSAPP_ACCESS_TOKEN=
@@ -128,23 +126,6 @@ PIPEDRIVE_REDIRECT_URI=
 # Infobip
 INFOBIP_APIKEY=
 INFOBIP_APIURL=
-
-# JotForm (generación de cotizaciones PDF)
-JOTFORM_API_KEY=
-JOTFORM_FORM_ID=
-
-# Credenciales portales (scrapers Python)
-CASASYTERRENOS_USERNAME=
-CASASYTERRENOS_PASSWORD=
-INMUEBLES24_USERNAME=
-INMUEBLES24_PASSWORD=
-LAMUDI_USERNAME=
-LAMUDI_PASSWORD=
-PROPIEDADES_USERNAME=
-PROPIEDADES_PASSWORD=
-
-# OneDrive (almacenamiento de imágenes de propiedades)
-DRIVE_ID=
 
 # Cron de reportes diarios (sintaxis cron estándar)
 CRON="0 10-18/4 * * *"
@@ -168,7 +149,6 @@ type Communication struct {
     Telefono   PhoneNumber  // Teléfono del lead
     Email      NullString
     Utm        Utm          // Datos de tracking UTM
-    Cotizacion string       // URL del PDF de cotización generado
     Asesor     Asesor       // Asesor asignado
     Propiedad  Propiedad    // Propiedad de interés
     Busquedas  Busquedas    // Criterios de búsqueda del lead
@@ -184,11 +164,10 @@ Contacto único, deduplicado por número de teléfono.
 
 ```go
 type Lead struct {
-    Name       string
-    Phone      PhoneNumber
-    Email      NullString
-    Asesor     Asesor
-    Cotizacion string
+    Name   string
+    Phone  PhoneNumber
+    Email  NullString
+    Asesor Asesor
 }
 ```
 
@@ -207,7 +186,7 @@ type Asesor struct {
 
 ### Propiedad
 
-Inmueble de interés cuando el lead proviene de un portal.
+Snapshot del inmueble de interés cuando el lead proviene de un portal. Se recibe completo en el payload de `POST /communication` (lo arma Portalia) y se persiste íntegro en la tabla `Property`, aunque solo `PortalId`+`Portal` se usan para deduplicar.
 
 ```go
 type Propiedad struct {
@@ -279,13 +258,10 @@ type Source struct {
 | `Leads` | Leads únicos (deduplicados por teléfono) con asesor asignado |
 | `Communication` | Cada consulta/contacto recibido (muchas por lead) |
 | `Source` | Origen de cada comunicación |
-| `Property` | Propiedades inmobiliarias scraped de portales |
+| `Property` | Snapshot de la propiedad de interés recibido de Portalia por cada comunicación |
 | `Utm` | Definiciones de códigos UTM reconocibles |
 | `Message` | Texto de mensajes recibidos por WhatsApp |
 | `Action` | Historial de acciones ejecutadas por los flujos |
-| `Portal` | Metadatos de portales inmobiliarios |
-| `PropertyImages` | Imágenes de propiedades |
-| `PublishedProperty` | Estado de publicación de propiedades |
 
 **Relaciones clave:**
 ```
@@ -295,6 +271,26 @@ Communication → Message (si tiene mensaje de WhatsApp)
 Lead → Action (última acción ejecutada → define el próximo flujo)
 ```
 
+### Migraciones
+
+El esquema se gestiona con [goose](https://github.com/pressly/goose). Los archivos viven en `src/db/migrations/` (embebidos en el binario con `go:embed`) y se aplican automáticamente al arrancar el servicio (`store.RunMigrations` en `main.go`) — no hace falta correr nada a mano ni en local ni en producción.
+
+```shell
+cd src
+
+# instalar el CLI de goose (una vez)
+go install github.com/pressly/goose/v3/cmd/goose@v3.24.3
+
+# crear una migración nueva
+goose -dir db/migrations create nombre_descriptivo sql
+
+# ver el estado / aplicar a mano contra la DB de .env
+goose -dir db/migrations mysql "$DB_USER:$DB_PASS@tcp($HOST:$DB_PORT)/$DB_NAME" status
+goose -dir db/migrations mysql "$DB_USER:$DB_PASS@tcp($HOST:$DB_PORT)/$DB_NAME" up
+```
+
+`db/` en la raíz del repo (fuera de `src/`) solo tiene utilidades que no son parte del esquema versionado: `db/init/` (creación del usuario y la base vacía para Docker), `connect.sh`, `queries.sql` y `stats_query.sql`.
+
 ---
 
 ## Flujos (Flows)
@@ -303,7 +299,7 @@ El motor de flujos controla **qué mensajes enviar, cuándo y bajo qué condicio
 
 ### Estructura de un Flujo
 
-Los flujos se definen en `api/actions.json`:
+Los flujos se definen en `src/actions.json`:
 
 ```json
 {
@@ -376,7 +372,6 @@ Todos los campos son opcionales. Los que se especifiquen deben cumplirse simult�
 | `wpp.message` | Envía mensaje de texto plano por WhatsApp | `text` (soporta template Go) |
 | `wpp.template` | Envía template de WhatsApp aprobado por Meta | `name`, `language`, `components` |
 | `wpp.media` | Envía imagen o video | `image_id` o `video_id` (ID de Meta) |
-| `wpp.cotizacion` | Genera PDF de cotización vía JotForm y lo envía | — |
 | `wpp.send_message_asesor` | Notifica al asesor asignado con datos del lead | — |
 | `infobip.save` | Guarda/actualiza comunicación en Infobip | — |
 | `pipedrive.save` | Guarda/actualiza comunicación en Pipedrive | — |
@@ -394,7 +389,6 @@ Los parámetros de texto soportan la sintaxis de `text/template` de Go. Variable
 {{.Propiedad.Precio}}     → Precio de la propiedad
 {{.Propiedad.Ubicacion}}  → Ubicación de la propiedad
 {{.Propiedad.Link}}       → URL de la propiedad
-{{.Cotizacion}}           → URL del PDF de cotización
 {{.Utm.Source}}           → UTM source
 ```
 
@@ -638,7 +632,7 @@ Meta → POST /webhooks
 ### Flujo completo de ingesta
 
 ```
-[Portal scraper Python]  [WhatsApp webhook]  [POST /communication]
+[Portalia (portales)]    [WhatsApp webhook]  [POST /communication]
           └─────────────────────┴──────────────────┘
                                 ↓
               CommunicationService.NewCommunication(c)
@@ -722,12 +716,6 @@ Sincroniza el lead como contacto con atributos personalizados:
 - `prop_link`, `prop_precio`, `prop_ubicacion`, `prop_titulo`
 - `contacted`, `fuente`, `asesor_name`, `asesor_phone`, `fecha_lead`
 
-### JotForm (Cotizaciones)
-
-Acción: `wpp.cotizacion`
-
-Genera un PDF de cotización via JotForm API usando los datos del lead y lo envía como documento por WhatsApp.
-
 ### Reportes diarios
 
 Job configurado con la variable `CRON` que envía a los asesores estadísticas del período:
@@ -744,13 +732,13 @@ Job configurado con la variable `CRON` que envía a los asesores estadísticas d
 | `whatsapp` | Directo | Webhook WhatsApp Cloud API |
 | `ivr` | Directo | Integración telefónica IVR |
 | `viewphone` | Directo | Click en teléfono de portal |
-| `inmuebles24` | Portal | Scraper Python |
-| `lamudi` | Portal | Scraper Python |
-| `casasyterrenos` | Portal | Scraper Python |
-| `propiedades` | Portal | Scraper Python |
+| `inmuebles24` | Portal | Notificado por Portalia |
+| `lamudi` | Portal | Notificado por Portalia |
+| `casasyterrenos` | Portal | Notificado por Portalia |
+| `propiedades` | Portal | Notificado por Portalia |
 | `csv_file_{fecha}` | Importación | Carga manual vía `POST /communication/csv` |
 
-Los leads de portales incluyen datos de la propiedad de interés que se almacenan en la tabla `Property` y se vinculan a la comunicación via `Source`.
+Los leads de portales llegan desde Portalia con el snapshot completo de la propiedad de interés, que se almacena en la tabla `Property` y se vincula a la comunicación via `Source`.
 
 ---
 
@@ -767,23 +755,12 @@ docker compose up -d
 
 # Detener
 docker compose stop
-
-# Ejecutar un scraper específico manualmente
-docker compose run app python main.py <portal>
-# portales: casasyterrenos | propiedades | lamudi | inmuebles24
 ```
 
 ### Sin Docker
 
 ```shell
-# Scrapers Python
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python main.py <portal>
-
-# API Go
-cd api
+cd src
 go mod download
 go run main.go
 ```
