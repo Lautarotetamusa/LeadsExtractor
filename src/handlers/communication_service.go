@@ -7,7 +7,6 @@ import (
 	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/store"
 	"log/slog"
-	"slices"
 	"strings"
 )
 
@@ -15,21 +14,20 @@ type CommunicationService struct {
 	RoundRobin *roundrobin.RoundRobin[models.Asesor]
 	Logger     *slog.Logger
 
-	Leads  store.LeadStorer
-	Flows  flow.FlowManager
-	Utms   store.UTMStorer
-	Comms  store.CommunicationStorer
-	Source store.SourceStorer
-	Store  store.Storer
+	Leads      store.LeadStorer
+	Flows      flow.FlowManager
+	Utms       store.UTMStorer
+	Comms      store.CommunicationStorer
+	Properties store.PropertyStorer
+	Store      store.Storer
 }
 
 func (s CommunicationService) StoreCommunication(c *models.Communication) error {
-	source, err := s.getOrInsertSource(c)
-	if err != nil {
+	if err := s.attachProperty(c); err != nil {
 		return err
 	}
 
-	_, err = s.SaveLead(c)
+	_, err := s.SaveLead(c)
 	if err != nil {
 		return err
 	}
@@ -37,7 +35,7 @@ func (s CommunicationService) StoreCommunication(c *models.Communication) error 
 	s.findUtmInMessage(c)
 
 	// Insert the communication
-	if err = s.Comms.Insert(c, source); err != nil {
+	if err = s.Comms.Insert(c); err != nil {
 		s.Logger.Error(err.Error(), "path", "InsertCommunication")
 		return err
 	}
@@ -66,47 +64,28 @@ func (s CommunicationService) NewCommunication(c *models.Communication) error {
 	return nil
 }
 
-func (s CommunicationService) getOrInsertSource(c *models.Communication) (*models.Source, error) {
+// attachProperty resuelve la Property asociada a la comunicación cuando
+// viene de un portal (busca por portal_id+portal y la crea si no existe) y
+// deja c.Propiedad.ID seteado para que Comms.Insert la guarde en
+// Communication.property_id. Para whatsapp/ivr/viewphone no hace nada:
+// esas comunicaciones no tienen Property asociada.
+func (s CommunicationService) attachProperty(c *models.Communication) error {
 	if err := store.ValidateSource(c.Fuente); err != nil {
-		return nil, err
+		return err
 	}
 
-	if slices.Contains([]string{"whatsapp", "ivr", "viewphone"}, c.Fuente) {
-		return s.Source.GetSource(c.Fuente)
+	if !store.FuenteTienePropiedad(c.Fuente) {
+		return nil
 	}
 
-	property, err := s.getOrInsertProperty(c)
-	if err != nil {
-		return nil, err
+	property, _ := s.Properties.GetProperty(c.Propiedad.PortalId.String, c.Fuente)
+	if property != nil {
+		c.Propiedad.ID = property.ID
+		return nil
 	}
 
-	return s.Source.GetPropertySource(property.ID.Int32)
-}
-
-// If alredy exists a property with that portal_id in the db, retrieves its
-// otherwise, creates a new property and insert a source with the generated prop id
-func (s CommunicationService) getOrInsertProperty(c *models.Communication) (*models.Propiedad, error) {
-	property, err := s.Source.GetProperty(c.Propiedad.PortalId.String, c.Fuente)
-
-	// If the property doesnt exists, create it
-	if property == nil {
-		c.Propiedad.Portal = c.Fuente
-		property = &c.Propiedad
-
-		// Insert the property and get the property db auto generated id
-		err = s.Source.InsertProperty(property)
-		if err != nil {
-			return nil, err
-		}
-
-		// Insert the source with the generated id
-		err = s.Source.InsertSource(int(property.ID.Int32))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return property, err
+	c.Propiedad.Portal = c.Fuente
+	return s.Properties.InsertProperty(&c.Propiedad)
 }
 
 // saveLead get the lead with phone c.Telefono in case that exists, otherwise creates one

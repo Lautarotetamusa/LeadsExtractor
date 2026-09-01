@@ -80,7 +80,7 @@ func main() {
 	utmStore := store.NewUTMStore(db)
 	commStore := store.NewCommStore(db)
 	asesorStore := store.NewAsesorDBStore(db)
-	sourceStore := store.NewSourceDBStore(db)
+	propertyStore := store.NewPropertyDBStore(db)
 
 	// Round Robin
 	asesores, err := asesorStore.GetAllActive()
@@ -107,10 +107,10 @@ func main() {
 		Flows:      *flowManager,
 		Store:      storer,
 
-		Source: sourceStore,
-		Utms:   utmStore,
-		Comms:  commStore,
-		Leads:  leadStore,
+		Properties: propertyStore,
+		Utms:       utmStore,
+		Comms:      commStore,
+		Leads:      leadStore,
 	}
 	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
 

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"database/sql"
 	"fmt"
 	"leadsextractor/models"
 	"strings"
@@ -10,7 +11,7 @@ import (
 )
 
 type CommunicationStorer interface {
-	Insert(c *models.Communication, source *models.Source) error
+	Insert(c *models.Communication) error
 	// Get all with pagination
 	GetAll(params *QueryParam) ([]models.Communication, error)
 	GetDistinct(params *QueryParam) ([]models.Communication, error)
@@ -43,7 +44,7 @@ func NewCommStore(db *sqlx.DB) *CommunicationStore {
 }
 
 var fields = []string{
-	"lead_phone", "source_id", "new_lead", "lead_date", "utm_source",
+	"lead_phone", "fuente", "property_id", "new_lead", "lead_date", "utm_source",
 	"utm_medium", "utm_campaign", "utm_ad", "utm_channel",
 	"url", "zones", "mt2_terrain", "mt2_builded", "baths", "rooms",
 }
@@ -53,10 +54,11 @@ var insertQuery string = fmt.Sprintf(
 	strings.Join(fields, ", "), strings.Join(fields, ", :"),
 )
 
-func (s *CommunicationStore) Insert(c *models.Communication, source *models.Source) error {
+func (s *CommunicationStore) Insert(c *models.Communication) error {
 	res, err := s.db.NamedExec(insertQuery, map[string]interface{}{
 		"lead_phone":   c.Telefono,
-		"source_id":    source.Id,
+		"fuente":       c.Fuente,
+		"property_id":  sql.NullInt32(c.Propiedad.ID),
 		"new_lead":     c.IsNew,
 		"lead_date":    c.FechaLead,
 		"utm_source":   c.Utm.Source,
@@ -147,17 +149,13 @@ func (s *CommunicationStore) Exists(params *QueryParam) bool {
 
 func (s *CommunicationStore) GetCommunicationStats(start time.Time, end time.Time) ([]*DailyStatsRow, error) {
     query := `
-        select 
+        select
 			count(*) as count,
-			new_lead, 
+			new_lead,
 			utm_source,
 			utm_campaign,
-			IF(S.type = "property", P.portal, S.type) as source 
+			fuente as source
         FROM Communication C
-        INNER JOIN Source S
-            ON C.source_id = S.id
-        LEFT JOIN Property P
-            ON S.property_id = P.id
         WHERE created_at BETWEEN ? AND ?
         group by source, utm_source, utm_campaign, new_lead;
     `;

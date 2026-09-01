@@ -51,7 +51,7 @@ const mockComm = `{
     }
 }`
 
-func (s *MockCommStorer) Insert(c *models.Communication, source *models.Source) error {
+func (s *MockCommStorer) Insert(c *models.Communication) error {
 	return nil
 }
 

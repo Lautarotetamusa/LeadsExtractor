@@ -1,15 +1,8 @@
 package models
 
 import (
-	"database/sql"
 	"leadsextractor/pkg/numbers"
 )
-
-type Source struct {
-	Id         int           `db:"id"`
-	Tipo       string        `db:"type"`
-	PropertyId sql.NullInt16 `db:"property_id"`
-}
 
 type Propiedad struct {
 	ID        NullInt32  `json:"-"          db:"id" ` // Lo hacemos null porque en el left join puede no traer

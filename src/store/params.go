@@ -13,7 +13,7 @@ type QueryParam struct {
 	DateTo      time.Time `schema:"fecha_to"    json:"fecha_to,omitempty,omitzero" db:"dateTo" select:"C.created_at"`
 	AsesorPhone string    `schema:"asesor_phone" json:"asesor_phone,omitempty" db:"asesorPhone" select:"A.phone"`
 	AsesorName  string    `schema:"asesor_name" json:"asesor_name,omitempty" db:"asesorName" select:"A.name"`
-	Fuente      string    `schema:"fuente"      json:"fuente,omitempty" db:"fuente" select:"IF(S.type = 'property', P.portal, S.type)"`
+	Fuente      string    `schema:"fuente"      json:"fuente,omitempty" db:"fuente" select:"C.fuente"`
 	Nombre      string    `schema:"nombre"      json:"nombre,omitempty" db:"nombre" select:"L.name"`
 	Telefono    string    `schema:"telefono"    json:"telefono,omitempty" db:"telefono" select:"L.phone"`
 	IsNew       *bool     `schema:"is_new"      json:"is_new,omitempty" db:"isNew" select:"C.new_lead"`
@@ -57,8 +57,8 @@ SELECT
     utm_campaign as "utm.utm_campaign",
     utm_channel as "utm.utm_channel",
     utm_ad as "utm.utm_ad",
-    IF(S.type = "property", P.portal, S.type) as "fuente",
-    L.name, 
+    C.fuente as "fuente",
+    L.name,
     C.url, 
     L.phone,
     L.email,
@@ -80,12 +80,10 @@ const joinQuery = `
 FROM Communication C
 INNER JOIN Leads L
     ON C.lead_phone = L.phone
-INNER JOIN Source S
-    ON C.source_id = S.id
 INNER JOIN Asesor A
     ON L.asesor = A.phone
 LEFT JOIN Property P
-    ON S.property_id = P.id
+    ON C.property_id = P.id
 LEFT Join Message M
     ON M.id_communication = C.id
 `

@@ -236,18 +236,6 @@ type UtmDefinition struct {
 }
 ```
 
-### Source
-
-Origen específico de una comunicación. Puede ser genérico (whatsapp, ivr) o estar ligado a una propiedad de un portal.
-
-```go
-type Source struct {
-    Id         int
-    Tipo       string        // "whatsapp", "ivr", "property", etc.
-    PropertyId sql.NullInt16 // Referencia a Property si Tipo="property"
-}
-```
-
 ---
 
 ## Esquema de Base de Datos
@@ -256,8 +244,7 @@ type Source struct {
 |-------|-------------|
 | `Asesor` | Asesores de ventas |
 | `Leads` | Leads únicos (deduplicados por teléfono) con asesor asignado |
-| `Communication` | Cada consulta/contacto recibido (muchas por lead) |
-| `Source` | Origen de cada comunicación |
+| `Communication` | Cada consulta/contacto recibido (muchas por lead). `fuente` y `property_id` viven acá directamente |
 | `Property` | Snapshot de la propiedad de interés recibido de Portalia por cada comunicación |
 | `Utm` | Definiciones de códigos UTM reconocibles |
 | `Message` | Texto de mensajes recibidos por WhatsApp |
@@ -266,10 +253,12 @@ type Source struct {
 **Relaciones clave:**
 ```
 Communication → Lead → Asesor
-Communication → Source → Property (si Source.Tipo = "property")
+Communication → Property (nullable; solo si fuente es un portal)
 Communication → Message (si tiene mensaje de WhatsApp)
 Lead → Action (última acción ejecutada → define el próximo flujo)
 ```
+
+> Hasta la migración `00002` existía una tabla `Source` intermedia entre `Communication` y `Property` que hacía de doble propósito confuso (fila fija reusada para whatsapp/ivr/viewphone vs. fila 1-a-1 por propiedad, con `fuente` calculado en cada query vía `IF(...)`). Se eliminó: `Communication.fuente` guarda ahora el valor real y `Communication.property_id` es un FK nullable directo — sin cambiar el JSON de `POST /communication`.
 
 ### Migraciones
 
@@ -640,12 +629,13 @@ Meta → POST /webhooks
                     ┌─────────────────────────┐
                     │    StoreCommunication   │
                     │                         │
-                    │  1. getOrInsertSource() │
-                    │     ├─ whatsapp/ivr:    │
-                    │     │  source existente │
+                    │  1. attachProperty()    │
+                    │     ├─ whatsapp/ivr/    │
+                    │     │  viewphone: nada  │
                     │     └─ portal:          │
                     │        get/insert       │
-                    │        Property+Source  │
+                    │        Property, setea  │
+                    │        c.Propiedad.ID   │
                     │                         │
                     │  2. SaveLead()          │
                     │     ├─ ¿existe phone?   │
@@ -738,7 +728,7 @@ Job configurado con la variable `CRON` que envía a los asesores estadísticas d
 | `propiedades` | Portal | Notificado por Portalia |
 | `csv_file_{fecha}` | Importación | Carga manual vía `POST /communication/csv` |
 
-Los leads de portales llegan desde Portalia con el snapshot completo de la propiedad de interés, que se almacena en la tabla `Property` y se vincula a la comunicación via `Source`.
+Los leads de portales llegan desde Portalia con el snapshot completo de la propiedad de interés, que se almacena en la tabla `Property` y se vincula directo desde `Communication.property_id`.
 
 ---
 

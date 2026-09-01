@@ -46,7 +46,7 @@ var (
 func TestMain(t *testing.M) {
 	leadStore = mocks.MockLeadStorer{}
 	utmStore = mocks.MockUTMStorer{}
-	sourceStore := mocks.MockSourceStorer{}
+	propertyStore := mocks.MockPropertyStorer{}
 	asesorStore = *mocks.NewMockAsesorStore()
 
 	leadStore.Mock()
@@ -63,7 +63,7 @@ func TestMain(t *testing.M) {
 		Logger:     slog.Default(),
 		Leads:      &leadStore,
 		Utms:       &utmStore,
-		Source:     &sourceStore,
+		Properties: &propertyStore,
 	}
 
 	leadHandler = handlers.NewLeadHandler(&leadStore)

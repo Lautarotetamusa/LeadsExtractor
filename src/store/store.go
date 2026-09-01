@@ -6,9 +6,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// insertOrGetProperty(c *models.Communication) (*models.Propiedad, error)
-// GetSource(c *models.Communication) (*models.Source, error)
-
 type Storer interface {
 	// Message storer
 	InsertMessage(*Message) error
