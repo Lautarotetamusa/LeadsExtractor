@@ -8,12 +8,13 @@ import (
 	"leadsextractor/mocks"
 	"leadsextractor/models"
 	"leadsextractor/pkg/roundrobin"
-	"log/slog"
+	"leadsextractor/service"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,21 +33,17 @@ type APITestCase struct {
 var (
 	utmHandler    *handlers.UTMHandler
 	leadHandler   *handlers.LeadHandler
-	commHandler   *handlers.CommunicationHandler
 	asesorHandler *handlers.AsesorHandler
 
 	leadStore   mocks.MockLeadStorer
 	utmStore    mocks.MockUTMStorer
 	asesorStore mocks.MockAsesorStorer
 	rr          *roundrobin.RoundRobin[models.Asesor]
-
-	commService *handlers.CommunicationService
 )
 
 func TestMain(t *testing.M) {
 	leadStore = mocks.MockLeadStorer{}
 	utmStore = mocks.MockUTMStorer{}
-	propertyStore := mocks.MockPropertyStorer{}
 	asesorStore = *mocks.NewMockAsesorStore()
 
 	leadStore.Mock()
@@ -56,18 +53,14 @@ func TestMain(t *testing.M) {
 	asesores, _ := asesorStore.GetAll()
 	rr = roundrobin.New(asesores)
 
-	asesorService := handlers.NewAsesorService(&asesorStore, &leadStore, rr)
+	validate := validator.New(validator.WithRequiredStructEnabled())
 
-	commService = &handlers.CommunicationService{
-		RoundRobin: rr,
-		Logger:     slog.Default(),
-		Leads:      &leadStore,
-		Utms:       &utmStore,
-		Properties: &propertyStore,
-	}
+	asesorService := service.NewAsesorService(&asesorStore, &leadStore, rr, validate)
+	leadService := service.NewLeadService(&leadStore, validate)
+	utmService := service.NewUTMService(&utmStore)
 
-	leadHandler = handlers.NewLeadHandler(&leadStore)
-	utmHandler = handlers.NewUTMHandler(&utmStore)
+	leadHandler = handlers.NewLeadHandler(leadService)
+	utmHandler = handlers.NewUTMHandler(utmService)
 	asesorHandler = handlers.NewAsesorHandler(asesorService)
 
 	t.Run()

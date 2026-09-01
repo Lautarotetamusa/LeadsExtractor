@@ -46,12 +46,15 @@ LeadsExtractor/
 │   ├── main.go                 # Punto de entrada
 │   ├── go.mod / go.sum
 │   ├── actions.json            # Definición de flujos (flows)
+│   ├── bootstrap/               # Arma DB/clientes/stores una sola vez (usan main.go y cmd/reporter)
 │   ├── db/migrations/          # Migraciones SQL (goose, embebidas en el binario)
 │   ├── flow/                   # Motor de ejecución de flujos
-│   ├── handlers/               # HTTP handlers
+│   ├── handlers/               # Adaptadores HTTP: decodifican, llaman a service, codifican
+│   ├── service/                 # Lógica de negocio (no conoce net/http)
 │   ├── models/                 # Structs de datos
 │   ├── store/                  # Capa de base de datos (MySQL)
 │   ├── middleware/             # Middleware HTTP
+│   ├── cmd/reporter/            # Binario de cron: reporte diario
 │   └── pkg/
 │       ├── whatsapp/           # WhatsApp Cloud API (Meta)
 │       ├── pipedrive/          # Pipedrive CRM (OAuth + API)
@@ -67,7 +70,7 @@ LeadsExtractor/
 - **Base de datos**: MySQL (sqlx)
 - **Mensajería**: WhatsApp Cloud API (Meta Graph API v17.0)
 - **CRMs**: Pipedrive, Infobip
-- **Scheduler**: robfig/cron + atomicgo/schedule
+- **Scheduler**: cron del sistema (`crontab.sh`) para el reporte diario + atomicgo/schedule para delays de flows
 
 ---
 
@@ -85,7 +88,7 @@ LeadsExtractor/
 | `gorilla/mux` | Routing HTTP |
 | `jmoiron/sqlx` | SQL + named queries |
 | `google/uuid` | Generación de UUIDs |
-| `robfig/cron` | Reportes programados |
+| `pressly/goose` | Migraciones de base de datos |
 | `atomicgo.dev/schedule` | Delays en acciones de flujos |
 | `nyaruka/phonenumbers` | Parseo y validación de teléfonos |
 | `go-playground/validator` | Validación de structs |
@@ -696,7 +699,7 @@ Acción: `pipedrive.save`
 3. Busca o crea un Deal para esa persona y asesor
 4. Agrega notas con datos de la comunicación
 
-Requiere OAuth. Flujo de autorización: `GET /pipedrive/auth` → login Pipedrive → `GET /pipedrive/callback`
+Requiere OAuth. Flujo de autorización: `GET /pipedrive/auth` → login Pipedrive → `GET /pipedrive/callback`. El token queda en `src/{PIPEDRIVE_CLIENT_ID}.json` (gitignoreado, no viaja con el deploy) y se refresca en el mismo archivo — por eso está bind-mounteado en `docker-compose.yml` igual que `actions.json`. Si el archivo no existe todavía en el servidor, hay que autorizar la app una vez desde `/pipedrive/auth` después de crear el archivo vacío (o copiarlo desde un deploy anterior).
 
 ### Infobip
 

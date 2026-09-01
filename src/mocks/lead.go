@@ -70,6 +70,7 @@ func (s *MockLeadStorer) UpdateAsesor(phone numbers.PhoneNumber, a *models.Aseso
 	for i, lead := range s.leads {
 		if lead.Phone == phone {
 			s.leads[i].Asesor = *a
+			return nil
 		}
 	}
 	return store.NewErr("not found", store.StoreNotFoundErr)

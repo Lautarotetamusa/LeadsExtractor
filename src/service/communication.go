@@ -1,4 +1,4 @@
-package handlers
+package service
 
 import (
 	"fmt"
@@ -20,6 +20,14 @@ type CommunicationService struct {
 	Comms      store.CommunicationStorer
 	Properties store.PropertyStorer
 	Store      store.Storer
+}
+
+func (s CommunicationService) GetAll(params *store.QueryParam) ([]models.Communication, error) {
+	return s.Comms.GetAll(params)
+}
+
+func (s CommunicationService) Count(params *store.QueryParam) (int, error) {
+	return s.Comms.Count(params)
 }
 
 func (s CommunicationService) StoreCommunication(c *models.Communication) error {

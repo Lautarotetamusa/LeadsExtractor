@@ -33,6 +33,12 @@ services:
     network_mode: "host"
     volumes:
       - ./src/actions.json:/go/app/src/actions.json
+      # Token OAuth de Pipedrive: la app lo reescribe en cada refresh
+      # (pkg/pipedrive/api.go). Sin este mount, el refresh se pierde en cada
+      # deploy y hay que re-autorizar la app. El archivo debe existir en el
+      # host antes del primer `docker compose up` (si no, Docker lo crea
+      # como directorio y el mount falla).
+      - ./src/${PIPEDRIVE_CLIENT_ID}.json:/go/app/src/${PIPEDRIVE_CLIENT_ID}.json
 
 volumes:
   metabase_data:

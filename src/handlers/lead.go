@@ -2,21 +2,22 @@ package handlers
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
-	"leadsextractor/store"
-	"net/http"
+	"leadsextractor/service"
 
 	"github.com/gorilla/mux"
 )
 
 type LeadHandler struct {
-	storer store.LeadStorer
+	service *service.LeadService
 }
 
-func NewLeadHandler(s store.LeadStorer) *LeadHandler {
+func NewLeadHandler(s *service.LeadService) *LeadHandler {
 	return &LeadHandler{
-		storer: s,
+		service: s,
 	}
 }
 
@@ -30,7 +31,7 @@ func (h LeadHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *LeadHandler) GetAll(w http.ResponseWriter, r *http.Request) error {
-	leads, err := h.storer.GetAll()
+	leads, err := h.service.GetAll()
 	if err != nil {
 		return err
 	}
@@ -45,7 +46,7 @@ func (h *LeadHandler) GetOne(w http.ResponseWriter, r *http.Request) error {
 		return ErrBadRequest(err.Error())
 	}
 
-	lead, err := h.storer.GetOne(*phone)
+	lead, err := h.service.GetOne(*phone)
 	if err != nil {
 		return err
 	}
@@ -61,11 +62,7 @@ func (h *LeadHandler) Insert(w http.ResponseWriter, r *http.Request) error {
 		return jsonErr(err)
 	}
 
-	if err = validate.Struct(createLead); err != nil {
-		return ErrBadRequest(err.Error())
-	}
-
-	lead, err := h.storer.Insert(&createLead)
+	lead, err := h.service.Insert(&createLead)
 	if err != nil {
 		return err
 	}
@@ -80,34 +77,16 @@ func (h *LeadHandler) Update(w http.ResponseWriter, r *http.Request) error {
 		return ErrBadRequest(err.Error())
 	}
 
-	lead, err := h.storer.GetOne(*phone)
-	if err != nil {
-		return err
-	}
-
 	var updateLead models.UpdateLead
 	if err := json.NewDecoder(r.Body).Decode(&updateLead); err != nil {
 		return jsonErr(err)
 	}
 
-	updateLeadsFields(lead, updateLead)
-	if err := validate.Struct(lead); err != nil {
-		return ErrBadRequest(err.Error())
-	}
-
-	if err := h.storer.Update(lead); err != nil {
+	lead, err := h.service.Update(*phone, updateLead)
+	if err != nil {
 		return err
 	}
 
 	createdResponse(w, "Lead actualizado correctamente", lead)
 	return nil
-}
-
-func updateLeadsFields(lead *models.Lead, update models.UpdateLead) {
-	if update.Name != "" {
-		lead.Name = update.Name
-	}
-	if update.Email.Valid {
-		lead.Email = update.Email
-	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"leadsextractor/middleware"
 	"leadsextractor/models"
+	"leadsextractor/service"
 	"leadsextractor/store"
 	"net/http"
 	"reflect"
@@ -16,12 +17,12 @@ import (
 )
 
 type CommunicationHandler struct {
-	service CommunicationService
+	service service.CommunicationService
 }
 
 const maxUploadCsvComms = 200
 
-func NewCommHandler(s CommunicationService) *CommunicationHandler {
+func NewCommHandler(s service.CommunicationService) *CommunicationHandler {
 	return &CommunicationHandler{
 		service: s,
 	}
@@ -55,12 +56,12 @@ func (h CommunicationHandler) GetAll(w http.ResponseWriter, r *http.Request) err
 		return err
 	}
 
-	communications, err := h.service.Comms.GetAll(&params)
+	communications, err := h.service.GetAll(&params)
 	if err != nil {
 		return err
 	}
 
-	count, err = h.service.Comms.Count(&params)
+	count, err = h.service.Count(&params)
 	if err != nil {
 		return err
 	}

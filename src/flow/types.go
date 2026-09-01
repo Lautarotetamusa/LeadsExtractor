@@ -56,8 +56,12 @@ type FlowManager struct {
 	storer   *store.Store
 }
 
-// Son las acciones permitidas
-var actions map[string]ActionDefinition
+// Son las acciones permitidas. Es un registro a nivel de proceso (no de
+// FlowManager) porque Action.UnmarshalJSON necesita resolver el ParamType de
+// cada acción sin tener forma de recibir un *FlowManager: encoding/json no
+// pasa contexto a los UnmarshalJSON. DefineActions debe llamarse una sola
+// vez al arrancar el proceso, antes de cargar cualquier flow.
+var actions = make(map[string]ActionDefinition)
 
 func DefineAction(name string, f ActionFunc, t reflect.Type) {
 	actions[name] = ActionDefinition{
@@ -67,7 +71,6 @@ func DefineAction(name string, f ActionFunc, t reflect.Type) {
 }
 
 func NewFlowManager(filename string, s *store.Store, l *slog.Logger) *FlowManager {
-	actions = make(map[string]ActionDefinition)
 	return &FlowManager{
 		filename: filename,
 		logger:   l.With("module", "flow"),

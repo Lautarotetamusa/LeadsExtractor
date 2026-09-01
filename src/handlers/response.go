@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"leadsextractor/service"
 	"leadsextractor/store"
 
 	"log/slog"
@@ -100,6 +101,8 @@ func HandleErrors(fn HandlerErrorFn) HandlerFn {
 			if !isApiErr {
 				if storeErr, isStoreErr := err.(store.StoreError); isStoreErr {
 					apiErr = store2APIErr(storeErr)
+				} else if validationErr, isValidationErr := err.(service.ValidationError); isValidationErr {
+					apiErr = ErrBadRequest(validationErr.Error())
 				} else {
 					apiErr = ErrInternal
 				}

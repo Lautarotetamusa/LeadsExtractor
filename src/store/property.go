@@ -42,7 +42,7 @@ var fuentesSinPropiedad = []string{"whatsapp", "ivr", "viewphone"}
 
 func ValidateSource(source string) error {
 	if !slices.Contains(validSources, source) {
-		return fmt.Errorf("source its not valid, must be one of (%s)", strings.Join(validSources, ", "))
+		return fmt.Errorf("source %q its not valid, must be one of (%s)", source, strings.Join(validSources, ", "))
 	}
 	return nil
 }

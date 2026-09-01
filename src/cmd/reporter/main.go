@@ -4,15 +4,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"leadsextractor/handlers"
-	"leadsextractor/mocks"
-	"leadsextractor/pkg/email"
-	"leadsextractor/pkg/whatsapp"
-	"leadsextractor/store"
 	"log"
 	"log/slog"
 	"os"
 	"strings"
+
+	"leadsextractor/bootstrap"
+	"leadsextractor/mocks"
+	"leadsextractor/pkg/email"
+	"leadsextractor/pkg/whatsapp"
+	"leadsextractor/service"
+	"leadsextractor/store"
 
 	"github.com/joho/godotenv"
 )
@@ -23,34 +25,38 @@ func main() {
 	flag.Parse()
 
 	ctx := context.Background()
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	logger := slog.Default()
 
 	var commStore store.CommunicationStorer
+	var wa *whatsapp.Whatsapp
+	var mailer email.Sender
+
 	if *useMock {
+		if err := godotenv.Load("../.env"); err != nil {
+			log.Fatal("Error loading .env file")
+		}
 		commStore = &mocks.MockCommStorer{}
+		wa = whatsapp.NewWhatsapp(
+			os.Getenv("WHATSAPP_ACCESS_TOKEN"),
+			os.Getenv("WHATSAPP_NUMBER_ID"),
+			slog.Default(),
+		)
+		mailer = email.NewGraphMailer(email.Config{
+			ClientID:     os.Getenv("MS_CLIENT_ID"),
+			TenantID:     os.Getenv("MS_TENANT_ID"),
+			ClientSecret: os.Getenv("MS_CLIENT_SECRET"),
+			From:         "lautaro.teta@rbaresidences.com",
+		})
 	} else {
-		db := store.ConnectDB(ctx)
-		commStore = store.NewCommStore(db)
+		app, err := bootstrap.NewApp(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		commStore = app.CommStore
+		wa = app.Whatsapp
+		mailer = app.Mailer
 	}
 
-	wa := whatsapp.NewWhatsapp(
-		os.Getenv("WHATSAPP_ACCESS_TOKEN"),
-		os.Getenv("WHATSAPP_NUMBER_ID"),
-		logger,
-	)
-
-	mailer := email.NewGraphMailer(email.Config{
-		ClientID:     os.Getenv("MS_CLIENT_ID"),
-		TenantID:     os.Getenv("MS_TENANT_ID"),
-		ClientSecret: os.Getenv("MS_CLIENT_SECRET"),
-		From:         "lautaro.teta@rbaresidences.com",
-	})
-
-	reportService := handlers.NewReportService(commStore, wa, mailer)
+	reportService := service.NewReportService(commStore, wa, mailer)
 
 	reportNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), ";")
 	fmt.Println(reportNumbers)

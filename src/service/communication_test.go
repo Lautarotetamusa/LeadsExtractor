@@ -1,15 +1,40 @@
-package handlers_test
+package service_test
 
 import (
+	"leadsextractor/mocks"
 	"leadsextractor/models"
 	"leadsextractor/pkg/numbers"
+	"leadsextractor/pkg/roundrobin"
+	"leadsextractor/service"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetOrInsert(t *testing.T) {
-	// new lead
+func newTestCommService() *service.CommunicationService {
+	leadStore := &mocks.MockLeadStorer{}
+	leadStore.Mock()
+
+	asesorStore := mocks.NewMockAsesorStore()
+	asesorStore.Mock()
+	asesores, _ := asesorStore.GetAll()
+	rr := roundrobin.New(asesores)
+
+	return &service.CommunicationService{
+		RoundRobin: rr,
+		Logger:     slog.Default(),
+		Leads:      leadStore,
+		Utms:       &mocks.MockUTMStorer{},
+		Properties: &mocks.MockPropertyStorer{},
+	}
+}
+
+// Prueba de servicio: no pasa por HTTP, ni por un router, solo ejercita la
+// lógica de negocio de dedup de leads con stores mockeados.
+func TestSaveLead(t *testing.T) {
+	commService := newTestCommService()
+
 	c := &models.Communication{
 		Fuente:    "inmuebles24",
 		FechaLead: "2024-04-07",

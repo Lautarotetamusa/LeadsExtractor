@@ -4,120 +4,56 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
+	"leadsextractor/bootstrap"
 	"leadsextractor/flow"
 	"leadsextractor/handlers"
 	"leadsextractor/pkg"
-	"leadsextractor/pkg/email"
-	"leadsextractor/pkg/infobip"
-	"leadsextractor/pkg/pipedrive"
-	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/pkg/whatsapp"
-	"leadsextractor/store"
+	"leadsextractor/service"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
-
-	"github.com/lmittmann/tint"
-
 )
 
 func main() {
 	ctx := context.Background()
 
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatal("Error loading .env file")
+	app, err := bootstrap.NewApp(ctx)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	logger := slog.New(
-		tint.NewHandler(os.Stdout, &tint.Options{
-			Level:      slog.LevelDebug,
-			TimeFormat: time.DateTime,
-		}),
-	)
-
-	db := store.ConnectDB(ctx)
-
-	if err := store.RunMigrations(db); err != nil {
-		log.Fatal("error aplicando migraciones: ", err)
-	}
-
-	infobipApi := infobip.NewInfobipApi(
-		os.Getenv("INFOBIP_APIURL"),
-		os.Getenv("INFOBIP_APIKEY"),
-		"5213328092850",
-		logger,
-	)
-
-	pipedriveConfig := pipedrive.Config{
-		ClientId:     os.Getenv("PIPEDRIVE_CLIENT_ID"),
-		ClientSecret: os.Getenv("PIPEDRIVE_CLIENT_SECRET"),
-		ApiToken:     os.Getenv("PIPEDRIVE_API_TOKEN"),
-		RedirectURI:  os.Getenv("PIPEDRIVE_REDIRECT_URI"),
-	}
-	pipedriveApi := pipedrive.NewPipedrive(pipedriveConfig, logger)
-
-	wpp := whatsapp.NewWhatsapp(
-		os.Getenv("WHATSAPP_ACCESS_TOKEN"),
-		os.Getenv("WHATSAPP_NUMBER_ID"),
-		logger,
-	)
 
 	webhook := whatsapp.NewWebhook(
 		os.Getenv("WHATSAPP_VERIFY_TOKEN"),
-		logger,
+		app.Logger,
 	)
 
-	// Stores
-	storer := store.NewStore(db)
-
-	leadStore := store.NewLeadStore(db)
-	utmStore := store.NewUTMStore(db)
-	commStore := store.NewCommStore(db)
-	asesorStore := store.NewAsesorDBStore(db)
-	propertyStore := store.NewPropertyDBStore(db)
-
-	// Round Robin
-	asesores, err := asesorStore.GetAllActive()
-	if err != nil {
-		log.Fatal("No se pudo obtener la lista de asesores\nERROR: ", err.Error())
-	}
-	rr := roundrobin.New(asesores)
-
-	mailer := email.NewGraphMailer(email.Config{
-		ClientID:		os.Getenv("MS_CLIENT_ID"),
-		TenantID:		os.Getenv("MS_TENANT_ID"),
-		ClientSecret: 	os.Getenv("MS_CLIENT_SECRET"),
-		From:			"lautaro.teta@rbaresidences.com",
-	})
-
-	flowManager := flow.NewFlowManager("actions.json", storer, logger)
-	flow.DefineActions(wpp, pipedriveApi, infobipApi, leadStore, mailer)
+	flowManager := flow.NewFlowManager("actions.json", app.Store, app.Logger)
+	flow.DefineActions(app.Whatsapp, app.Pipedrive, app.Infobip, app.LeadStore, app.Mailer)
 	flowManager.MustLoad()
 
 	// Services
-	commsService := handlers.CommunicationService{
-		RoundRobin: rr,
-		Logger:     logger,
+	commsService := service.CommunicationService{
+		RoundRobin: app.RoundRobin,
+		Logger:     app.Logger,
 		Flows:      *flowManager,
-		Store:      storer,
+		Store:      app.Store,
 
-		Properties: propertyStore,
-		Utms:       utmStore,
-		Comms:      commStore,
-		Leads:      leadStore,
+		Properties: app.PropertyStore,
+		Utms:       app.UtmStore,
+		Comms:      app.CommStore,
+		Leads:      app.LeadStore,
 	}
-	asesorService := handlers.NewAsesorService(asesorStore, leadStore, rr)
+	asesorService := service.NewAsesorService(app.AsesorStore, app.LeadStore, app.RoundRobin, app.Validate)
+	utmService := service.NewUTMService(app.UtmStore)
+	leadService := service.NewLeadService(app.LeadStore, app.Validate)
 
 	// Handlers
-	leadHandler := handlers.NewLeadHandler(leadStore)
-	utmHandler := handlers.NewUTMHandler(utmStore)
-	flowHandler := handlers.NewFlowHandler(flowManager, commStore)
+	leadHandler := handlers.NewLeadHandler(leadService)
+	utmHandler := handlers.NewUTMHandler(utmService)
+	flowHandler := handlers.NewFlowHandler(flowManager, app.CommStore)
 	commHandler := handlers.NewCommHandler(commsService)
 	asesorHandler := handlers.NewAsesorHandler(asesorService)
 
@@ -136,15 +72,15 @@ func main() {
 	host := fmt.Sprintf("%s:%s", "localhost", apiPort)
 	server := pkg.NewServer(pkg.ServerOpts{
 		ListenAddr: host,
-		Logger:     logger,
+		Logger:     app.Logger,
 	})
 
 	go webhook.ConsumeEntries(commsService.NewCommunication)
 
-	aircall := pkg.NewAircall(commsService.NewCommunication, logger)
+	aircall := pkg.NewAircall(commsService.NewCommunication, app.Logger)
 	router.Handle("/aircall", aircall).Methods(http.MethodPost)
 
-	router.HandleFunc("/pipedrive", handlers.HandleErrors(pipedriveApi.HandleOAuth)).Methods(http.MethodGet)
+	router.HandleFunc("/pipedrive", handlers.HandleErrors(app.Pipedrive.HandleOAuth)).Methods(http.MethodGet)
 
 	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.ReciveNotificaction)).Methods(http.MethodPost)
 	router.HandleFunc("/webhooks", handlers.HandleErrors(webhook.Verify)).Methods(http.MethodGet)
