@@ -22,7 +22,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    image: ghcr.io/thorque-software/leadsextractor-api:latest
+    image: ghcr.io/lautarotetamusa/leadsextractor-api:latest
     build:
       context: ./
       dockerfile: ./src/Dockerfile

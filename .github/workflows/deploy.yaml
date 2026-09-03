@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE: ghcr.io/thorque-software/leadsextractor-api
+  IMAGE: ghcr.io/lautarotetamusa/leadsextractor-api
 
 jobs:
   build:
