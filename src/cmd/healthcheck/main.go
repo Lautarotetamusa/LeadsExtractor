@@ -1,7 +1,7 @@
-// Comando standalone para validar todas las APIs externas de las que
-// depende la aplicación (ZenRows, WhatsApp, Infobip, Pipedrive, MySQL,
-// Microsoft Graph Mail). Termina con exit code 1 si alguna falla, para
-// poder usarse en un cron/monitoreo.
+// Comando standalone para validar todo el ecosistema Rebora: las APIs
+// externas propias (ZenRows, WhatsApp, Infobip, Pipedrive, MySQL, Microsoft
+// Graph Mail), más Portalia (desglosado por portal) y Cotizador. Termina
+// con exit code 1 si algo falla, para poder usarse en un cron/monitoreo.
 package main
 
 import (
@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"leadsextractor/bootstrap"
 	"leadsextractor/pkg/dependency"
@@ -23,18 +22,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	results := dependency.CheckAll(ctx, app.Dependencies(), 15*time.Second)
+	results := app.CheckRebora(ctx)
 
 	failed := false
 	for _, r := range results {
 		switch r.Status {
 		case dependency.StatusOK:
-			fmt.Printf("[OK]      %-12s %s\n", r.Name, r.Latency)
+			fmt.Printf("[OK]      %-25s %dms\n", r.Name, r.LatencyMS)
 		case dependency.StatusWarning:
-			fmt.Printf("[WARNING] %-12s %s: %s\n", r.Name, r.Latency, r.Warning)
+			fmt.Printf("[WARNING] %-25s %dms: %s\n", r.Name, r.LatencyMS, r.Warning)
 		default:
 			failed = true
-			fmt.Printf("[ERROR]   %-12s %s: %s\n", r.Name, r.Latency, r.Error)
+			fmt.Printf("[ERROR]   %-25s %dms: %s\n", r.Name, r.LatencyMS, r.Error)
 		}
 	}
 

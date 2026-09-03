@@ -49,6 +49,8 @@ var fuenteOptions = map[string]uint32{
 	"propiedades":    26,
 	"whatsapp":       74,
 	"ivr":            75,
+	"easybroker":     567,
+	"wordpress":      568,
 }
 
 func (p *Pipedrive) createPerson(c *models.Communication, ownerId uint32) (*Person, error) {

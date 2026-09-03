@@ -5,28 +5,40 @@ import (
 	"net/http"
 	"time"
 
+	"leadsextractor/bootstrap"
 	"leadsextractor/pkg/dependency"
 
 	"github.com/gorilla/mux"
 )
 
 type HealthHandler struct {
-	deps []dependency.Dependency
+	app *bootstrap.App
 }
 
-func NewHealthHandler(deps []dependency.Dependency) *HealthHandler {
-	return &HealthHandler{deps: deps}
+func NewHealthHandler(app *bootstrap.App) *HealthHandler {
+	return &HealthHandler{app: app}
 }
 
 func (h *HealthHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/health", h.Check).Methods(http.MethodGet)
+	router.HandleFunc("/health/rebora", h.CheckRebora).Methods(http.MethodGet)
 }
 
-// Check corre el HealthCheck de todas las dependencias externas en paralelo
-// y devuelve 200 si todas responden bien, o 503 si alguna falla.
+// Check corre el HealthCheck de las dependencias propias de este servicio y
+// devuelve 200 si todas responden bien, o 503 si alguna falla.
 func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
-	results := dependency.CheckAll(r.Context(), h.deps, 10*time.Second)
+	results := dependency.CheckAll(r.Context(), h.app.Dependencies(), 10*time.Second)
+	respondHealth(w, results)
+}
 
+// CheckRebora corre el chequeo combinado: este servicio + Portalia
+// (desglosado por portal) + Cotizador.
+func (h *HealthHandler) CheckRebora(w http.ResponseWriter, r *http.Request) {
+	results := h.app.CheckRebora(r.Context())
+	respondHealth(w, results)
+}
+
+func respondHealth(w http.ResponseWriter, results []dependency.Result) {
 	status := http.StatusOK
 	if !dependency.AllOK(results) {
 		status = http.StatusServiceUnavailable

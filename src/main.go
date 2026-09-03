@@ -34,7 +34,7 @@ func main() {
 	healthCheckNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), ";")
 
 	flowManager := flow.NewFlowManager("actions.json", app.Store, app.Logger)
-	flow.DefineActions(app.Whatsapp, app.Pipedrive, app.Infobip, app.LeadStore, app.Mailer, app.Dependencies(), healthCheckNumbers)
+	flow.DefineActions(app.Whatsapp, app.Pipedrive, app.Infobip, app.LeadStore, app.Mailer, app.CheckRebora, healthCheckNumbers)
 	flowManager.MustLoad()
 
 	// Services
@@ -59,7 +59,7 @@ func main() {
 	flowHandler := handlers.NewFlowHandler(flowManager, app.CommStore)
 	commHandler := handlers.NewCommHandler(commsService)
 	asesorHandler := handlers.NewAsesorHandler(asesorService)
-	healthHandler := handlers.NewHealthHandler(app.Dependencies())
+	healthHandler := handlers.NewHealthHandler(app)
 
 	router := mux.NewRouter()
 	router.Use(CORS)

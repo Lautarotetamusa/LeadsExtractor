@@ -151,3 +151,22 @@ func (a *App) Dependencies() []dependency.Dependency {
 		a.ZenRows,
 	}
 }
+
+// CheckRebora valida la salud de todo el ecosistema Rebora: las
+// dependencias propias de este servicio, más Portalia (desglosado por cada
+// portal que chequea internamente) y Cotizador. PORTALIA_URL/COTIZADOR_URL
+// son las URLs base de cada servicio (sin path); si no están configuradas,
+// esos chequeos se omiten en vez de reportarse como caídos.
+func (a *App) CheckRebora(ctx context.Context) []dependency.Result {
+	results := dependency.CheckAll(ctx, a.Dependencies(), 10*time.Second)
+
+	if portaliaURL := os.Getenv("PORTALIA_URL"); portaliaURL != "" {
+		results = append(results, dependency.FetchRemoteHealth(ctx, "portalia", portaliaURL+"/api/v1/health", 30*time.Second)...)
+	}
+
+	if cotizadorURL := os.Getenv("COTIZADOR_URL"); cotizadorURL != "" {
+		results = append(results, dependency.CheckURL(ctx, "cotizador", cotizadorURL, 10*time.Second))
+	}
+
+	return results
+}

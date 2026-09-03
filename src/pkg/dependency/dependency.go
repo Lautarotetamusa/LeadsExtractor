@@ -43,7 +43,11 @@ type Result struct {
 	Status  Status        `json:"status"`
 	Error   string        `json:"error,omitempty"`
 	Warning string        `json:"warning,omitempty"`
-	Latency time.Duration `json:"latency_ms"`
+	Latency time.Duration `json:"-"`
+	// LatencyMS es Latency en milisegundos: time.Duration se serializa como
+	// nanosegundos crudos si se lo marshalea directo, así que se expone por
+	// separado ya convertido para no mentir en el nombre del campo.
+	LatencyMS int64 `json:"latency_ms"`
 }
 
 // CheckAll corre el HealthCheck de cada dependencia en paralelo, acotado por
@@ -66,9 +70,10 @@ func CheckAll(ctx context.Context, deps []Dependency, timeout time.Duration) []R
 			elapsed := time.Since(start)
 
 			res := Result{
-				Name:    d.Name(),
-				Status:  StatusOK,
-				Latency: elapsed,
+				Name:      d.Name(),
+				Status:    StatusOK,
+				Latency:   elapsed,
+				LatencyMS: elapsed.Milliseconds(),
 			}
 			if err != nil {
 				res.Status = StatusError

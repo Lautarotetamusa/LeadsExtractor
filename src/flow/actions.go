@@ -26,7 +26,7 @@ func DefineActions(
 	infobipApi *infobip.InfobipApi,
 	leadStorer store.LeadStorer,
 	mailer email.Sender,
-	deps []dependency.Dependency,
+	checkRebora func(ctx context.Context) []dependency.Result,
 	healthCheckNumbers []string,
 ) {
 	DefineAction("wpp.message",
@@ -137,10 +137,10 @@ func DefineActions(
 				return nil
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 
-			results := dependency.CheckAll(ctx, deps, 10*time.Second)
+			results := checkRebora(ctx)
 			msg := formatHealthCheck(results)
 			wpp.SendMessage(c.Telefono.String(), msg)
 			c.LastSentMessage = models.NullString{String: msg, Valid: true}
@@ -165,7 +165,7 @@ func formatHealthCheck(results []dependency.Result) string {
 	for _, r := range results {
 		switch r.Status {
 		case dependency.StatusOK:
-			sb.WriteString(fmt.Sprintf("✅ %s (%s)\n", r.Name, r.Latency))
+			sb.WriteString(fmt.Sprintf("✅ %s (%dms)\n", r.Name, r.LatencyMS))
 		case dependency.StatusWarning:
 			sb.WriteString(fmt.Sprintf("⚠️ %s: %s\n", r.Name, r.Warning))
 		default:

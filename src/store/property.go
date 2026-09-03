@@ -34,7 +34,7 @@ const (
 	selectPropQ = "SELECT * FROM Property WHERE portal_id LIKE ? AND portal = ? LIMIT 1"
 )
 
-var validSources = []string{"whatsapp", "ivr", "viewphone", "inmuebles24", "lamudi", "casasyterrenos", "propiedades"}
+var validSources = []string{"whatsapp", "ivr", "viewphone", "inmuebles24", "lamudi", "casasyterrenos", "propiedades", "easybroker", "wordpress"}
 
 // fuentesSinPropiedad son los orígenes de una comunicación que no están
 // ligados a ninguna Property.

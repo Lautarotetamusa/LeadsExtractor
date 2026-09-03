@@ -23,6 +23,12 @@ type SourceReportData struct {
 	Total      int
 }
 
+// reportedSources son las fuentes que se incluyen en el reporte diario (por
+// WhatsApp y por email). Agregar una fuente nueva acá no requiere tocar
+// ningún template de Meta: el mensaje de WhatsApp se arma dinámicamente en
+// un solo parámetro de texto (ver buildReportText).
+var reportedSources = []string{"inmuebles24", "casasyterrenos", "lamudi", "propiedades", "whatsapp", "easybroker", "wordpress"}
+
 func NewReportService(store store.CommunicationStorer, wa *whatsapp.Whatsapp, mailer email.Sender) *ReportService {
 	return &ReportService{commStore: store, wa: wa, mailer: mailer}
 }
@@ -73,49 +79,23 @@ func (rs *ReportService) SendReport(numbers []string, daysBefore int) error {
         return err
     }
 
-	// Same order than the template
-	sendedSources := []string{"inmuebles24", "casasyterrenos", "lamudi", "propiedades", "whatsapp"}
-	p := []whatsapp.Parameter{whatsapp.Parameter{
-		Type: "text",
-		Text: date.Format("2006-01-02"),
-	}}
+	text := buildReportText(date, reportedSources, report)
 
-	total := 0
-	for _, source := range sendedSources {
-		p = append(p, whatsapp.Parameter{
-			Type: "text",
-			Text: fmt.Sprintf("%d", report[source].NewLeads),
-		})
-		p = append(p, whatsapp.Parameter{
-			Type: "text",
-			Text: fmt.Sprintf("%d", report[source].Existing),
-		})
-		p = append(p, whatsapp.Parameter{
-			Type: "text",
-			Text: fmt.Sprintf("%d", report[source].Total),
-		})
-		total += report[source].Total
-	}
-	p = append(p, whatsapp.Parameter{
-		Type: "text",
-		Text: fmt.Sprintf("%d", total),
-	})
-
-	// Prospectador por i24
-	p = append(p, whatsapp.Parameter{
-		Type: "text",
-		Text: fmt.Sprintf("%d", report["inmuebles24"].Prospected),
-	})
-
-	t := whatsapp.TemplatePayload {
-		Name: "reporte",
+	// El template "reporte_dinamico" tiene un único parámetro {{1}} en el
+	// body. Agregar/sacar una fuente del reporte es 100% código Go (ver
+	// reportedSources/buildReportText); no requiere volver a aprobar nada
+	// en Meta, porque la cantidad de parámetros del template nunca cambia.
+	t := whatsapp.TemplatePayload{
+		Name: "reporte_dinamico",
 		Language: whatsapp.Language{
 			Code: "es_MX",
 		},
 		Components: []whatsapp.Components{
 			{
 				Type: "body",
-				Parameters: p,
+				Parameters: []whatsapp.Parameter{
+					{Type: "text", Text: text},
+				},
 			},
 		},
 	}
@@ -128,6 +108,28 @@ func (rs *ReportService) SendReport(numbers []string, daysBefore int) error {
 	}
 
 	return nil
+}
+
+// buildReportText arma el reporte como un único renglón de texto: los
+// parámetros de un template de WhatsApp no admiten saltos de línea ni tabs
+// (la Cloud API los rechaza), así que las fuentes se separan con " | " en
+// lugar de un salto de línea por fuente.
+func buildReportText(date time.Time, sources []string, report map[string]SourceReportData) string {
+	rows := make([]string, 0, len(sources))
+	total := 0
+	for _, source := range sources {
+		d := report[source]
+		rows = append(rows, fmt.Sprintf("%s: %d nuevos, %d existentes, %d total", source, d.NewLeads, d.Existing, d.Total))
+		total += d.Total
+	}
+
+	return fmt.Sprintf(
+		"%s | %s | Total: %d | Prospectados (i24): %d",
+		date.Format("2006-01-02"),
+		strings.Join(rows, " | "),
+		total,
+		report["inmuebles24"].Prospected,
+	)
 }
 
 func (rs *ReportService) SendDailyReportEmail(recipients []string) error {
@@ -145,9 +147,8 @@ func (rs *ReportService) SendReportEmail(recipients []string, daysBefore int) er
 		return err
 	}
 
-	sources := []string{"inmuebles24", "casasyterrenos", "lamudi", "propiedades", "whatsapp"}
 	subject := fmt.Sprintf("Reporte diario - %s", date.Format("2006-01-02"))
-	body := buildReportHTML(date, sources, report)
+	body := buildReportHTML(date, reportedSources, report)
 
 	return rs.mailer.Send(context.Background(), recipients, subject, body, true)
 }
