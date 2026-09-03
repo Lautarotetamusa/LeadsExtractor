@@ -24,6 +24,7 @@ mysql/
 
 #go API
 src/main
+src/healthcheck
 src/*.json
 
 #Debug
