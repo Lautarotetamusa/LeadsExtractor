@@ -2,6 +2,7 @@ package infobip
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -104,6 +105,75 @@ func Communication2Infobip(c *models.Communication) *InfobipLead {
 		ContactInformation: contactInformation,
 		Tags:               "Seguimientos",
 	}
+}
+
+// minBalance es el umbral por debajo del cual se avisa que la cuenta
+// prepaga se está por quedar sin saldo.
+const minBalance = 10.0
+
+type accountBalance struct {
+	Balance  float64 `json:"balance"`
+	Currency string  `json:"currency"`
+}
+
+func (i *InfobipApi) Name() string {
+	return "infobip"
+}
+
+func (i *InfobipApi) getBalance(ctx context.Context) (*accountBalance, error) {
+	balanceUrl, err := url.JoinPath(i.apiUrl, "/account/1/balance")
+	if err != nil {
+		return nil, fmt.Errorf("la url es incorrecta: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, balanceUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", i.apiKey)
+
+	res, err := i.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo realizar la peticion: %w", err)
+	}
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("respuesta inesperada de infobip: %d %s", res.StatusCode, body)
+	}
+
+	var balance accountBalance
+	if err := json.Unmarshal(body, &balance); err != nil {
+		return nil, fmt.Errorf("no se pudo parsear la respuesta de infobip: %w", err)
+	}
+	return &balance, nil
+}
+
+// HealthCheck valida el API key consultando el balance de la cuenta, una
+// llamada de solo lectura que no envía ningún mensaje.
+func (i *InfobipApi) HealthCheck(ctx context.Context) error {
+	_, err := i.getBalance(ctx)
+	return err
+}
+
+// UsageWarning avisa cuando el saldo prepago de la cuenta cae por debajo de
+// minBalance, para enterarse antes de que Infobip empiece a rechazar envíos
+// por falta de saldo.
+func (i *InfobipApi) UsageWarning(ctx context.Context) (string, error) {
+	balance, err := i.getBalance(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if balance.Balance < minBalance {
+		return fmt.Sprintf("saldo bajo: %.2f %s", balance.Balance, balance.Currency), nil
+	}
+	return "", nil
 }
 
 func (i *InfobipApi) makeRequest(method string, path string, payload interface{}) {

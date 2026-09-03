@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"leadsextractor/models"
+	"leadsextractor/pkg/dependency"
 	"leadsextractor/pkg/email"
 	"leadsextractor/pkg/infobip"
 	"leadsextractor/pkg/pipedrive"
 	"leadsextractor/pkg/roundrobin"
 	"leadsextractor/pkg/whatsapp"
+	"leadsextractor/pkg/zenrows"
 	"leadsextractor/store"
 
 	"github.com/go-playground/validator/v10"
@@ -34,6 +36,7 @@ type App struct {
 	Pipedrive *pipedrive.Pipedrive
 	Whatsapp  *whatsapp.Whatsapp
 	Mailer    email.Sender
+	ZenRows   *zenrows.ZenRows
 
 	LeadStore     store.LeadStorer
 	UtmStore      store.UTMStorer
@@ -51,9 +54,11 @@ type App struct {
 // HTTP principal como los binarios de cron (cmd/reporter) para no
 // reconstruir a mano el mismo grafo de dependencias.
 func NewApp(ctx context.Context) (*App, error) {
-	if err := godotenv.Load("../.env"); err != nil {
-		return nil, fmt.Errorf("error loading .env file: %w", err)
-	}
+	// En Docker las env vars ya las inyecta `env_file:` de docker-compose, así
+	// que no hay un .env físico dentro de la imagen (no se hornean secretos
+	// en la imagen que se publica a GHCR). godotenv.Load solo hace falta
+	// corriendo local sin Docker; si no encuentra el archivo, seguimos.
+	_ = godotenv.Load("../.env")
 
 	logger := slog.New(
 		tint.NewHandler(os.Stdout, &tint.Options{
@@ -94,6 +99,8 @@ func NewApp(ctx context.Context) (*App, error) {
 		From:         "lautaro.teta@rbaresidences.com",
 	})
 
+	zenrowsApi := zenrows.NewZenRows(os.Getenv("ZENROWS_APIKEY"), logger)
+
 	leadStore := store.NewLeadStore(db)
 	utmStore := store.NewUTMStore(db)
 	commStore := store.NewCommStore(db)
@@ -117,6 +124,7 @@ func NewApp(ctx context.Context) (*App, error) {
 		Pipedrive: pipedriveApi,
 		Whatsapp:  wpp,
 		Mailer:    mailer,
+		ZenRows:   zenrowsApi,
 
 		LeadStore:     leadStore,
 		UtmStore:      utmStore,
@@ -128,4 +136,18 @@ func NewApp(ctx context.Context) (*App, error) {
 		RoundRobin: rr,
 		Validate:   validate,
 	}, nil
+}
+
+// Dependencies devuelve todas las APIs externas de las que depende la app
+// (más la propia base de datos), para poder validarlas todas juntas con
+// dependency.CheckAll.
+func (a *App) Dependencies() []dependency.Dependency {
+	return []dependency.Dependency{
+		store.NewDBDependency(a.DB),
+		a.Infobip,
+		a.Pipedrive,
+		a.Whatsapp,
+		a.Mailer,
+		a.ZenRows,
+	}
 }

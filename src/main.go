@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"leadsextractor/bootstrap"
 	"leadsextractor/flow"
@@ -30,8 +31,10 @@ func main() {
 		app.Logger,
 	)
 
+	healthCheckNumbers := strings.Split(os.Getenv("REPORT_NUMBERS"), ";")
+
 	flowManager := flow.NewFlowManager("actions.json", app.Store, app.Logger)
-	flow.DefineActions(app.Whatsapp, app.Pipedrive, app.Infobip, app.LeadStore, app.Mailer)
+	flow.DefineActions(app.Whatsapp, app.Pipedrive, app.Infobip, app.LeadStore, app.Mailer, app.Dependencies(), healthCheckNumbers)
 	flowManager.MustLoad()
 
 	// Services
@@ -56,6 +59,7 @@ func main() {
 	flowHandler := handlers.NewFlowHandler(flowManager, app.CommStore)
 	commHandler := handlers.NewCommHandler(commsService)
 	asesorHandler := handlers.NewAsesorHandler(asesorService)
+	healthHandler := handlers.NewHealthHandler(app.Dependencies())
 
 	router := mux.NewRouter()
 	router.Use(CORS)
@@ -66,6 +70,7 @@ func main() {
 	flowHandler.RegisterRoutes(router)
 	commHandler.RegisterRoutes(router)
 	asesorHandler.RegisterRoutes(router)
+	healthHandler.RegisterRoutes(router)
 
 	// Server
 	apiPort := os.Getenv("API_PORT")

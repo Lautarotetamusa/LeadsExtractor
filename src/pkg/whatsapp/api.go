@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -211,4 +212,32 @@ func (w *Whatsapp) SendImage(to string, imageId string) {
 
 func (w *Whatsapp) SendVideo(to string, videoId string) {
 	w.Send(NewMediaPayload(to, videoId, "video"))
+}
+
+func (w *Whatsapp) Name() string {
+	return "whatsapp"
+}
+
+// HealthCheck valida el access token y el number id consultando los
+// metadatos del número, sin enviar ningún mensaje.
+func (w *Whatsapp) HealthCheck(ctx context.Context) error {
+	url := fmt.Sprintf("https://graph.facebook.com/v17.0/%s?fields=verified_name", w.numberId)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", w.accessToken))
+
+	res, err := w.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("no se pudo realizar la peticion: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+		return fmt.Errorf("respuesta inesperada de whatsapp: %d %s", res.StatusCode, body)
+	}
+	return nil
 }

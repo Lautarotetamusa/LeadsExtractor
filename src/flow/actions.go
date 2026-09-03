@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"leadsextractor/models"
+	"leadsextractor/pkg/dependency"
 	"leadsextractor/pkg/email"
 	"leadsextractor/pkg/infobip"
 	"leadsextractor/pkg/pipedrive"
@@ -15,6 +16,7 @@ import (
 	"reflect"
 	"strings"
 	"text/template"
+	"time"
 )
 
 // Definimos las acciones permitidas dentro de un flow
@@ -24,6 +26,8 @@ func DefineActions(
 	infobipApi *infobip.InfobipApi,
 	leadStorer store.LeadStorer,
 	mailer email.Sender,
+	deps []dependency.Dependency,
+	healthCheckNumbers []string,
 ) {
 	DefineAction("wpp.message",
 		func(c *models.Communication, params interface{}) error {
@@ -126,6 +130,49 @@ func DefineActions(
 		},
 		nil,
 	)
+
+	DefineAction("health.check",
+		func(c *models.Communication, params interface{}) error {
+			if !isAllowedNumber(c.Telefono.String(), healthCheckNumbers) {
+				return nil
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			defer cancel()
+
+			results := dependency.CheckAll(ctx, deps, 10*time.Second)
+			msg := formatHealthCheck(results)
+			wpp.SendMessage(c.Telefono.String(), msg)
+			c.LastSentMessage = models.NullString{String: msg, Valid: true}
+			return nil
+		},
+		nil,
+	)
+}
+
+func isAllowedNumber(number string, allowed []string) bool {
+	for _, a := range allowed {
+		if strings.EqualFold(strings.TrimSpace(a), number) {
+			return true
+		}
+	}
+	return false
+}
+
+func formatHealthCheck(results []dependency.Result) string {
+	var sb strings.Builder
+	sb.WriteString("Estado de las dependencias:\n")
+	for _, r := range results {
+		switch r.Status {
+		case dependency.StatusOK:
+			sb.WriteString(fmt.Sprintf("✅ %s (%s)\n", r.Name, r.Latency))
+		case dependency.StatusWarning:
+			sb.WriteString(fmt.Sprintf("⚠️ %s: %s\n", r.Name, r.Warning))
+		default:
+			sb.WriteString(fmt.Sprintf("❌ %s: %s\n", r.Name, r.Error))
+		}
+	}
+	return sb.String()
 }
 
 func (m *FlowManager) GetActions() interface{} {

@@ -6,8 +6,40 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ghcr.io/thorque-software/leadsextractor-api
+
 jobs:
-  deploy:    
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # En PRs solo construye (valida el Dockerfile), no publica nada.
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ./src/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ env.IMAGE }}:latest
+          cache-from: type=gha,scope=leadsextractor-api
+          cache-to: type=gha,mode=max,scope=leadsextractor-api
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    needs: build
     uses: Thorque-Software/actions/.github/workflows/rsync.yml@main
     secrets:
       key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -16,10 +48,13 @@ jobs:
       user: ubuntu
       host: ${{ vars.SERVER_HOST }}
       deploy-path: /home/ubuntu/LeadsExtractor
-      files: "./src ./db ./nginx docker-compose.yml"
+      # Ya no se sincroniza ./src: el código viaja en la imagen de GHCR.
+      # Sincronizar solo el bootstrap de la DB, nginx y el compose evita que
+      # queden archivos fantasma de versiones viejas en el servidor.
+      files: "./db/init ./nginx docker-compose.yml"
       script: |
-          docker compose down
+          docker compose pull
 
-          docker compose build
+          docker compose up -d --remove-orphans
 
-          docker compose up -d
+          docker image prune -f

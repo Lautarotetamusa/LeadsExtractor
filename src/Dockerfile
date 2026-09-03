@@ -7,7 +7,6 @@ ENV TZ=America/Mexico_City
 WORKDIR app/src/
 
 COPY ./src .
-COPY ./.env ../.env
 RUN go mod download && go mod verify
 
 RUN go build -o daily-reporter cmd/reporter/main.go

@@ -67,8 +67,6 @@ func (g *GraphMailer) getAccessToken(ctx context.Context) (string, error) {
 	data := fmt.Sprintf("client_id=%s&client_secret=%s&scope=https://graph.microsoft.com/.default&grant_type=client_credentials",
 		g.config.ClientID, g.config.ClientSecret)
 
-	fmt.Println(data)
-
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBufferString(data))
 	if err != nil {
 		return "", err
@@ -148,6 +146,17 @@ func (g *GraphMailer) Send(ctx context.Context, to []string, subject, body strin
 	}
 
 	return nil
+}
+
+func (g *GraphMailer) Name() string {
+	return "graph-mail"
+}
+
+// HealthCheck valida las credenciales de Azure AD obteniendo un access
+// token, sin enviar ningún correo.
+func (g *GraphMailer) HealthCheck(ctx context.Context) error {
+	_, err := g.getAccessToken(ctx)
+	return err
 }
 
 // Helper para convertir []string en []Recipient

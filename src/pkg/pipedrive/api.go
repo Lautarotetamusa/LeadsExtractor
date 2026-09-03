@@ -2,6 +2,7 @@ package pipedrive
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -158,6 +159,17 @@ func (p *Pipedrive) SaveCommunication(c *models.Communication) {
 	} else {
 		p.logger.Info("Nota cargada con exito")
 	}
+}
+
+func (p *Pipedrive) Name() string {
+	return "pipedrive"
+}
+
+// HealthCheck valida el ApiToken pidiendo el usuario autenticado, la
+// consulta de solo lectura más liviana disponible en la API.
+func (p *Pipedrive) HealthCheck(ctx context.Context) error {
+	var me any
+	return p.makeRequest("GET", "users/me", nil, &me)
 }
 
 func (p *Pipedrive) saveToken() {
