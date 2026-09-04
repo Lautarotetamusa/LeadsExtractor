@@ -47,6 +47,15 @@ func ValidateSource(source string) error {
 	return nil
 }
 
+// ValidSources devuelve una copia de las fuentes válidas de una
+// comunicación (ver ValidateSource) — usado por los tests de integración
+// para ejercitar cada una contra una DB real.
+func ValidSources() []string {
+	out := make([]string, len(validSources))
+	copy(out, validSources)
+	return out
+}
+
 // FuenteTienePropiedad indica si una comunicación de esta fuente debe tener
 // una Property asociada (viene de un portal) o no (whatsapp/ivr/viewphone).
 func FuenteTienePropiedad(fuente string) bool {

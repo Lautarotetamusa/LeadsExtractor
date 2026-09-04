@@ -11,7 +11,51 @@ env:
   IMAGE: ghcr.io/lautarotetamusa/leadsextractor-api
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: mariadb:10.9.4
+        env:
+          MARIADB_ROOT_PASSWORD: testpass123
+          MYSQL_DATABASE: LeadsExtractor
+          MYSQL_USER: teti
+          MYSQL_PASSWORD: testpass123
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+      # Igual que db/init/set_mode.sql: sin esto, insertar un string que es
+      # un UUID falla porque MySQL lo interpreta como número.
+      - name: Configurar sql_mode
+        run: mysql -h127.0.0.1 -uroot -ptestpass123 -e "SET GLOBAL sql_mode='';"
+      - name: go test (mockeados)
+        working-directory: src
+        run: go test $(go list ./... | grep -v /scripts)
+      # Corre migraciones reales contra la DB descartable de este job y
+      # ejercita el INSERT real de cada fuente — es lo único que detecta un
+      # desajuste entre el código y el schema (ver
+      # service/communication_integration_test.go y HEALTHCHECK.md).
+      - name: go test (integración, DB real)
+        working-directory: src
+        env:
+          HOST: 127.0.0.1
+          DB_USER: teti
+          DB_PASS: testpass123
+          DB_PORT: 3306
+          DB_NAME: LeadsExtractor
+        run: go test -tags=integration ./service/...
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
